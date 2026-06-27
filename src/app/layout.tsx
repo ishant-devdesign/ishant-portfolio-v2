@@ -44,41 +44,138 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Ishant Kumar — Frontend Developer & UI/UX Designer",
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://ishant-devdesign.vercel.app",
+  ),
+
+  applicationName: "Ishant Kumar Portfolio",
+
+  title: {
+    default: "Ishant Kumar — Frontend Engineer & UI Designer",
+    template: "%s • Ishant Kumar",
+  },
+
   description:
-    "A dark editorial portfolio for Ishant Kumar, blending UI/UX sensitivity, frontend craft, blogs, certifications, and a personal pet gallery.",
+    "Frontend Engineer specializing in React, Next.js, TypeScript, and modern UI systems. Explore projects, case studies, blogs, certifications, and the design process behind every interface.",
+
   keywords: [
-    "frontend developer",
-    "UI/UX designer",
-    "React",
+    "Ishant Kumar",
+    "Frontend Engineer",
+    "Frontend Developer",
+    "React Developer",
     "Next.js",
     "TypeScript",
-    "portfolio",
+    "JavaScript",
+    "React",
+    "Tailwind CSS",
+    "UI Design",
+    "UX Design",
+    "Portfolio",
+    "Web Development",
+    "Frontend Portfolio",
   ],
-  authors: [{ name: "Ishant Kumar" }],
+
+  authors: [
+    {
+      name: "Ishant Kumar",
+      url: process.env.NEXT_PUBLIC_SITE_URL,
+    },
+  ],
+
   creator: "Ishant Kumar",
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL || "https://ishant.dev",
-  ),
-  openGraph: {
-    type: "website",
-    locale: "en_US",
-    siteName: "Ishant Kumar",
-    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
+
+  publisher: "Ishant Kumar",
+
+  category: "Technology",
+
+  alternates: {
+    canonical: "/",
   },
-  twitter: {
-    card: "summary_large_image",
-    creator: "@ishantkumar",
-  },
+
+  referrer: "origin-when-cross-origin",
+
   robots: {
     index: true,
     follow: true,
+    nocache: false,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-video-preview": -1,
+      "max-snippet": -1,
+    },
   },
-  manifest: "/manifest.json",
+
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: process.env.NEXT_PUBLIC_SITE_URL,
+    title: "Ishant Kumar — Frontend Engineer & UI Designer",
+    description:
+      "Frontend Engineer specializing in React, Next.js, TypeScript, and modern UI systems.",
+
+    siteName: "Ishant Kumar",
+
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Ishant Kumar Portfolio",
+      },
+    ],
+  },
+
+  twitter: {
+    card: "summary_large_image",
+    title: "Ishant Kumar — Frontend Engineer & UI Designer",
+    description:
+      "Frontend Engineer specializing in React, Next.js, TypeScript, and modern UI systems.",
+
+    images: ["/og-image.png"],
+  },
+
   icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon-16x16.png",
+    icon: [
+      {
+        url: "/favicon.svg",
+        type: "image/svg+xml",
+      },
+      {
+        url: "/favicon-96x96.png",
+        sizes: "96x96",
+        type: "image/png",
+      },
+      {
+        url: "/web-app-manifest-192x192.png",
+        sizes: "192x192",
+        type: "image/png",
+      },
+      {
+        url: "/web-app-manifest-512x512.png",
+        sizes: "512x512",
+        type: "image/png",
+      },
+    ],
+
+    shortcut: "/favicon.svg",
+
     apple: "/apple-touch-icon.png",
+  },
+
+  manifest: "/manifest.json",
+
+  appleWebApp: {
+    capable: true,
+    title: "Ishant Kumar",
+    statusBarStyle: "black-translucent",
   },
 };
 
