@@ -42,6 +42,8 @@ const EMPTY_PROJECT: Project = {
   approach: "",
   outcome: "",
   contentBlocks: [],
+  createdAt: undefined,
+  updatedAt: undefined,
 };
 
 function logFetch(scope: string, message: string, payload?: unknown) {
@@ -424,6 +426,8 @@ export async function getLiveProjects(): Promise<Project[]> {
     approach: row.approach ?? "",
     outcome: row.outcome ?? "",
     contentBlocks: normalizeProjectBlocks(row),
+    createdAt: row.created_at ? new Date(row.created_at) : undefined,
+    updatedAt: row.updated_at ? new Date(row.updated_at) : undefined,
   }));
 }
 
@@ -478,6 +482,8 @@ export async function getLiveProjectBySlug(
     approach: data.approach ?? "",
     outcome: data.outcome ?? "",
     contentBlocks: normalizeProjectBlocks(data),
+    createdAt: data.created_at ? new Date(data.created_at) : undefined,
+    updatedAt: data.updated_at ? new Date(data.updated_at) : undefined,
   };
 }
 
@@ -518,6 +524,8 @@ export async function getLiveBlogs(): Promise<Blog[]> {
     heroImage: row.cover_image_url ?? "",
     sections: mapBlogBlocksToSections(row.content_blocks),
     contentBlocks: normalizeBlogBlocks(row.content_blocks),
+    createdAt: row.created_at ? new Date(row.created_at) : undefined,
+    updatedAt: row.updated_at ? new Date(row.updated_at) : undefined,
   }));
 }
 
@@ -561,6 +569,8 @@ export async function getLiveBlogBySlug(slug: string): Promise<Blog | null> {
     heroImage: data.cover_image_url ?? "",
     sections: mapBlogBlocksToSections(data.content_blocks),
     contentBlocks: normalizeBlogBlocks(data.content_blocks),
+    createdAt: data.created_at ? new Date(data.created_at) : undefined,
+    updatedAt: data.updated_at ? new Date(data.updated_at) : undefined,
   };
 }
 

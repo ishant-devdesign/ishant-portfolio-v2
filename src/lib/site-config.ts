@@ -68,6 +68,8 @@ export type Project = {
   approach: string;
   outcome: string;
   contentBlocks: ContentBlock[];
+  createdAt?: Date;
+  updatedAt?: Date;
 };
 
 export type Blog = {
@@ -86,6 +88,8 @@ export type Blog = {
     body: string;
   }>;
   contentBlocks: ContentBlock[];
+  createdAt?: Date;
+  updatedAt?: Date;
 };
 
 export type Certification = {
