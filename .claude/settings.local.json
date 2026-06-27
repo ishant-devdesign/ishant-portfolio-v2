@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(npm run *)",
+      "Bash(curl -s http://localhost:3000)",
+      "Bash(pkill -f \"next dev\")",
+      "Bash(npx tsx *)",
+      "Bash(npx next *)",
+      "Bash(curl -s http://localhost:3001/auth)",
+      "Bash(curl -s http://localhost:3000/auth)",
+      "Bash(curl -s http://localhost:3000/api/docs)",
+      "Bash(curl *)"
+    ]
+  }
+}

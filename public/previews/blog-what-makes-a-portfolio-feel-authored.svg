@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" fill="none">
+  <rect width="1200" height="800" fill="#120F11"/>
+  <rect x="60" y="60" width="1080" height="680" rx="36" fill="url(#a)" stroke="#49363D"/>
+  <rect x="120" y="140" width="960" height="70" rx="16" fill="#1F1720" stroke="#5A3B48"/>
+  <rect x="120" y="240" width="820" height="70" rx="16" fill="#1F1720" stroke="#5A3B48"/>
+  <rect x="120" y="340" width="900" height="70" rx="16" fill="#1F1720" stroke="#5A3B48"/>
+  <rect x="120" y="470" width="960" height="120" rx="24" fill="#171216" stroke="#5A3B48"/>
+  <text x="120" y="690" fill="#FFF1F2" font-family="Arial, sans-serif" font-size="54" font-weight="700">What Makes a Portfolio Feel Authored</text>
+  <defs>
+    <linearGradient id="a" x1="60" y1="60" x2="1140" y2="740" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1B1519"/>
+      <stop offset="1" stop-color="#151114"/>
+    </linearGradient>
+  </defs>
+</svg>

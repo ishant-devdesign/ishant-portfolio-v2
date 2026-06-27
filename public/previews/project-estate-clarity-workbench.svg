@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" fill="none">
+  <rect width="1200" height="800" fill="#151112"/>
+  <rect x="60" y="60" width="1080" height="680" rx="36" fill="url(#a)" stroke="#3F2A2A"/>
+  <rect x="120" y="120" width="960" height="140" rx="28" fill="#21181A" stroke="#4B2D31"/>
+  <rect x="120" y="300" width="290" height="290" rx="24" fill="#251B1D" stroke="#5B3237"/>
+  <rect x="455" y="300" width="290" height="290" rx="24" fill="#251B1D" stroke="#5B3237"/>
+  <rect x="790" y="300" width="290" height="290" rx="24" fill="#251B1D" stroke="#5B3237"/>
+  <text x="120" y="720" fill="#FFF7ED" font-family="Arial, sans-serif" font-size="58" font-weight="700">Estate Clarity Workbench</text>
+  <defs>
+    <linearGradient id="a" x1="60" y1="60" x2="1140" y2="740" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1F1618"/>
+      <stop offset="1" stop-color="#26181A"/>
+    </linearGradient>
+  </defs>
+</svg>

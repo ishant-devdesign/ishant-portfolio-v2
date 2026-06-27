@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" fill="none">
+  <rect width="1200" height="800" fill="#101115"/>
+  <rect x="60" y="60" width="1080" height="680" rx="36" fill="url(#a)" stroke="#2F3A4E"/>
+  <rect x="120" y="140" width="960" height="150" rx="24" fill="#121A29" stroke="#334155"/>
+  <rect x="120" y="340" width="460" height="210" rx="24" fill="#0F172A" stroke="#334155"/>
+  <rect x="620" y="340" width="460" height="210" rx="24" fill="#0F172A" stroke="#334155"/>
+  <text x="120" y="690" fill="#F8FAFC" font-family="Arial, sans-serif" font-size="56" font-weight="700">When Frontend Becomes Product Design</text>
+  <defs>
+    <linearGradient id="a" x1="60" y1="60" x2="1140" y2="740" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0F172A"/>
+      <stop offset="1" stop-color="#121723"/>
+    </linearGradient>
+  </defs>
+</svg>

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" fill="none">
+  <rect width="1200" height="800" fill="#0F0F10"/>
+  <rect x="60" y="60" width="1080" height="680" rx="36" fill="url(#a)" stroke="#35363C"/>
+  <text x="120" y="180" fill="#F8FAFC" font-family="Arial, sans-serif" font-size="78" font-weight="700">Breathing</text>
+  <text x="120" y="270" fill="#CBD5E1" font-family="Arial, sans-serif" font-size="78" font-weight="700">Room</text>
+  <rect x="120" y="360" width="960" height="120" rx="20" fill="#17181C" stroke="#3F3F46"/>
+  <text x="120" y="690" fill="#F8FAFC" font-family="Arial, sans-serif" font-size="56" font-weight="700">Why Interfaces Need Breathing Room</text>
+  <defs>
+    <linearGradient id="a" x1="60" y1="60" x2="1140" y2="740" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#15161A"/>
+      <stop offset="1" stop-color="#101114"/>
+    </linearGradient>
+  </defs>
+</svg>

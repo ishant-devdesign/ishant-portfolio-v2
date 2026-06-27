@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" fill="none">
+  <rect width="1200" height="800" fill="#121212"/>
+  <rect x="60" y="60" width="1080" height="680" rx="36" fill="url(#a)" stroke="#4B5563"/>
+  <circle cx="310" cy="320" r="160" fill="#1F2937" stroke="#6B7280"/>
+  <circle cx="730" cy="320" r="110" fill="#111827" stroke="#6B7280"/>
+  <circle cx="920" cy="320" r="80" fill="#0F172A" stroke="#6B7280"/>
+  <text x="120" y="690" fill="#F8FAFC" font-family="Arial, sans-serif" font-size="56" font-weight="700">Designing for Calm Complexity</text>
+  <defs>
+    <linearGradient id="a" x1="60" y1="60" x2="1140" y2="740" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#171717"/>
+      <stop offset="1" stop-color="#111111"/>
+    </linearGradient>
+  </defs>
+</svg>
