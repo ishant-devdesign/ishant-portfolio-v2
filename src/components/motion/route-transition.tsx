@@ -31,6 +31,7 @@ export function RouteTransition() {
   const mountedRef = useRef(false);
   const pendingHrefRef = useRef<string | null>(null);
   const pushTimeoutRef = useRef<number | null>(null);
+
   const [visible, setVisible] = useState(false);
   const [label, setLabel] = useState(formatPathname(pathname));
 
