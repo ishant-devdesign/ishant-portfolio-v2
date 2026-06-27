@@ -1073,7 +1073,6 @@ export function HomePage({
             <MockMedia
               title="Designer at heart. Engineer by craft."
               subtitle="A visual study standing in for the quieter story of how interface thinking and frontend craft came to meet in one practice."
-              tone="none"
             />
           </div>
         </HomeSectionFrame>

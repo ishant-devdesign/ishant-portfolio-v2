@@ -29,7 +29,6 @@ export function AccordionBlock({
             className="overflow-hidden rounded-[1.4rem] border border-white/10 bg-white/[0.03]"
           >
             <div
-              type="button"
               data-cursor-enabled="false"
               onClick={() =>
                 setOpenIndex((current) => (current === index ? null : index))

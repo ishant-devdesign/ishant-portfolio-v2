@@ -85,7 +85,6 @@ export function ExperienceProvider({
       {loaderState.showLoader ? (
         <IntroLoader
           name={settings.loaderNameText}
-          symbols={settings.loaderSymbols}
           onComplete={() => {
             setLoaderState((current) => ({
               ...current,
