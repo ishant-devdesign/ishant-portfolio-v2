@@ -15,8 +15,6 @@ import {
   Music4,
   Sparkles,
   SwatchBook,
-  Save,
-  RotateCcw,
   Plus,
   Trash2,
   ArrowUpRight,
@@ -25,6 +23,7 @@ import {
 import { AutoGrowTextarea } from "@/components/admin/auto-grow-textarea";
 import { useHomeHeroEditor } from "@/components/admin/home-hero-editor";
 import { useAdminSession } from "@/components/admin/admin-session-provider";
+import { SaveStatusPill, type SaveState } from "@/components/admin/save-status-pill";
 import { buttonClasses } from "@/components/ui/button";
 import { MobileSectionNav } from "@/components/nav/mobile-section-nav";
 import { SideNavRail } from "@/components/nav/side-nav-rail";
@@ -278,12 +277,14 @@ function HomeSectionFrame({
   label,
   title,
   children,
+  saveState,
 }: {
   id: string;
   index: string;
   label: string;
   title: string;
   children: React.ReactNode;
+  saveState?: SaveState;
 }) {
   return (
     <section
@@ -297,9 +298,12 @@ function HomeSectionFrame({
           </p>
         </RevealInView>
         <RevealInView>
-          <h2 className="font-heading max-w-4xl text-4xl leading-none text-white sm:text-5xl">
-            {title}
-          </h2>
+          <div className="flex items-center gap-3">
+            <h2 className="font-heading max-w-4xl text-4xl leading-none text-white sm:text-5xl">
+              {title}
+            </h2>
+            {saveState ? <SaveStatusPill state={saveState} /> : null}
+          </div>
           <div className="mt-3">{children}</div>
         </RevealInView>
       </div>
@@ -583,17 +587,7 @@ export function HomePage({
                 <p className="text-[0.66rem] uppercase tracking-[0.36em] text-white/34">
                   {siteSettings.heroEyebrow}
                 </p>
-                {isEditable ? (
-                  <span className="text-[0.58rem] uppercase tracking-[0.28em] text-white/34">
-                    {saveState === "saving"
-                      ? "Autosaving"
-                      : saveState === "saved"
-                        ? "Saved"
-                        : saveState === "error"
-                          ? "Save error"
-                          : "Edit mode"}
-                  </span>
-                ) : null}
+                <SaveStatusPill state={isEditable ? saveState : "idle"} />
               </motion.div>
 
               <motion.div
@@ -1082,6 +1076,7 @@ export function HomePage({
           index="04"
           label="Career"
           title="Trajectory."
+          saveState={trajectoryState}
         >
           <div className="space-y-5">
             <div className="space-y-3 text-base leading-7 text-white/58 sm:text-lg mt-2">
@@ -1500,7 +1495,13 @@ export function HomePage({
           </div>
         </HomeSectionFrame>
 
-        <HomeSectionFrame id="stack" index="06" label="Tools" title="Tools.">
+        <HomeSectionFrame
+          id="stack"
+          index="06"
+          label="Tools"
+          title="Tools."
+          saveState={toolsState}
+        >
           <div className="grid gap-4 xl:grid-cols-2">
             <p className="mt-1 max-w-3xl text-base leading-7 text-white/58 sm:text-lg">
               The toolkit matters less as a badge list and more as a set of
@@ -1783,6 +1784,7 @@ export function HomePage({
           index="10"
           label="Reach"
           title="Contact."
+          saveState={contactState}
         >
           <div className="grid gap-10 xl:grid-cols-[minmax(0,1fr)_330px]">
             <div>

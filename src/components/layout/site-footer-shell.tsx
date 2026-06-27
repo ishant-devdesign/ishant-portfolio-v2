@@ -1,10 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useMemo, useState } from "react";
-import { ArrowUpRight, RotateCcw, Save } from "lucide-react";
+import { useCallback, useMemo, useRef, useState, useEffect } from "react";
+import { ArrowUpRight } from "lucide-react";
 import { useAdminSession } from "@/components/admin/admin-session-provider";
 import { AutoGrowTextarea } from "@/components/admin/auto-grow-textarea";
+import {
+  SaveStatusPill,
+  type SaveState,
+} from "@/components/admin/save-status-pill";
 import { buttonClasses } from "@/components/ui/button";
 import MagnetLines from "@/components/MagnetLines";
 import type { SiteSettings } from "@/lib/site-config";
@@ -35,9 +39,9 @@ export function SiteFooterShell({
   const { isAllowedAdmin, viewMode } = useAdminSession();
   const adminMode = isAllowedAdmin && viewMode === "admin";
   const [draft, setDraft] = useState(() => createFooterDraft(siteSettings));
-  const [saveState, setSaveState] = useState<
-    "idle" | "saving" | "saved" | "error"
-  >("idle");
+  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const timeoutRef = useRef<number | null>(null);
+  const savedRef = useRef(JSON.stringify(createFooterDraft(siteSettings)));
 
   const emailHref =
     draft.gmailComposeUrl && draft.gmailComposeUrl !== "#"
@@ -102,6 +106,7 @@ export function SiteFooterShell({
           typeof data?.error === "string" ? data.error : "save-failed",
         );
       }
+      savedRef.current = JSON.stringify(draft);
       setSaveState("saved");
       window.setTimeout(() => setSaveState("idle"), 1200);
     } catch (error) {
@@ -110,52 +115,25 @@ export function SiteFooterShell({
     }
   }, [draft]);
 
-  const resetFooter = useCallback(() => {
-    setDraft(createFooterDraft(siteSettings));
-    setSaveState("idle");
-  }, [siteSettings]);
+  useEffect(() => {
+    if (!adminMode) return;
+    const serialized = JSON.stringify(draft);
+    if (serialized === savedRef.current) return;
+    if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
+    timeoutRef.current = window.setTimeout(() => {
+      void saveFooter();
+    }, 700);
+    return () => {
+      if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
+    };
+  }, [adminMode, draft, saveFooter]);
 
   return (
     <footer className="relative mt-24 border-t border-white/8 bg-[#070707]">
-      {/* MagnetLines background effect */}
-      <div className="absolute inset-0 -z-10 overflow-hidden opacity-15">
-        <MagnetLines
-          rows={10}
-          columns={10}
-          containerSize="100%"
-          lineColor="rgba(255,255,255,0.05)"
-          lineWidth="1px"
-          lineHeight="2vmin"
-          baseAngle={-15}
-        />
-      </div>
-
       <div className="mx-auto max-w-[1600px] px-5 sm:px-8 lg:px-10">
         {adminMode ? (
-          <div className="flex flex-wrap items-center gap-2 border-b border-white/8 py-4 text-xs text-white/44">
-            <button
-              type="button"
-              onClick={() => void saveFooter()}
-              className={buttonClasses({ tone: "ghost", size: "sm" })}
-            >
-              <Save className="size-3.5" /> Save footer
-            </button>
-            <button
-              type="button"
-              onClick={resetFooter}
-              className={buttonClasses({ tone: "muted", size: "sm" })}
-            >
-              <RotateCcw className="size-3.5" /> Reset
-            </button>
-            <span>
-              {saveState === "saving"
-                ? "Saving…"
-                : saveState === "saved"
-                  ? "Saved"
-                  : saveState === "error"
-                    ? "Save error"
-                    : ""}
-            </span>
+          <div className="flex items-center gap-3 py-4 text-xs text-white/44">
+            <SaveStatusPill state={saveState} />
           </div>
         ) : null}
 
