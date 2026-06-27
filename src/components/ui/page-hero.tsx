@@ -27,7 +27,7 @@ export function PageHero({
         <h1 className="font-heading mt-5 text-balance text-5xl leading-none text-white sm:text-7xl">
           {title}
         </h1>
-        <p className="mt-6 max-w-2xl text-balance text-base leading-7 text-white/60 sm:text-lg">
+        <p className="mt-6 text-balance text-base leading-7 text-white/60 sm:text-lg">
           {description}
         </p>
       </RevealInView>

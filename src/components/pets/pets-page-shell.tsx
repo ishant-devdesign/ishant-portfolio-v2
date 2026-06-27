@@ -711,7 +711,7 @@ function PetArticle({
 
           {draft.images.length > 0 ? (
             adminMode ? (
-              <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="mt-6 columns-1 gap-4 sm:columns-2 xl:columns-3">
                 {draft.images.map((image, imageIndex) => (
                   <div
                     key={image.id}
@@ -734,7 +734,7 @@ function PetArticle({
                     }}
                     onDragEnd={() => setDraggingImageIndex(null)}
                     className={cn(
-                      "rounded-[1.6rem] border bg-white/[0.02] p-3",
+                      "rounded-[1.6rem] border bg-white/[0.02] p-3 mb-4 break-inside-avoid",
                       image.featuredOnHome
                         ? "border-amber-300/28"
                         : "border-white/10",
@@ -945,7 +945,7 @@ export function PetsPageShell({ initialPets }: { initialPets: Pet[] }) {
         <PageHero
           eyebrow="Pets"
           title="The companions behind the journey."
-          description="Some are still by my side, others live on in memory. Together, they've shaped quiet moments, difficult days, and the person behind the work."
+          description="Long before this portfolio existed, they were already part of the story. Some are still here, others now live in memory—but every one of them helped shape the person behind the work."
         />
 
         {adminMode ? (

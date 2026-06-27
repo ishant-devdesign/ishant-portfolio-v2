@@ -56,12 +56,13 @@ export function ProjectsArchivePage({ projects }: { projects: Project[] }) {
             00 / Projects
           </p>
           <h1 className="font-heading mt-5 text-balance text-5xl leading-none text-white sm:text-7xl">
-            A curated body of product, frontend, and system-shaping work.
+            From ideas to interfaces that people actually use.
           </h1>
-          <p className="mt-6 max-w-2xl text-balance text-base leading-7 text-white/60 sm:text-xl">
-            A selection of work spanning product engineering, frontend
-            development, and interface design—each shaped by real users, real
-            constraints, and continuous iteration.
+          <p className="mt-6 text-balance text-base leading-7 text-white/60 sm:text-xl">
+            Every project here began with a real problem to solve. Some focused
+            on simplifying complex workflows, others on improving performance,
+            accessibility, or design systems. Together, they reflect how I think
+            through products—not just how I build them.
           </p>
         </RevealInView>
 

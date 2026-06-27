@@ -882,7 +882,7 @@ export function IntroLoader({
             strokeWidth="1"
             strokeOpacity={helperVisible ? 0.16 : 0}
             fontSize="86"
-            fontFamily="var(--font-display-name), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
+            fontFamily="var(--font-heading), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
             fontWeight="500"
             letterSpacing="0.13em"
             lengthAdjust="spacing"
@@ -909,7 +909,7 @@ export function IntroLoader({
             dominantBaseline="alphabetic"
             fill="white"
             fontSize="86"
-            fontFamily="var(--font-display-name), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
+            fontFamily="var(--font-heading), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
             fontWeight="500"
             letterSpacing="0.13em"
             lengthAdjust="spacing"

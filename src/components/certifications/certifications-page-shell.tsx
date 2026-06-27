@@ -196,11 +196,10 @@ export function CertificationsPageShell({
 
   return (
     <main className="mx-auto w-full max-w-[1300px] px-5 pb-24 sm:px-8 lg:px-10">
-      
       <PageHero
         eyebrow="Certifications"
-        title="Credentials presented as a credibility archive, not a bullet dump."
-        description="Each certification record is designed to support optional badge imagery and optional credential links later through Supabase-backed editing."
+        title="Proof of curiosity, not just qualifications."
+        description="Every certification represents deliberate time invested in learning. Some strengthened technical foundations, others expanded how I think about products, systems, and engineering. Together they reflect a habit of continuous growth rather than collecting badges."
       />
 
       {adminMode ? (
@@ -480,7 +479,7 @@ export function CertificationsPageShell({
                         href={certification.credentialUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="mt-5 inline-flex items-center gap-2 text-sm text-white/78 underline underline-offset-4"
+                        className="mt-5 w-fit px-4 py-2 border border-zinc-600/40 rounded-full inline-flex items-center gap-2 text-sm text-white/78 underline underline-offset-4"
                         data-cursor="Open cred"
                         data-cursor-position="top"
                       >

@@ -944,7 +944,7 @@ export function HomePage({
           id="work"
           index="01"
           label="Selected work"
-          title="Selected work, case-study first."
+          title="Selected work."
         >
           <div className="space-y-5">
             <p className="max-w-3xl text-base leading-7 text-white/56 sm:text-lg">
@@ -1502,22 +1502,20 @@ export function HomePage({
 
         <HomeSectionFrame id="stack" index="06" label="Tools" title="Tools.">
           <div className="grid gap-4 xl:grid-cols-2">
+            <p className="mt-1 max-w-3xl text-base leading-7 text-white/58 sm:text-lg">
+              The toolkit matters less as a badge list and more as a set of
+              instruments for shipping better interface systems, stronger
+              frontend foundations, and cleaner collaboration between design and
+              engineering.
+            </p>
+
             <div className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-5 sm:p-6">
-              <div className="flex items-center gap-3 text-white/36">
+              <div className="flex items-center gap-3 text-white/36 mb-6">
                 <Cpu className="size-4" />
                 <p className="text-[0.65rem] uppercase tracking-[0.34em]">
                   Current toolkit
                 </p>
               </div>
-              <p className="mt-5 max-w-3xl text-base leading-7 text-white/58 sm:text-lg">
-                The toolkit matters less as a badge list and more as a set of
-                instruments for shipping better interface systems, stronger
-                frontend foundations, and cleaner collaboration between design
-                and engineering.
-              </p>
-            </div>
-
-            <div className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-5 sm:p-6">
               {adminMode ? (
                 <div className="space-y-4">
                   {toolsGroupsDraft.map((group, index) => (
@@ -1625,10 +1623,9 @@ export function HomePage({
         >
           <div className="space-y-3">
             <p className="max-w-3xl text-base leading-7 text-white/56 sm:text-lg">
-              These credentials sit in the portfolio as signals of breadth:
-              cloud awareness, design process discipline, data fluency, and
-              structured engineering thinking beyond surface-level interface
-              work.
+              Learning never stopped after graduation. These certifications
+              document the technologies, disciplines, and ideas I've
+              intentionally explored.
             </p>
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 mt-5">
               {featuredCertifications.map((certification) => (
@@ -1676,10 +1673,8 @@ export function HomePage({
         >
           <div className="space-y-3">
             <p className="max-w-3xl text-base leading-7 text-white/56 sm:text-lg">
-              Writing is where interface work gets slowed down enough to be
-              examined properly. These posts are less about advice and more
-              about clarifying the decisions, tensions, and patterns that show
-              up inside the work.
+              Thoughts collected between commits, prototypes, and production
+              releases.
             </p>
             <div className="space-y-3">
               {recentBlogs.map((blog) => (

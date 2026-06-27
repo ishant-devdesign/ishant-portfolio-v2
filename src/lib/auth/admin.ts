@@ -1,8 +1,24 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { AdminContext } from "@/lib/auth/types";
+import { headers } from "next/headers";
 
 export async function getAdminContext(): Promise<AdminContext> {
+  // Auto-enable admin on localhost for development convenience
+  // This allows editing without authentication on local development
+  const headerList = await headers();
+  const host = headerList.get("host") ?? "";
+  const isLocalhost = host.startsWith("localhost") || host.startsWith("127.0.0.1");
+
+  if (isLocalhost) {
+    console.info("[supabase:auth] Localhost detected - admin mode auto-enabled.");
+    return {
+      user: { id: "localhost", email: "localhost" },
+      isAllowedAdmin: true,
+      authEnabled: true,
+    };
+  }
+
   const supabase = await createSupabaseServerClient();
   console.info("[supabase:auth] Resolving admin context.");
 

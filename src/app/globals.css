@@ -182,17 +182,6 @@ a {
   font-style: italic;
 }
 
-.font-display-name {
-  font-family: "Nagasaki", var(--font-heading), sans-serif;
-  letter-spacing: 0.08em;
-}
-
-@font-face {
-  font-family: "Nagasaki";
-  src: url("/fonts/Nagasaki.ttf") format("truetype");
-  font-display: swap;
-}
-
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);

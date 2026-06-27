@@ -18,7 +18,7 @@ export function TopNav() {
           href="/"
           data-cursor="Home"
           data-cursor-position="top"
-          className="flex items-center"
+          className="flex items-center -ml-4"
         >
           <SiteNameMark
             text="Ishant Kumar"

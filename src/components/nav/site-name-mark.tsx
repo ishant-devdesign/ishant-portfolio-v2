@@ -32,7 +32,7 @@ export function SiteNameMark({
       aria-label={text}
     >
       <motion.span
-        className="font-display-name rounded-full inline-flex flex-wrap items-end justify-center gap-x-[0.055em] uppercase leading-none text-white/88"
+        className="font-heading rounded-full inline-flex flex-wrap items-end justify-center gap-x-[0.055em] uppercase leading-none text-white/88"
         initial={
           shouldAnimateFromLoader
             ? { y: "115%", opacity: 0.36, filter: "blur(10px)" }
