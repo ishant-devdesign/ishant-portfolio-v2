@@ -288,68 +288,7 @@ export function SideNavRail({ sections }: SideNavRailProps) {
             );
           })}
 
-          {/* Scroll to top button */}
-          <a
-            className="group flex h-[52px] items-center justify-end rounded-full px-3"
-            href="#"
-            onClick={(event) => {
-              event.preventDefault();
-              window.scrollTo({ top: 0, behavior: "smooth" });
-            }}
-          >
-            <div
-              className="group flex h-[52px] items-center justify-end rounded-full px-3"
-              aria-label="Scroll to top"
-            >
-              <motion.div
-                className="relative inline-flex max-w-[156px] justify-end rounded-full p-2"
-                whileHover={{ x: -4 }}
-                transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-                data-cursor="Scroll to top"
-                data-cursor-position="left"
-              >
-                <motion.span
-                  aria-hidden="true"
-                  className="absolute inset-0 rounded-full bg-white/[0.055]"
-                  animate={{
-                    opacity: hovered || atBottom ? 1 : 0,
-                    filter: hovered || atBottom ? "blur(0px)" : "blur(12px)",
-                    scaleX: hovered || atBottom ? 1 : 0.78,
-                  }}
-                  style={{
-                    transformOrigin: "100% 50%",
-                    backdropFilter: "blur(12px)",
-                  }}
-                  transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
-                />
-
-                <motion.span
-                  className="relative z-10 max-w-[132px] truncate px-4 py-2 text-right text-sm tracking-[-0.01em] whitespace-nowrap text-white"
-                  animate={{
-                    opacity: hovered || atBottom ? 1 : 0,
-                    filter: hovered || atBottom ? "blur(0px)" : "blur(10px)",
-                  }}
-                  transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
-                >
-                  Scroll to Top
-                </motion.span>
-              </motion.div>
-            </div>
-
-            <motion.div
-              className="flex w-4 justify-end"
-              animate={{
-                opacity: atBottom ? 0.78 : hovered ? 0.54 : 0.34,
-                filter: atBottom ? "blur(0px)" : "blur(0.4px)",
-              }}
-              transition={{
-                duration: 0.28,
-                ease: [0.22, 1, 0.36, 1],
-              }}
-            >
-              <ChevronUp className="size-4 text-white" />
-            </motion.div>
-          </a>
+        
         </motion.div>
       </div>
     </aside>
