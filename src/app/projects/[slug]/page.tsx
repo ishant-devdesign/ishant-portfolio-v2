@@ -7,11 +7,19 @@ import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
 
+const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://ishant.dev";
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const project = await getLiveProjectBySlug(slug);
 
   if (!project) return {};
+
+  const ogImage = project.heroImage
+    ? project.heroImage.startsWith("http")
+      ? project.heroImage
+      : `${baseUrl}${project.heroImage}`
+    : undefined;
 
   return {
     title: `${project.title} — Ishant Kumar`,
@@ -19,14 +27,14 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     openGraph: {
       title: project.title,
       description: project.summary,
-      images: project.heroImage ? [{ url: project.heroImage }] : undefined,
+      images: ogImage ? [{ url: ogImage }] : undefined,
       type: "article",
     },
     twitter: {
       card: "summary_large_image",
       title: project.title,
       description: project.summary,
-      images: project.heroImage ? [project.heroImage] : undefined,
+      images: ogImage ? [ogImage] : undefined,
     },
   };
 }

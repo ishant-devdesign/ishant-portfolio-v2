@@ -81,13 +81,13 @@ function TruncatedSideNavLabel({
 
   return (
     <span
-      className="relative z-10 inline-block"
+      className="relative z-10 inline-block w-fit"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
       <motion.span
         ref={textRef}
-        className="block max-w-[132px] truncate px-4 py-2 text-right text-sm tracking-[-0.01em] whitespace-nowrap text-white"
+        className="block max-w-[132px] w-fit truncate px-4 py-2 text-right text-sm tracking-[-0.01em] whitespace-nowrap text-white"
         animate={{
           opacity: visible ? 1 : 0,
           filter: visible ? "blur(0px)" : "blur(10px)",
@@ -100,7 +100,7 @@ function TruncatedSideNavLabel({
       {isTruncated && (
         <motion.span
           aria-hidden="true"
-          className="pointer-events-none absolute right-full top-1/2 mr-3 -translate-y-1/2 whitespace-nowrap rounded-full border border-white/10 bg-black/80 px-3 py-1.5 text-xs text-white shadow-2xl backdrop-blur-md"
+          className="pointer-events-none w-fit absolute right-full top-1/2 mr-3 -translate-y-1/2 whitespace-nowrap rounded-full border border-white/10 bg-black/80 px-3 py-1.5 text-xs text-white shadow-2xl backdrop-blur-md"
           animate={{
             opacity: showTooltip && visible ? 1 : 0,
             x: showTooltip && visible ? 0 : 6,
@@ -226,7 +226,7 @@ export function SideNavRail({ sections }: SideNavRailProps) {
         onMouseLeave={() => setHovered(false)}
       >
         <motion.div
-          className="absolute inset-x-0"
+          className="absolute inset-x-0 justify-end flex flex-col items-end"
           style={{ top: `calc(50% - ${ITEM_HEIGHT / 2}px)` }}
           animate={{ y: -(activeIndex * ITEM_HEIGHT) }}
           transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
@@ -239,11 +239,11 @@ export function SideNavRail({ sections }: SideNavRailProps) {
               <a
                 key={section.id}
                 href={`#${section.id}`}
-                className="group flex h-[52px] items-center justify-end rounded-full px-3"
+                className="group flex h-[52px] items-center justify-end rounded-full px-3 w-fit"
               >
-                <div className="flex min-w-[156px] justify-end rounded-full">
+                <div className="flex w-fit justify-end rounded-full">
                   <motion.div
-                    className="relative inline-flex max-w-[156px] justify-end rounded-full p-2"
+                    className="relative inline-flex max-w-[156px] justify-end rounded-full p-2 w-fit"
                     whileHover={{ x: -4 }}
                     transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
                     data-cursor="Open section"
@@ -251,7 +251,7 @@ export function SideNavRail({ sections }: SideNavRailProps) {
                   >
                     <motion.span
                       aria-hidden="true"
-                      className="absolute inset-0 rounded-full bg-white/[0.055]"
+                      className="absolute inset-0 rounded-full bg-white/[0.055] flex flex-col justify-end"
                       animate={{
                         opacity: textVisible ? 1 : 0,
                         filter: textVisible ? "blur(0px)" : "blur(12px)",
