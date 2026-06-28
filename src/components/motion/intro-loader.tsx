@@ -754,6 +754,543 @@ function CanvasGrid({
   );
 }
 
+/* Your logo paths */
+const LOGO_I_PATH =
+  "M10.496 0V10.496H0V0H10.496ZM10.496 17.472V73.472H0V17.472H10.496Z";
+
+const LOGO_K_PATH =
+  "M69.6875 17.472V28.032H27.6395V31.488L69.6875 73.472H55.6715L24.1835 41.984V73.472H13.6875V28.032H20.6635V24.512H24.1835V20.992H20.6635V17.472H13.6875V0H24.1835V14.016H27.6395V17.472H69.6875ZM27.6395 28.032H24.1835V24.512C24.1835 26.432 22.5835 28.032 20.6635 28.032H24.1835V31.488C24.1835 30.528 24.5675 29.632 25.1435 28.992C25.7835 28.416 26.6795 28.032 27.6395 28.032ZM24.1835 20.992V17.472H20.6635C22.5835 17.472 24.1835 19.072 24.1835 20.992Z";
+
+function LogoAnchorPoint({
+  x,
+  y,
+  visible,
+  delay = 0,
+  opacity = 0.42,
+}: {
+  x: number;
+  y: number;
+  visible: boolean;
+  delay?: number;
+  opacity?: number;
+}) {
+  return (
+    <motion.g
+      initial={{ opacity: 0, scale: 0.82 }}
+      animate={{
+        opacity: visible ? opacity : 0,
+        scale: visible ? 1 : 0.82,
+      }}
+      transition={{
+        duration: visible ? 0.45 : 0.28,
+        delay: visible ? delay : 0,
+        ease: [0.65, 0, 0.35, 1],
+      }}
+      style={{ transformOrigin: `${x}px ${y}px` }}
+    >
+      <circle
+        cx={x}
+        cy={y}
+        r="1.35"
+        fill="white"
+        opacity="0.55"
+        vectorEffect="non-scaling-stroke"
+      />
+      <circle
+        cx={x}
+        cy={y}
+        r="3.4"
+        fill="none"
+        stroke="white"
+        strokeWidth="0.7"
+        opacity="0.35"
+        vectorEffect="non-scaling-stroke"
+      />
+    </motion.g>
+  );
+}
+
+function LogoConstructionLine({
+  x1,
+  y1,
+  x2,
+  y2,
+  visible,
+  delay = 0,
+  opacity = 0.14,
+  dashed = false,
+}: {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  visible: boolean;
+  delay?: number;
+  opacity?: number;
+  dashed?: boolean;
+}) {
+  return (
+    <motion.line
+      x1={x1}
+      y1={y1}
+      x2={x2}
+      y2={y2}
+      stroke="white"
+      strokeWidth="0.8"
+      strokeLinecap="round"
+      strokeDasharray={dashed ? "2 3" : undefined}
+      vectorEffect="non-scaling-stroke"
+      initial={{ pathLength: 0, opacity: 0 }}
+      animate={{
+        pathLength: visible ? 1 : 0,
+        opacity: visible ? opacity : 0,
+      }}
+      transition={{
+        duration: visible ? 0.85 : 0.42,
+        delay: visible ? delay : delay * 0.12,
+        ease: [0.65, 0, 0.35, 1],
+      }}
+    />
+  );
+}
+
+function LogoConstructionCircle({
+  cx,
+  cy,
+  r,
+  visible,
+  delay = 0,
+  opacity = 0.13,
+  dashed = false,
+}: {
+  cx: number;
+  cy: number;
+  r: number;
+  visible: boolean;
+  delay?: number;
+  opacity?: number;
+  dashed?: boolean;
+}) {
+  return (
+    <motion.circle
+      cx={cx}
+      cy={cy}
+      r={r}
+      fill="none"
+      stroke="white"
+      strokeWidth="0.8"
+      strokeLinecap="round"
+      strokeDasharray={dashed ? "2 3" : undefined}
+      vectorEffect="non-scaling-stroke"
+      initial={{ pathLength: 0, opacity: 0 }}
+      animate={{
+        pathLength: visible ? 1 : 0,
+        opacity: visible ? opacity : 0,
+      }}
+      transition={{
+        duration: visible ? 0.95 : 0.45,
+        delay: visible ? delay : delay * 0.12,
+        ease: [0.65, 0, 0.35, 1],
+      }}
+    />
+  );
+}
+
+function LogoArcGuide({
+  cx,
+  cy,
+  r,
+  startAngle,
+  endAngle,
+  visible,
+  delay = 0,
+  opacity = 0.16,
+}: {
+  cx: number;
+  cy: number;
+  r: number;
+  startAngle: number;
+  endAngle: number;
+  visible: boolean;
+  delay?: number;
+  opacity?: number;
+}) {
+  const start = {
+    x: cx + r * Math.cos((startAngle * Math.PI) / 180),
+    y: cy + r * Math.sin((startAngle * Math.PI) / 180),
+  };
+
+  const end = {
+    x: cx + r * Math.cos((endAngle * Math.PI) / 180),
+    y: cy + r * Math.sin((endAngle * Math.PI) / 180),
+  };
+
+  const largeArcFlag = Math.abs(endAngle - startAngle) > 180 ? 1 : 0;
+
+  return (
+    <motion.path
+      d={`M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArcFlag} 1 ${end.x} ${end.y}`}
+      fill="none"
+      stroke="white"
+      strokeWidth="0.8"
+      strokeLinecap="round"
+      vectorEffect="non-scaling-stroke"
+      initial={{ pathLength: 0, opacity: 0 }}
+      animate={{
+        pathLength: visible ? 1 : 0,
+        opacity: visible ? opacity : 0,
+      }}
+      transition={{
+        duration: visible ? 0.9 : 0.42,
+        delay: visible ? delay : delay * 0.12,
+        ease: [0.65, 0, 0.35, 1],
+      }}
+    />
+  );
+}
+
+function LogoConstructionLayer({
+  phase,
+  isMobile,
+}: {
+  phase: LoaderPhase;
+  isMobile: boolean;
+}) {
+  const constructionVisible =
+    hasReached(phase, "canvas") && isBefore(phase, "clean");
+
+  const logoDraftVisible =
+    hasReached(phase, "construct") && isBefore(phase, "hold");
+
+  const finalLogoVisible = hasReached(phase, "discover");
+
+  const anchorVisible =
+    hasReached(phase, "construct") && isBefore(phase, "clean");
+
+  const logoBox = isMobile
+    ? {
+        x: 444,
+        y: 176,
+        width: 312,
+        height: 328,
+        finalOpacity: 0.08,
+      }
+    : {
+        x: 384,
+        y: 90,
+        width: 432,
+        height: 456,
+        finalOpacity: 0.065,
+      };
+
+  const verticalGuides = [
+    0, 10.496, 13.6875, 20.6635, 24.1835, 27.6395, 55.6715, 69.6875,
+  ];
+
+  const horizontalGuides = [
+    0, 10.496, 14.016, 17.472, 20.992, 24.512, 28.032, 31.488, 41.984, 73.472,
+  ];
+
+  const anchors = [
+    { x: 0, y: 0 },
+    { x: 10.496, y: 0 },
+    { x: 10.496, y: 10.496 },
+    { x: 0, y: 10.496 },
+    { x: 0, y: 17.472 },
+    { x: 10.496, y: 17.472 },
+    { x: 10.496, y: 73.472 },
+    { x: 0, y: 73.472 },
+
+    { x: 13.6875, y: 0 },
+    { x: 24.1835, y: 0 },
+    { x: 24.1835, y: 14.016 },
+    { x: 27.6395, y: 17.472 },
+    { x: 69.6875, y: 17.472 },
+    { x: 69.6875, y: 28.032 },
+    { x: 27.6395, y: 28.032 },
+    { x: 27.6395, y: 31.488 },
+    { x: 69.6875, y: 73.472 },
+    { x: 55.6715, y: 73.472 },
+    { x: 24.1835, y: 41.984 },
+    { x: 24.1835, y: 73.472 },
+    { x: 13.6875, y: 73.472 },
+    { x: 13.6875, y: 28.032 },
+    { x: 20.6635, y: 28.032 },
+    { x: 24.1835, y: 24.512 },
+    { x: 24.1835, y: 20.992 },
+    { x: 20.6635, y: 17.472 },
+  ];
+
+  return (
+    <svg
+      x={logoBox.x}
+      y={logoBox.y}
+      width={logoBox.width}
+      height={logoBox.height}
+      viewBox="-8 -8 86 90"
+      fill="none"
+      overflow="visible"
+      aria-hidden="true"
+    >
+      <motion.g
+        initial={{ opacity: 0, scale: 0.985 }}
+        animate={{
+          opacity: hasReached(phase, "canvas") ? 1 : 0,
+          scale: hasReached(phase, "discover") ? 1 : 0.985,
+        }}
+        transition={{
+          duration: 1.1,
+          ease: [0.65, 0, 0.35, 1],
+        }}
+        style={{ transformOrigin: "35px 37px" }}
+      >
+        <LogoConstructionLine
+          x1={0}
+          y1={0}
+          x2={69.6875}
+          y2={0}
+          visible={constructionVisible}
+          delay={0.05}
+          opacity={0.12}
+        />
+        <LogoConstructionLine
+          x1={69.6875}
+          y1={0}
+          x2={69.6875}
+          y2={73.472}
+          visible={constructionVisible}
+          delay={0.1}
+          opacity={0.12}
+        />
+        <LogoConstructionLine
+          x1={69.6875}
+          y1={73.472}
+          x2={0}
+          y2={73.472}
+          visible={constructionVisible}
+          delay={0.15}
+          opacity={0.12}
+        />
+        <LogoConstructionLine
+          x1={0}
+          y1={73.472}
+          x2={0}
+          y2={0}
+          visible={constructionVisible}
+          delay={0.2}
+          opacity={0.12}
+        />
+
+        {verticalGuides.map((x, index) => (
+          <LogoConstructionLine
+            key={`logo-v-${x}`}
+            x1={x}
+            y1={-4}
+            x2={x}
+            y2={77.5}
+            visible={constructionVisible}
+            delay={0.24 + index * 0.035}
+            opacity={index % 2 === 0 ? 0.105 : 0.065}
+            dashed={index % 2 !== 0}
+          />
+        ))}
+
+        {horizontalGuides.map((y, index) => (
+          <LogoConstructionLine
+            key={`logo-h-${y}`}
+            x1={-4}
+            y1={y}
+            x2={73.5}
+            y2={y}
+            visible={constructionVisible}
+            delay={0.34 + index * 0.028}
+            opacity={index % 2 === 0 ? 0.1 : 0.06}
+            dashed={index % 2 !== 0}
+          />
+        ))}
+
+        <LogoConstructionLine
+          x1={24.1835}
+          y1={41.984}
+          x2={55.6715}
+          y2={73.472}
+          visible={constructionVisible}
+          delay={0.68}
+          opacity={0.18}
+        />
+        <LogoConstructionLine
+          x1={27.6395}
+          y1={31.488}
+          x2={69.6875}
+          y2={73.472}
+          visible={constructionVisible}
+          delay={0.76}
+          opacity={0.18}
+        />
+        <LogoConstructionLine
+          x1={13.6875}
+          y1={28.032}
+          x2={27.6395}
+          y2={17.472}
+          visible={constructionVisible}
+          delay={0.84}
+          opacity={0.12}
+          dashed
+        />
+
+        <LogoConstructionCircle
+          cx={20.6635}
+          cy={24.512}
+          r={4.95}
+          visible={constructionVisible}
+          delay={0.9}
+          opacity={0.18}
+        />
+        <LogoConstructionCircle
+          cx={24.1835}
+          cy={28.032}
+          r={6.2}
+          visible={constructionVisible}
+          delay={0.98}
+          opacity={0.14}
+          dashed
+        />
+        <LogoConstructionCircle
+          cx={27.6395}
+          cy={28.032}
+          r={3.45}
+          visible={constructionVisible}
+          delay={1.06}
+          opacity={0.18}
+        />
+        <LogoConstructionCircle
+          cx={24.1835}
+          cy={20.992}
+          r={3.55}
+          visible={constructionVisible}
+          delay={1.14}
+          opacity={0.14}
+          dashed
+        />
+
+        <LogoArcGuide
+          cx={24.1835}
+          cy={28.032}
+          r={9.5}
+          startAngle={205}
+          endAngle={320}
+          visible={constructionVisible}
+          delay={1.2}
+          opacity={0.16}
+        />
+        <LogoArcGuide
+          cx={24.1835}
+          cy={20.992}
+          r={8.2}
+          startAngle={20}
+          endAngle={145}
+          visible={constructionVisible}
+          delay={1.28}
+          opacity={0.13}
+        />
+
+        {anchors.map((point, index) => (
+          <LogoAnchorPoint
+            key={`logo-anchor-${point.x}-${point.y}-${index}`}
+            x={point.x}
+            y={point.y}
+            visible={anchorVisible}
+            delay={0.78 + index * 0.025}
+            opacity={index % 3 === 0 ? 0.48 : 0.36}
+          />
+        ))}
+
+        <motion.path
+          d={LOGO_I_PATH}
+          fill="none"
+          stroke="white"
+          strokeWidth="1"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+          initial={{ pathLength: 0, opacity: 0 }}
+          animate={{
+            pathLength: logoDraftVisible ? 1 : 0,
+            opacity: logoDraftVisible ? 0.32 : 0,
+          }}
+          transition={{
+            duration: 1.45,
+            delay: 0.55,
+            ease: [0.65, 0, 0.35, 1],
+          }}
+        />
+
+        <motion.path
+          d={LOGO_K_PATH}
+          fill="none"
+          stroke="white"
+          strokeWidth="1"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+          initial={{ pathLength: 0, opacity: 0 }}
+          animate={{
+            pathLength: logoDraftVisible ? 1 : 0,
+            opacity: logoDraftVisible ? 0.34 : 0,
+          }}
+          transition={{
+            duration: 1.85,
+            delay: 0.82,
+            ease: [0.65, 0, 0.35, 1],
+          }}
+        />
+
+        <motion.g
+          initial={{ opacity: 0 }}
+          animate={{
+            opacity: finalLogoVisible ? logoBox.finalOpacity : 0,
+          }}
+          transition={{
+            duration: 1.35,
+            delay: 0.7,
+            ease: [0.65, 0, 0.35, 1],
+          }}
+        >
+          <path d={LOGO_I_PATH} fill="white" />
+          <path d={LOGO_K_PATH} fill="white" />
+        </motion.g>
+
+        <motion.g
+          initial={{ opacity: 0 }}
+          animate={{
+            opacity: finalLogoVisible ? 0.055 : 0,
+          }}
+          transition={{
+            duration: 1.35,
+            delay: 0.9,
+            ease: [0.65, 0, 0.35, 1],
+          }}
+        >
+          <path
+            d={LOGO_I_PATH}
+            fill="none"
+            stroke="white"
+            strokeWidth="0.8"
+            vectorEffect="non-scaling-stroke"
+          />
+          <path
+            d={LOGO_K_PATH}
+            fill="none"
+            stroke="white"
+            strokeWidth="0.8"
+            vectorEffect="non-scaling-stroke"
+          />
+        </motion.g>
+      </motion.g>
+    </svg>
+  );
+}
+
 function TypographyConstruction({
   phase,
   isMobile,
@@ -1749,7 +2286,10 @@ export function IntroLoader({
   const didCompleteRef = useRef(false);
   const onCompleteRef = useRef(onComplete);
 
-  const normalizedName = useMemo(() => name.trim().toUpperCase(), [name]);
+  const normalizedName = useMemo(
+    () => name.trim().toUpperCase() || "ISHANT KUMAR",
+    [name],
+  );
 
   useEffect(() => {
     onCompleteRef.current = onComplete;
@@ -1880,6 +2420,8 @@ export function IntroLoader({
         <TypographyConstruction phase={phase} isMobile={isMobile} />
 
         <ConstructionDetailLayer phase={phase} isMobile={isMobile} />
+
+        <LogoConstructionLayer phase={phase} isMobile={isMobile} />
 
         <WordmarkReveal
           phase={phase}
