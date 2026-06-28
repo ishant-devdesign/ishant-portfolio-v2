@@ -7,7 +7,7 @@ import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://ishant.dev";
+const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://ishant-devdesign.vercel.app";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     ? blog.heroImage.startsWith("http")
       ? blog.heroImage
       : `${baseUrl}${blog.heroImage}`
-    : undefined;
+    : `${baseUrl}/og-image.png`;
 
   return {
     title: `${blog.title} — Ishant Kumar`,
@@ -27,7 +27,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     openGraph: {
       title: blog.title,
       description: blog.excerpt,
-      images: ogImage ? [{ url: ogImage }] : undefined,
+      images: [{ url: ogImage }],
       type: "article",
       publishedTime: blog.publishedAt,
     },
@@ -35,7 +35,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       card: "summary_large_image",
       title: blog.title,
       description: blog.excerpt,
-      images: ogImage ? [ogImage] : undefined,
+      images: [ogImage],
     },
   };
 }

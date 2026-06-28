@@ -11,11 +11,20 @@ export const metadata: Metadata = {
     title: "Blog — Ishant Kumar",
     description: "Thoughts on frontend development, UI/UX design, and building thoughtful digital experiences.",
     type: "website",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Ishant Kumar Portfolio",
+      },
+    ],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "Blog — Ishant Kumar",
     description: "Thoughts on frontend development, UI/UX design, and building thoughtful digital experiences.",
+    images: ["/og-image.png"],
   },
 };
 

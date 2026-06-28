@@ -3,6 +3,32 @@ import { SiteFooter } from "@/components/layout/site-footer";
 import { PetsPageShell } from "@/components/pets/pets-page-shell";
 import { getLivePets } from "@/lib/content";
 
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Pets — Ishant Kumar",
+  description: "A collection of pet photos and stories.",
+  openGraph: {
+    title: "Pets — Ishant Kumar",
+    description: "A collection of pet photos and stories.",
+    type: "website",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Ishant Kumar Portfolio",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Pets — Ishant Kumar",
+    description: "A collection of pet photos and stories.",
+    images: ["/og-image.png"],
+  },
+};
+
 export default async function PetsPage() {
   const pets = await getLivePets();
 

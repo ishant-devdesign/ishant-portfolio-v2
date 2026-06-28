@@ -25,11 +25,20 @@ export async function generateMetadata(): Promise<Metadata> {
       title: siteSettings.siteName,
       description: siteSettings.heroSubheading,
       type: "website",
+      images: [
+        {
+          url: "/og-image.png",
+          width: 1200,
+          height: 630,
+          alt: "Ishant Kumar Portfolio",
+        },
+      ],
     },
     twitter: {
-      card: "summary",
+      card: "summary_large_image",
       title: siteSettings.siteName,
       description: siteSettings.heroSubheading,
+      images: ["/og-image.png"],
     },
     alternates: {
       types: {
