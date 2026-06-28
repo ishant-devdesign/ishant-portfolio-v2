@@ -4,17 +4,40 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   Plus,
   Trash2,
-  ChevronUp,
-  ChevronDown,
   ChevronsUpDown,
   PlusCircle,
+  Copy,
+  GripVertical,
+  Eye,
+  EyeOff,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { useEffect, useRef, useState } from "react";
+import { Tldraw } from "@tldraw/tldraw";
+import "@tldraw/tldraw/tldraw.css";
 import type { ContentBlock } from "@/lib/site-config";
+import type { CalloutVariant } from "@/components/content/callout-block";
 import { createBlock } from "@/lib/editor";
 import { AutoGrowTextarea } from "@/components/admin/auto-grow-textarea";
 import { buttonClasses } from "@/components/ui/button";
 import { MediaAssetField } from "@/components/editor/media-asset-field";
+import { NestedBlockEditor } from "@/components/editor/nested-block-editor";
 
 type BlockEditorProps = {
   blocks: ContentBlock[];
@@ -30,12 +53,20 @@ const headingOptions = [
   { label: "Mini", level: 5 },
 ] as const;
 
-function updateBlock(
-  blocks: ContentBlock[],
-  id: string,
-  updater: (block: ContentBlock) => ContentBlock,
-) {
-  return blocks.map((block) => (block.id === id ? updater(block) : block));
+const calloutVariantOptions: CalloutVariant[] = ["note", "warning", "success"];
+
+const codeLanguageOptions = [
+  { label: "JavaScript", value: "javascript" },
+  { label: "JSX/TSX", value: "jsx" },
+  { label: "TypeScript", value: "typescript" },
+  { label: "CSS", value: "css" },
+  { label: "HTML", value: "html" },
+  { label: "JSON", value: "json" },
+  { label: "Bash", value: "bash" },
+] as const;
+
+function getLanguageLabel(value: string) {
+  return codeLanguageOptions.find((opt) => opt.value === value)?.label ?? "JavaScript";
 }
 
 function ensureStringArray(value: unknown) {
@@ -53,6 +84,1329 @@ function decodeHtml(input: string) {
     .trim();
 }
 
+function duplicateBlock(
+  blocks: ContentBlock[],
+  id: string,
+): ContentBlock[] {
+  const index = blocks.findIndex((block) => block.id === id);
+  if (index === -1) return blocks;
+  const original = blocks[index];
+  const copy: ContentBlock = {
+    ...original,
+    id: `${original.type}-${crypto.randomUUID()}`,
+  };
+  return [...blocks.slice(0, index + 1), copy, ...blocks.slice(index + 1)];
+}
+
+function BlockEditorContent({
+  block,
+  blocks,
+  onChange,
+  removeBlock,
+  duplicateBlock,
+  mediaBucket,
+  openHeadingMenu,
+  setOpenHeadingMenu,
+  openCodeLangMenu,
+  setCodeLangMenu,
+}: {
+  block: ContentBlock;
+  blocks: ContentBlock[];
+  onChange: (blocks: ContentBlock[]) => void;
+  removeBlock: (id: string) => void;
+  duplicateBlock: (id: string) => void;
+  mediaBucket: string;
+  openHeadingMenu: string | null;
+  setOpenHeadingMenu: React.Dispatch<React.SetStateAction<string | null>>;
+  openCodeLangMenu: string | null;
+  setCodeLangMenu: React.Dispatch<React.SetStateAction<string | null>>;
+}) {
+  const updateBlockHandler = (id: string, updater: (block: ContentBlock) => ContentBlock) => {
+    onChange(blocks.map((b) => (b.id === id ? updater(b) : b)));
+  };
+
+  const headingLevel = Number(block.data?.level ?? 2);
+  const headingLabel =
+    headingOptions.find((option) => option.level === headingLevel)?.label ?? "Large";
+
+  const codeLanguage = String(block.data?.language ?? "javascript");
+  const showPreview = Boolean(block.data?.showPreview ?? false);
+
+  return (
+    <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-4">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <p className="text-[0.62rem] uppercase tracking-[0.28em] text-white/34">
+            {block.type}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => duplicateBlock(block.id)}
+            className={buttonClasses({ tone: "muted", iconOnly: true })}
+            title="Duplicate block"
+          >
+            <Copy className="size-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => removeBlock(block.id)}
+            className={buttonClasses({
+              tone: "danger",
+              iconOnly: true,
+            })}
+          >
+            <Trash2 className="size-4" />
+          </button>
+        </div>
+      </div>
+
+      {block.type === "heading" ? (
+        <div className="grid gap-3 sm:grid-cols-[160px_minmax(0,1fr)]">
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() =>
+                setOpenHeadingMenu((current) =>
+                  current === block.id ? null : block.id,
+                )
+              }
+              className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white"
+            >
+              <span>{headingLabel}</span>
+              <ChevronsUpDown className="size-4 text-white/42" />
+            </button>
+            <AnimatePresence>
+              {openHeadingMenu === block.id ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 8, filter: "blur(12px)" }}
+                  animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                  exit={{ opacity: 0, y: 6, filter: "blur(12px)" }}
+                  transition={{
+                    duration: 0.22,
+                    ease: [0.22, 1, 0.36, 1],
+                  }}
+                  className="absolute left-0 top-[calc(100%+0.5rem)] z-20 w-full rounded-[1rem] border border-white/10 bg-[#0c0c0c]/96 p-2 backdrop-blur-xl"
+                >
+                  {headingOptions.map((option) => (
+                    <button
+                      key={option.level}
+                      type="button"
+                      onClick={() => {
+                        setOpenHeadingMenu(null);
+                        updateBlockHandler(block.id, (current) => ({
+                          ...current,
+                          data: {
+                            ...current.data,
+                            level: option.level,
+                          },
+                        }));
+                      }}
+                      className="flex w-full rounded-[0.8rem] px-3 py-2 text-left text-sm text-white/72 transition-colors hover:bg-white/[0.04] hover:text-white"
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
+          </div>
+          <AutoGrowTextarea
+            value={String(block.data.text ?? "")}
+            onChange={(value) =>
+              updateBlockHandler(block.id, (current) => ({
+                ...current,
+                data: { ...current.data, text: value },
+              }))
+            }
+            className="min-h-[1lh] w-full resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
+          />
+        </div>
+      ) : null}
+
+      {block.type === "paragraph" ? (
+        <AutoGrowTextarea
+          value={String(
+            block.data.text ??
+              decodeHtml(String(block.data.html ?? "")),
+          )}
+          onChange={(value) =>
+            updateBlockHandler(block.id, (current) => ({
+              ...current,
+              data: {
+                ...current.data,
+                text: value,
+                html: `<p>${value}</p>`,
+              },
+            }))
+          }
+          className="min-h-[1lh] w-full resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-3 text-sm text-white outline-none"
+        />
+      ) : null}
+
+      {block.type === "image" ? (
+        <div className="grid gap-3">
+          <MediaAssetField
+            label="Image source"
+            value={String(block.data.url ?? "")}
+            onChange={(value) =>
+              updateBlockHandler(block.id, (current) => ({
+                ...current,
+                data: { ...current.data, url: value },
+              }))
+            }
+            bucket={mediaBucket}
+            accept="image/*"
+          />
+          <input
+            placeholder="Alt text"
+            value={String(block.data.alt ?? "")}
+            onChange={(event) =>
+              updateBlockHandler(block.id, (current) => ({
+                ...current,
+                data: { ...current.data, alt: event.target.value },
+              }))
+            }
+            className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
+          />
+          <AutoGrowTextarea
+            value={String(block.data.caption ?? "")}
+            onChange={(value) =>
+              updateBlockHandler(block.id, (current) => ({
+                ...current,
+                data: { ...current.data, caption: value },
+              }))
+            }
+            className="min-h-[1lh] w-full resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
+          />
+        </div>
+      ) : null}
+
+      {block.type === "video" ? (
+        <div className="grid gap-3">
+          <MediaAssetField
+            label="Video source"
+            value={String(block.data.url ?? "")}
+            onChange={(value) =>
+              updateBlockHandler(block.id, (current) => ({
+                ...current,
+                data: { ...current.data, url: value },
+              }))
+            }
+            bucket={mediaBucket}
+            accept="video/*"
+          />
+          <AutoGrowTextarea
+            value={String(block.data.caption ?? "")}
+            onChange={(value) =>
+              updateBlockHandler(block.id, (current) => ({
+                ...current,
+                data: { ...current.data, caption: value },
+              }))
+            }
+            className="min-h-[1lh] w-full resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
+          />
+        </div>
+      ) : null}
+
+      {block.type === "list" ? (
+        <div className="space-y-2">
+          {ensureStringArray(block.data.items).map((item, itemIndex) => (
+            <div key={`${block.id}-item-${itemIndex}`} className="flex items-start gap-2">
+              <AutoGrowTextarea
+                value={item}
+                onChange={(value) => {
+                  const items = [...ensureStringArray(block.data.items)];
+                  items[itemIndex] = value;
+                  updateBlockHandler(block.id, (current) => ({
+                    ...current,
+                    data: { ...current.data, items },
+                  }));
+                }}
+                className="min-h-[1lh] flex-1 resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const items = ensureStringArray(block.data.items).filter(
+                    (_, idx) => idx !== itemIndex,
+                  );
+                  updateBlockHandler(block.id, (current) => ({
+                    ...current,
+                    data: { ...current.data, items },
+                  }));
+                }}
+                className={buttonClasses({
+                  tone: "danger",
+                  iconOnly: true,
+                })}
+              >
+                <Trash2 className="size-3.5" />
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() => {
+              const items = ensureStringArray(block.data.items);
+              items.push("");
+              updateBlockHandler(block.id, (current) => ({
+                ...current,
+                data: { ...current.data, items },
+              }));
+            }}
+            className={buttonClasses({
+              tone: "muted",
+              size: "xs",
+              className: "normal-case tracking-normal",
+            })}
+          >
+            <PlusCircle className="size-3.5" />
+            Add item
+          </button>
+        </div>
+      ) : null}
+
+      {block.type === "quote" ? (
+        <div className="grid gap-3">
+          <AutoGrowTextarea
+            value={String(block.data.text ?? "")}
+            onChange={(value) =>
+              updateBlockHandler(block.id, (current) => ({
+                ...current,
+                data: { ...current.data, text: value },
+              }))
+            }
+            className="min-h-[1lh] w-full resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-3 text-sm text-white outline-none"
+          />
+          <input
+            placeholder="Author"
+            value={String(block.data.author ?? "")}
+            onChange={(event) =>
+              updateBlockHandler(block.id, (current) => ({
+                ...current,
+                data: { ...current.data, author: event.target.value },
+              }))
+            }
+            className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
+          />
+        </div>
+      ) : null}
+
+      {block.type === "callout" ? (
+        <div className="grid gap-3">
+          <div className="flex flex-wrap gap-2">
+            {calloutVariantOptions.map((variant) => (
+              <button
+                key={variant}
+                type="button"
+                onClick={() =>
+                  updateBlockHandler(block.id, (current) => ({
+                    ...current,
+                    data: { ...current.data, variant },
+                  }))
+                }
+                className={buttonClasses({
+                  tone: (block.data.variant as CalloutVariant) === variant ? "selected" : "muted",
+                  size: "xs",
+                  className: "normal-case tracking-normal capitalize",
+                })}
+              >
+                {variant}
+              </button>
+            ))}
+          </div>
+          <input
+            placeholder="Callout title"
+            value={String(block.data.title ?? "")}
+            onChange={(event) =>
+              updateBlockHandler(block.id, (current) => ({
+                ...current,
+                data: { ...current.data, title: event.target.value },
+              }))
+            }
+            className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
+          />
+          <AutoGrowTextarea
+            value={String(block.data.text ?? "")}
+            onChange={(value) =>
+              updateBlockHandler(block.id, (current) => ({
+                ...current,
+                data: { ...current.data, text: value },
+              }))
+            }
+            className="min-h-[1lh] w-full resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-3 text-sm text-white outline-none"
+          />
+        </div>
+      ) : null}
+
+      {block.type === "table" ? (
+        <div className="space-y-3">
+          <div className="overflow-x-auto rounded-xl border border-white/10">
+            <table className="min-w-full border-collapse text-sm text-white/78">
+              <thead>
+                <tr>
+                  {ensureStringArray(block.data.headers).map(
+                    (header, headerIndex) => (
+                      <th
+                        key={`${block.id}-header-${headerIndex}`}
+                        className="border-b border-white/10 px-3 py-2 align-top"
+                      >
+                        <div className="flex items-start gap-2">
+                          <input
+                            value={header}
+                            onChange={(event) => {
+                              const headers = [
+                                ...ensureStringArray(
+                                  block.data.headers,
+                                ),
+                              ];
+                              headers[headerIndex] = event.target.value;
+                              updateBlockHandler(block.id, (current) => ({
+                                ...current,
+                                data: { ...current.data, headers },
+                              }));
+                            }}
+                            className="w-full bg-transparent outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const headers = [
+                                ...ensureStringArray(
+                                  block.data.headers,
+                                ),
+                              ];
+                              if (headers.length <= 1) return;
+                              headers.splice(headerIndex, 1);
+                              const rows = Array.isArray(
+                                block.data.rows,
+                              )
+                                ? (block.data.rows as string[][]).map(
+                                    (row) =>
+                                      row.filter(
+                                        (_, idx) => idx !== headerIndex,
+                                      ),
+                                  )
+                                : [];
+                              updateBlockHandler(block.id, (current) => ({
+                                ...current,
+                                data: {
+                                  ...current.data,
+                                  headers,
+                                  rows,
+                                },
+                              }));
+                            }}
+                            className={buttonClasses({
+                              tone: "danger",
+                              iconOnly: true,
+                            })}
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        </div>
+                      </th>
+                    ),
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {(Array.isArray(block.data.rows)
+                  ? (block.data.rows as string[][])
+                  : []
+                ).map((row, rowIndex) => (
+                  <tr key={`${block.id}-row-${rowIndex}`}>
+                    {row.map((cell, cellIndex) => (
+                      <td
+                        key={`${block.id}-cell-${rowIndex}-${cellIndex}`}
+                        className="border-t border-white/10 px-3 py-2"
+                      >
+                        <input
+                          value={cell}
+                          onChange={(event) => {
+                            const rows = Array.isArray(block.data.rows)
+                              ? (block.data.rows as string[][]).map(
+                                  (item) => [...item],
+                                )
+                              : [];
+                            rows[rowIndex][cellIndex] =
+                              event.target.value;
+                            updateBlockHandler(block.id, (current) => ({
+                              ...current,
+                              data: { ...current.data, rows },
+                            }));
+                          }}
+                          className="w-full bg-transparent outline-none"
+                        />
+                      </td>
+                    ))}
+                    <td className="border-t border-white/10 px-3 py-2 text-right">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const rows = Array.isArray(block.data.rows)
+                            ? (block.data.rows as string[][]).filter(
+                                (_, idx) => idx !== rowIndex,
+                              )
+                            : [];
+                          if (rows.length === 0) return;
+                          updateBlockHandler(block.id, (current) => ({
+                            ...current,
+                            data: { ...current.data, rows },
+                          }));
+                        }}
+                        className={buttonClasses({
+                          tone: "danger",
+                          iconOnly: true,
+                        })}
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                const headers = ensureStringArray(block.data.headers);
+                const rows = Array.isArray(block.data.rows)
+                  ? (block.data.rows as string[][]).map((row) => [
+                      ...row,
+                      "",
+                    ])
+                  : [];
+                updateBlockHandler(block.id, (current) => ({
+                  ...current,
+                  data: {
+                    ...current.data,
+                    headers: [
+                      ...headers,
+                      `Column ${headers.length + 1}`,
+                    ],
+                    rows,
+                  },
+                }));
+              }}
+              className={buttonClasses({
+                tone: "muted",
+                size: "xs",
+                className: "normal-case tracking-normal",
+              })}
+            >
+              <PlusCircle className="size-3.5" />
+              Add column
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const headers = ensureStringArray(block.data.headers);
+                const rows = Array.isArray(block.data.rows)
+                  ? (block.data.rows as string[][])
+                  : [];
+                updateBlockHandler(block.id, (current) => ({
+                  ...current,
+                  data: {
+                    ...current.data,
+                    rows: [
+                      ...rows,
+                      new Array(headers.length).fill(""),
+                    ],
+                  },
+                }));
+              }}
+              className={buttonClasses({
+                tone: "muted",
+                size: "xs",
+                className: "normal-case tracking-normal",
+              })}
+            >
+              <PlusCircle className="size-3.5" />
+              Add row
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {block.type === "accordion" ? (
+        <div className="space-y-3">
+          {Array.isArray(block.data.items)
+            ? (
+                block.data.items as Array<{
+                  title: string;
+                  content: string;
+                }>
+              ).map((item, itemIndex) => (
+                <div
+                  key={`${block.id}-accordion-${itemIndex}`}
+                  className="rounded-[1rem] border border-white/10 p-3"
+                >
+                  <div className="flex items-center gap-3">
+                    <input
+                      value={item.title}
+                      onChange={(event) => {
+                        const items = [
+                          ...(block.data.items as Array<{
+                            title: string;
+                            content: string;
+                          }>),
+                        ];
+                        items[itemIndex] = {
+                          ...items[itemIndex],
+                          title: event.target.value,
+                        };
+                        updateBlockHandler(block.id, (current) => ({
+                          ...current,
+                          data: { ...current.data, items },
+                        }));
+                      }}
+                      className="w-full bg-transparent text-sm text-white outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const items = [
+                          ...(block.data.items as Array<{
+                            title: string;
+                            content: string;
+                          }>),
+                        ].filter((_, idx) => idx !== itemIndex);
+                        updateBlockHandler(block.id, (current) => ({
+                          ...current,
+                          data: { ...current.data, items },
+                        }));
+                      }}
+                      className={buttonClasses({
+                        tone: "danger",
+                        iconOnly: true,
+                      })}
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                  </div>
+                  <AutoGrowTextarea
+                    value={item.content}
+                    onChange={(value) => {
+                      const items = [
+                        ...(block.data.items as Array<{
+                          title: string;
+                          content: string;
+                        }>),
+                      ];
+                      items[itemIndex] = {
+                        ...items[itemIndex],
+                        content: value,
+                      };
+                      updateBlockHandler(block.id, (current) => ({
+                        ...current,
+                        data: { ...current.data, items },
+                      }));
+                    }}
+                    className="mt-3 min-h-[1lh] w-full resize-none overflow-hidden bg-transparent text-sm leading-6 text-white/68 outline-none"
+                  />
+                </div>
+              ))
+            : null}
+          <button
+            type="button"
+            onClick={() => {
+              const items = Array.isArray(block.data.items)
+                ? [
+                    ...(block.data.items as Array<{
+                      title: string;
+                      content: string;
+                    }>),
+                  ]
+                : [];
+              items.push({
+                title: "Accordion item",
+                content: "Accordion content",
+              });
+              updateBlockHandler(block.id, (current) => ({
+                ...current,
+                data: { ...current.data, items },
+              }));
+            }}
+            className={buttonClasses({
+              tone: "muted",
+              size: "xs",
+              className: "normal-case tracking-normal",
+            })}
+          >
+            <PlusCircle className="size-3.5" />
+            Add item
+          </button>
+        </div>
+      ) : null}
+
+      {block.type === "divider" ? (
+        <p className="text-sm text-white/42">
+          Divider block — no editable content.
+        </p>
+      ) : null}
+
+      {block.type === "code" ? (
+        <div className="grid gap-3">
+          <div className="flex flex-wrap gap-2">
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() =>
+                  setCodeLangMenu((current) =>
+                    current === block.id ? null : block.id,
+                  )
+                }
+                className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white"
+              >
+                <span>{getLanguageLabel(codeLanguage)}</span>
+                <ChevronsUpDown className="size-4 text-white/42" />
+              </button>
+              <AnimatePresence>
+                {openCodeLangMenu === block.id ? (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, filter: "blur(12px)" }}
+                    animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                    exit={{ opacity: 0, y: 6, filter: "blur(12px)" }}
+                    transition={{
+                      duration: 0.22,
+                      ease: [0.22, 1, 0.36, 1],
+                    }}
+                    className="absolute left-0 top-[calc(100%+0.5rem)] z-20 w-full rounded-[1rem] border border-white/10 bg-[#0c0c0c]/96 p-2 backdrop-blur-xl"
+                  >
+                    {codeLanguageOptions.map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => {
+                          setCodeLangMenu(null);
+                          updateBlockHandler(block.id, (current) => ({
+                            ...current,
+                            data: { ...current.data, language: opt.value },
+                          }));
+                        }}
+                        className="flex w-full rounded-[0.8rem] px-3 py-2 text-left text-sm text-white/72 transition-colors hover:bg-white/[0.04] hover:text-white"
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
+            </div>
+            <button
+              type="button"
+              onClick={() =>
+                updateBlockHandler(block.id, (current) => ({
+                  ...current,
+                  data: { ...current.data, showPreview: !showPreview },
+                }))
+              }
+              className={buttonClasses({ tone: "muted", size: "xs", className: "normal-case tracking-normal" })}
+            >
+              {showPreview ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+              <span>Preview</span>
+            </button>
+          </div>
+          <AutoGrowTextarea
+            value={String(block.data.code ?? "")}
+            onChange={(value) =>
+              updateBlockHandler(block.id, (current) => ({
+                ...current,
+                data: { ...current.data, code: value },
+              }))
+            }
+            className="min-h-[8lh] w-full resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 font-mono text-sm text-white outline-none"
+            placeholder={`const greet = (name) => {\n  return \`Hello, \${name}!\`;\n};\n\ngreet("World"); // Hello, World!`}
+          />
+        </div>
+      ) : null}
+
+      {block.type === "stepper" ? (
+        <div className="space-y-3">
+          {Array.isArray(block.data.steps)
+            ? (block.data.steps as Array<{ title?: string; description?: string }>).map(
+                (step, stepIndex) => (
+                  <div
+                    key={`${block.id}-step-${stepIndex}`}
+                    className="rounded-[1rem] border border-white/10 p-3"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-white/10 bg-white/[0.02] text-sm font-medium text-white/60">
+                        {stepIndex + 1}
+                      </div>
+                      <div className="flex-1 space-y-2">
+                        <input
+                          value={step.title ?? ""}
+                          onChange={(event) => {
+                            const steps = [
+                              ...(block.data.steps as Array<{
+                                title?: string;
+                                description?: string;
+                              }>),
+                            ];
+                            steps[stepIndex] = {
+                              ...steps[stepIndex],
+                              title: event.target.value,
+                            };
+                            updateBlockHandler(block.id, (current) => ({
+                              ...current,
+                              data: { ...current.data, steps },
+                            }));
+                          }}
+                          placeholder="Step title"
+                          className="w-full rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
+                        />
+                        <AutoGrowTextarea
+                          value={step.description ?? ""}
+                          onChange={(value) => {
+                            const steps = [
+                              ...(block.data.steps as Array<{
+                                title?: string;
+                                description?: string;
+                              }>),
+                            ];
+                            steps[stepIndex] = {
+                              ...steps[stepIndex],
+                              description: value,
+                            };
+                            updateBlockHandler(block.id, (current) => ({
+                              ...current,
+                              data: { ...current.data, steps },
+                            }));
+                          }}
+                          placeholder="Step description"
+                          className="min-h-[1lh] w-full resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const steps = [
+                            ...(block.data.steps as Array<{
+                              title?: string;
+                              description?: string;
+                            }>),
+                          ].filter((_, idx) => idx !== stepIndex);
+                          if (steps.length === 0) return;
+                          updateBlockHandler(block.id, (current) => ({
+                            ...current,
+                            data: { ...current.data, steps },
+                          }));
+                        }}
+                        className={buttonClasses({
+                          tone: "danger",
+                          iconOnly: true,
+                        })}
+                      >
+                        <Trash2 className="size-4" />
+                      </button>
+                    </div>
+                  </div>
+                ),
+              )
+            : null}
+          <button
+            type="button"
+            onClick={() => {
+              const steps = Array.isArray(block.data.steps)
+                ? [
+                    ...(block.data.steps as Array<{
+                      title?: string;
+                      description?: string;
+                    }>),
+                  ]
+                : [];
+              steps.push({ title: `Step ${steps.length + 1}`, description: "" });
+              updateBlockHandler(block.id, (current) => ({
+                ...current,
+                data: { ...current.data, steps },
+              }));
+            }}
+            className={buttonClasses({
+              tone: "muted",
+              size: "xs",
+              className: "normal-case tracking-normal",
+            })}
+          >
+            <PlusCircle className="size-3.5" />
+            Add step
+          </button>
+        </div>
+      ) : null}
+
+      {block.type === "gallery" ? (
+        <div className="space-y-3">
+          {Array.isArray(block.data.images)
+            ? (block.data.images as Array<{ url?: string; alt?: string; caption?: string }>).map(
+                (img, imgIndex) => (
+                  <div key={`${block.id}-img-${imgIndex}`} className="rounded-[1rem] border border-white/10 p-3">
+                    <MediaAssetField
+                      label="Image URL"
+                      value={String(img.url ?? "")}
+                      onChange={(value) => {
+                        const images = [
+                          ...(block.data.images as Array<{
+                            url?: string;
+                            alt?: string;
+                            caption?: string;
+                          }>),
+                        ];
+                        images[imgIndex] = { ...images[imgIndex], url: value };
+                        updateBlockHandler(block.id, (current) => ({
+                          ...current,
+                          data: { ...current.data, images },
+                        }));
+                      }}
+                      bucket={mediaBucket}
+                      accept="image/*"
+                    />
+                    <input
+                      value={String(img.alt ?? "")}
+                      onChange={(event) => {
+                        const images = [
+                          ...(block.data.images as Array<{
+                            url?: string;
+                            alt?: string;
+                            caption?: string;
+                          }>),
+                        ];
+                        images[imgIndex] = { ...images[imgIndex], alt: event.target.value };
+                        updateBlockHandler(block.id, (current) => ({
+                          ...current,
+                          data: { ...current.data, images },
+                        }));
+                      }}
+                      placeholder="Alt text"
+                      className="mt-2 w-full rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
+                    />
+                    <AutoGrowTextarea
+                      value={String(img.caption ?? "")}
+                      onChange={(value) => {
+                        const images = [
+                          ...(block.data.images as Array<{
+                            url?: string;
+                            alt?: string;
+                            caption?: string;
+                          }>),
+                        ];
+                        images[imgIndex] = { ...images[imgIndex], caption: value };
+                        updateBlockHandler(block.id, (current) => ({
+                          ...current,
+                          data: { ...current.data, images },
+                        }));
+                      }}
+                      placeholder="Caption (optional)"
+                      className="mt-2 w-full resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const images = [
+                          ...(block.data.images as Array<{
+                            url?: string;
+                            alt?: string;
+                            caption?: string;
+                          }>),
+                        ].filter((_, idx) => idx !== imgIndex);
+                        updateBlockHandler(block.id, (current) => ({
+                          ...current,
+                          data: { ...current.data, images },
+                        }));
+                      }}
+                      className={buttonClasses({
+                        tone: "danger",
+                        size: "xs",
+                        className: "mt-2 normal-case tracking-normal",
+                      })}
+                    >
+                      <Trash2 className="size-3.5" />
+                      Remove image
+                    </button>
+                  </div>
+                ),
+              )
+            : null}
+          <button
+            type="button"
+            onClick={() => {
+              const images = Array.isArray(block.data.images)
+                ? [
+                    ...(block.data.images as Array<{
+                      url?: string;
+                      alt?: string;
+                      caption?: string;
+                    }>),
+                  ]
+                : [];
+              images.push({ url: "", alt: "", caption: "" });
+              updateBlockHandler(block.id, (current) => ({
+                ...current,
+                data: { ...current.data, images },
+              }));
+            }}
+            className={buttonClasses({
+              tone: "muted",
+              size: "xs",
+              className: "normal-case tracking-normal",
+            })}
+          >
+            <PlusCircle className="size-3.5" />
+            Add image
+          </button>
+        </div>
+      ) : null}
+
+      {block.type === "link" ? (
+        <div className="grid gap-3">
+          <input
+            value={String(block.data.url ?? "")}
+            onChange={(event) =>
+              updateBlockHandler(block.id, (current) => ({
+                ...current,
+                data: { ...current.data, url: event.target.value },
+              }))
+            }
+            placeholder="URL"
+            className="w-full rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
+          />
+          <input
+            value={String(block.data.title ?? "")}
+            onChange={(event) =>
+              updateBlockHandler(block.id, (current) => ({
+                ...current,
+                data: { ...current.data, title: event.target.value },
+              }))
+            }
+            placeholder="Title"
+            className="w-full rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
+          />
+          <AutoGrowTextarea
+            value={String(block.data.description ?? "")}
+            onChange={(value) =>
+              updateBlockHandler(block.id, (current) => ({
+                ...current,
+                data: { ...current.data, description: value },
+              }))
+            }
+            placeholder="Description"
+            className="w-full resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
+          />
+        </div>
+      ) : null}
+
+      {block.type === "metric" ? (
+        <div className="grid gap-3">
+          <input
+            value={String(block.data.label ?? "")}
+            onChange={(event) =>
+              updateBlockHandler(block.id, (current) => ({
+                ...current,
+                data: { ...current.data, label: event.target.value },
+              }))
+            }
+            placeholder="Label (e.g., Performance)"
+            className="w-full rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
+          />
+          <input
+            value={String(block.data.value ?? "")}
+            onChange={(event) =>
+              updateBlockHandler(block.id, (current) => ({
+                ...current,
+                data: { ...current.data, value: event.target.value },
+              }))
+            }
+            placeholder="Value (e.g., 98%)"
+            className="w-full rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
+          />
+          <AutoGrowTextarea
+            value={String(block.data.description ?? "")}
+            onChange={(value) =>
+              updateBlockHandler(block.id, (current) => ({
+                ...current,
+                data: { ...current.data, description: value },
+              }))
+            }
+            placeholder="Description (optional)"
+            className="w-full resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
+          />
+        </div>
+      ) : null}
+
+      {block.type === "timeline" ? (
+        <div className="space-y-3">
+          {Array.isArray(block.data.items)
+            ? (block.data.items as Array<{ date?: string; title?: string; description?: string }>).map(
+                (item, itemIndex) => (
+                  <div key={`${block.id}-tl-${itemIndex}`} className="rounded-[1rem] border border-white/10 p-3">
+                    <div className="grid gap-2">
+                      <input
+                        value={item.date ?? ""}
+                        onChange={(event) => {
+                          const items = [
+                            ...(block.data.items as Array<{
+                              date?: string;
+                              title?: string;
+                              description?: string;
+                            }>),
+                          ];
+                          items[itemIndex] = { ...items[itemIndex], date: event.target.value };
+                          updateBlockHandler(block.id, (current) => ({
+                            ...current,
+                            data: { ...current.data, items },
+                          }));
+                        }}
+                        placeholder="Date"
+                        className="w-full rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
+                      />
+                      <input
+                        value={item.title ?? ""}
+                        onChange={(event) => {
+                          const items = [
+                            ...(block.data.items as Array<{
+                              date?: string;
+                              title?: string;
+                              description?: string;
+                            }>),
+                          ];
+                          items[itemIndex] = { ...items[itemIndex], title: event.target.value };
+                          updateBlockHandler(block.id, (current) => ({
+                            ...current,
+                            data: { ...current.data, items },
+                          }));
+                        }}
+                        placeholder="Title"
+                        className="w-full rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
+                      />
+                      <AutoGrowTextarea
+                        value={item.description ?? ""}
+                        onChange={(value) => {
+                          const items = [
+                            ...(block.data.items as Array<{
+                              date?: string;
+                              title?: string;
+                              description?: string;
+                            }>),
+                          ];
+                          items[itemIndex] = { ...items[itemIndex], description: value };
+                          updateBlockHandler(block.id, (current) => ({
+                            ...current,
+                            data: { ...current.data, items },
+                          }));
+                        }}
+                        placeholder="Description"
+                        className="w-full resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const items = [
+                          ...(block.data.items as Array<{
+                            date?: string;
+                            title?: string;
+                            description?: string;
+                          }>),
+                        ].filter((_, idx) => idx !== itemIndex);
+                        updateBlockHandler(block.id, (current) => ({
+                          ...current,
+                          data: { ...current.data, items },
+                        }));
+                      }}
+                      className={buttonClasses({
+                        tone: "danger",
+                        size: "xs",
+                        className: "mt-2 normal-case tracking-normal",
+                      })}
+                    >
+                      <Trash2 className="size-3.5" />
+                      Remove
+                    </button>
+                  </div>
+                ),
+              )
+            : null}
+          <button
+            type="button"
+            onClick={() => {
+              const items = Array.isArray(block.data.items)
+                ? [
+                    ...(block.data.items as Array<{
+                      date?: string;
+                      title?: string;
+                      description?: string;
+                    }>),
+                  ]
+                : [];
+              items.push({ date: "", title: "", description: "" });
+              updateBlockHandler(block.id, (current) => ({
+                ...current,
+                data: { ...current.data, items },
+              }));
+            }}
+            className={buttonClasses({
+              tone: "muted",
+              size: "xs",
+              className: "normal-case tracking-normal",
+            })}
+          >
+            <PlusCircle className="size-3.5" />
+            Add timeline item
+          </button>
+        </div>
+      ) : null}
+
+      {block.type === "columns-2" ? (
+        <div className="space-y-3">
+          <NestedBlockEditor
+            blocks={Array.isArray(block.data?.left) ? (block.data.left as ContentBlock[]) : []}
+            onChange={(leftBlocks) =>
+              updateBlockHandler(block.id, (current) => ({
+                ...current,
+                data: { ...current.data, left: leftBlocks },
+              }))
+            }
+            blockTypes={["paragraph", "image", "list", "quote", "callout", "code", "stepper", "gallery", "link", "metric", "divider"]}
+            title="Left column"
+          />
+          <NestedBlockEditor
+            blocks={Array.isArray(block.data?.right) ? (block.data.right as ContentBlock[]) : []}
+            onChange={(rightBlocks) =>
+              updateBlockHandler(block.id, (current) => ({
+                ...current,
+                data: { ...current.data, right: rightBlocks },
+              }))
+            }
+            blockTypes={["paragraph", "image", "list", "quote", "callout", "code", "stepper", "gallery", "link", "metric", "divider"]}
+            title="Right column"
+          />
+        </div>
+      ) : null}
+
+      {block.type === "diagram" ? (
+        <DiagramEditor block={block} />
+      ) : null}
+    </div>
+  );
+}
+
+// Global registry for syncing diagram snapshots to block data before save
+const diagramEditorInstances = new Map<string, any>();
+
+function DiagramEditor({
+  block,
+}: {
+  block: ContentBlock;
+}) {
+  return (
+    <div className="w-full rounded-[1rem] border border-white/10 bg-white/[0.02] p-2">
+      <div className="h-[300px] w-full">
+        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+        <Tldraw
+          // Pass snapshot for initial load - tldraw handles empty state automatically
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          snapshot={block.data?.snapshot as any}
+          onMount={(editor) => {
+            // Store editor for syncing before form save
+            diagramEditorInstances.set(block.id, editor);
+            return () => {
+              diagramEditorInstances.delete(block.id);
+            };
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+// Call this before saving to sync diagram changes to block data
+// Returns updated blocks with diagram snapshots
+export function syncDiagramBlocks(blocks: ContentBlock[]): ContentBlock[] {
+  return blocks.map((block) => {
+    if (block.type === "diagram") {
+      const editor = diagramEditorInstances.get(block.id);
+      if (editor) {
+        const snapshot = editor.getSnapshot();
+        // Always return the snapshot from the editor to ensure it's captured
+        return { ...block, data: { ...block.data, snapshot } };
+      }
+    }
+    return block;
+  });
+}
+
+function SortableBlock({
+  block,
+  onChange,
+  removeBlock,
+  duplicateBlock,
+  mediaBucket,
+  blocks,
+  openHeadingMenu,
+  setOpenHeadingMenu,
+  openCodeLangMenu,
+  setCodeLangMenu,
+}: {
+  block: ContentBlock;
+  blocks: ContentBlock[];
+  onChange: (blocks: ContentBlock[]) => void;
+  removeBlock: (id: string) => void;
+  duplicateBlock: (id: string) => void;
+  mediaBucket: string;
+  openHeadingMenu: string | null;
+  setOpenHeadingMenu: React.Dispatch<React.SetStateAction<string | null>>;
+  openCodeLangMenu: string | null;
+  setCodeLangMenu: React.Dispatch<React.SetStateAction<string | null>>;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: block.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <div className="flex items-start gap-2">
+        <button
+          type="button"
+          className={buttonClasses({ tone: "muted", iconOnly: true })}
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="size-4 cursor-grab active:cursor-grabbing" />
+        </button>
+        <div className="flex-1">
+          <BlockEditorContent
+            block={block}
+            blocks={blocks}
+            onChange={onChange}
+            removeBlock={removeBlock}
+            duplicateBlock={duplicateBlock}
+            mediaBucket={mediaBucket}
+            openHeadingMenu={openHeadingMenu}
+            setOpenHeadingMenu={setOpenHeadingMenu}
+            openCodeLangMenu={openCodeLangMenu}
+            setCodeLangMenu={setCodeLangMenu}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function BlockEditor({
   blocks,
   onChange,
@@ -60,6 +1414,14 @@ export function BlockEditor({
   mediaBucket,
 }: BlockEditorProps) {
   const [openHeadingMenu, setOpenHeadingMenu] = useState<string | null>(null);
+  const [openCodeLangMenu, setCodeLangMenu] = useState<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
 
   const addBlock = (type: string) => {
     onChange([...blocks, createBlock(type)]);
@@ -69,15 +1431,18 @@ export function BlockEditor({
     onChange(blocks.filter((block) => block.id !== id));
   };
 
-  const moveBlock = (index: number, direction: -1 | 1) => {
-    const next = [...blocks];
-    const targetIndex = index + direction;
-    if (targetIndex < 0 || targetIndex >= blocks.length) return;
-    [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
-    onChange(next);
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = blocks.findIndex((block) => block.id === active.id);
+      const newIndex = blocks.findIndex((block) => block.id === over.id);
+      onChange(arrayMove(blocks, oldIndex, newIndex));
+    }
   };
 
-  const renderedBlocks = useMemo(() => blocks, [blocks]);
+  const duplicateBlockHandler = (id: string) => {
+    onChange(duplicateBlock(blocks, id));
+  };
 
   return (
     <div className="space-y-4">
@@ -95,686 +1460,31 @@ export function BlockEditor({
         ))}
       </div>
 
-      <div className="space-y-4">
-        {renderedBlocks.map((block, index) => {
-          const headingLevel = Number(block.data?.level ?? 2);
-          const headingLabel =
-            headingOptions.find((option) => option.level === headingLevel)
-              ?.label ?? "Large";
-
-          return (
-            <div
-              key={block.id}
-              className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-4"
-            >
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <p className="text-[0.62rem] uppercase tracking-[0.28em] text-white/34">
-                  {block.type}
-                </p>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => moveBlock(index, -1)}
-                    className={buttonClasses({ tone: "muted", iconOnly: true })}
-                  >
-                    <ChevronUp className="size-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => moveBlock(index, 1)}
-                    className={buttonClasses({ tone: "muted", iconOnly: true })}
-                  >
-                    <ChevronDown className="size-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => removeBlock(block.id)}
-                    className={buttonClasses({
-                      tone: "danger",
-                      iconOnly: true,
-                    })}
-                  >
-                    <Trash2 className="size-4" />
-                  </button>
-                </div>
-              </div>
-
-              {block.type === "heading" ? (
-                <div className="grid gap-3 sm:grid-cols-[160px_minmax(0,1fr)]">
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setOpenHeadingMenu((current) =>
-                          current === block.id ? null : block.id,
-                        )
-                      }
-                      className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white"
-                    >
-                      <span>{headingLabel}</span>
-                      <ChevronsUpDown className="size-4 text-white/42" />
-                    </button>
-                    <AnimatePresence>
-                      {openHeadingMenu === block.id ? (
-                        <motion.div
-                          initial={{ opacity: 0, y: 8, filter: "blur(12px)" }}
-                          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                          exit={{ opacity: 0, y: 6, filter: "blur(12px)" }}
-                          transition={{
-                            duration: 0.22,
-                            ease: [0.22, 1, 0.36, 1],
-                          }}
-                          className="absolute left-0 top-[calc(100%+0.5rem)] z-20 w-full rounded-[1rem] border border-white/10 bg-[#0c0c0c]/96 p-2 backdrop-blur-xl"
-                        >
-                          {headingOptions.map((option) => (
-                            <button
-                              key={option.level}
-                              type="button"
-                              onClick={() => {
-                                setOpenHeadingMenu(null);
-                                onChange(
-                                  updateBlock(blocks, block.id, (current) => ({
-                                    ...current,
-                                    data: {
-                                      ...current.data,
-                                      level: option.level,
-                                    },
-                                  })),
-                                );
-                              }}
-                              className="flex w-full rounded-[0.8rem] px-3 py-2 text-left text-sm text-white/72 transition-colors hover:bg-white/[0.04] hover:text-white"
-                            >
-                              {option.label}
-                            </button>
-                          ))}
-                        </motion.div>
-                      ) : null}
-                    </AnimatePresence>
-                  </div>
-                  <AutoGrowTextarea
-                    value={String(block.data.text ?? "")}
-                    onChange={(value) =>
-                      onChange(
-                        updateBlock(blocks, block.id, (current) => ({
-                          ...current,
-                          data: { ...current.data, text: value },
-                        })),
-                      )
-                    }
-                    className="min-h-[1lh] w-full resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
-                  />
-                </div>
-              ) : null}
-
-              {block.type === "paragraph" ? (
-                <AutoGrowTextarea
-                  value={String(
-                    block.data.text ??
-                      decodeHtml(String(block.data.html ?? "")),
-                  )}
-                  onChange={(value) =>
-                    onChange(
-                      updateBlock(blocks, block.id, (current) => ({
-                        ...current,
-                        data: {
-                          ...current.data,
-                          text: value,
-                          html: `<p>${value}</p>`,
-                        },
-                      })),
-                    )
-                  }
-                  className="min-h-[1lh] w-full resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-3 text-sm text-white outline-none"
-                />
-              ) : null}
-
-              {block.type === "image" ? (
-                <div className="grid gap-3">
-                  <MediaAssetField
-                    label="Image source"
-                    value={String(block.data.url ?? "")}
-                    onChange={(value) =>
-                      onChange(
-                        updateBlock(blocks, block.id, (current) => ({
-                          ...current,
-                          data: { ...current.data, url: value },
-                        })),
-                      )
-                    }
-                    bucket={mediaBucket}
-                    accept="image/*"
-                  />
-                  <input
-                    placeholder="Alt text"
-                    value={String(block.data.alt ?? "")}
-                    onChange={(event) =>
-                      onChange(
-                        updateBlock(blocks, block.id, (current) => ({
-                          ...current,
-                          data: { ...current.data, alt: event.target.value },
-                        })),
-                      )
-                    }
-                    className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
-                  />
-                  <AutoGrowTextarea
-                    value={String(block.data.caption ?? "")}
-                    onChange={(value) =>
-                      onChange(
-                        updateBlock(blocks, block.id, (current) => ({
-                          ...current,
-                          data: { ...current.data, caption: value },
-                        })),
-                      )
-                    }
-                    className="min-h-[1lh] w-full resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
-                  />
-                </div>
-              ) : null}
-
-              {block.type === "video" ? (
-                <div className="grid gap-3">
-                  <MediaAssetField
-                    label="Video source"
-                    value={String(block.data.url ?? "")}
-                    onChange={(value) =>
-                      onChange(
-                        updateBlock(blocks, block.id, (current) => ({
-                          ...current,
-                          data: { ...current.data, url: value },
-                        })),
-                      )
-                    }
-                    bucket={mediaBucket}
-                    accept="video/*"
-                  />
-                  <AutoGrowTextarea
-                    value={String(block.data.caption ?? "")}
-                    onChange={(value) =>
-                      onChange(
-                        updateBlock(blocks, block.id, (current) => ({
-                          ...current,
-                          data: { ...current.data, caption: value },
-                        })),
-                      )
-                    }
-                    className="min-h-[1lh] w-full resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
-                  />
-                </div>
-              ) : null}
-
-              {block.type === "list" ? (
-                <div className="space-y-2">
-                  {ensureStringArray(block.data.items).map((item, itemIndex) => (
-                    <div key={`${block.id}-item-${itemIndex}`} className="flex items-start gap-2">
-                      <AutoGrowTextarea
-                        value={item}
-                        onChange={(value) => {
-                          const items = [...ensureStringArray(block.data.items)];
-                          items[itemIndex] = value;
-                          onChange(
-                            updateBlock(blocks, block.id, (current) => ({
-                              ...current,
-                              data: { ...current.data, items },
-                            })),
-                          );
-                        }}
-                        className="min-h-[1lh] flex-1 resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const items = ensureStringArray(block.data.items).filter(
-                            (_, idx) => idx !== itemIndex,
-                          );
-                          onChange(
-                            updateBlock(blocks, block.id, (current) => ({
-                              ...current,
-                              data: { ...current.data, items },
-                            })),
-                          );
-                        }}
-                        className={buttonClasses({
-                          tone: "danger",
-                          iconOnly: true,
-                        })}
-                      >
-                        <Trash2 className="size-3.5" />
-                      </button>
-                    </div>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const items = ensureStringArray(block.data.items);
-                      items.push("");
-                      onChange(
-                        updateBlock(blocks, block.id, (current) => ({
-                          ...current,
-                          data: { ...current.data, items },
-                        })),
-                      );
-                    }}
-                    className={buttonClasses({
-                      tone: "muted",
-                      size: "xs",
-                      className: "normal-case tracking-normal",
-                    })}
-                  >
-                    <PlusCircle className="size-3.5" />
-                    Add item
-                  </button>
-                </div>
-              ) : null}
-
-              {block.type === "quote" ? (
-                <div className="grid gap-3">
-                  <AutoGrowTextarea
-                    value={String(block.data.text ?? "")}
-                    onChange={(value) =>
-                      onChange(
-                        updateBlock(blocks, block.id, (current) => ({
-                          ...current,
-                          data: { ...current.data, text: value },
-                        })),
-                      )
-                    }
-                    className="min-h-[1lh] w-full resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-3 text-sm text-white outline-none"
-                  />
-                  <input
-                    placeholder="Author"
-                    value={String(block.data.author ?? "")}
-                    onChange={(event) =>
-                      onChange(
-                        updateBlock(blocks, block.id, (current) => ({
-                          ...current,
-                          data: { ...current.data, author: event.target.value },
-                        })),
-                      )
-                    }
-                    className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
-                  />
-                </div>
-              ) : null}
-
-              {block.type === "callout" ? (
-                <div className="grid gap-3">
-                  <input
-                    placeholder="Callout title"
-                    value={String(block.data.title ?? "")}
-                    onChange={(event) =>
-                      onChange(
-                        updateBlock(blocks, block.id, (current) => ({
-                          ...current,
-                          data: { ...current.data, title: event.target.value },
-                        })),
-                      )
-                    }
-                    className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
-                  />
-                  <AutoGrowTextarea
-                    value={String(block.data.text ?? "")}
-                    onChange={(value) =>
-                      onChange(
-                        updateBlock(blocks, block.id, (current) => ({
-                          ...current,
-                          data: { ...current.data, text: value },
-                        })),
-                      )
-                    }
-                    className="min-h-[1lh] w-full resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-3 text-sm text-white outline-none"
-                  />
-                </div>
-              ) : null}
-
-              {block.type === "table" ? (
-                <div className="space-y-3">
-                  <div className="overflow-x-auto rounded-xl border border-white/10">
-                    <table className="min-w-full border-collapse text-sm text-white/78">
-                      <thead>
-                        <tr>
-                          {ensureStringArray(block.data.headers).map(
-                            (header, headerIndex) => (
-                              <th
-                                key={`${block.id}-header-${headerIndex}`}
-                                className="border-b border-white/10 px-3 py-2 align-top"
-                              >
-                                <div className="flex items-start gap-2">
-                                  <input
-                                    value={header}
-                                    onChange={(event) => {
-                                      const headers = [
-                                        ...ensureStringArray(
-                                          block.data.headers,
-                                        ),
-                                      ];
-                                      headers[headerIndex] = event.target.value;
-                                      onChange(
-                                        updateBlock(
-                                          blocks,
-                                          block.id,
-                                          (current) => ({
-                                            ...current,
-                                            data: { ...current.data, headers },
-                                          }),
-                                        ),
-                                      );
-                                    }}
-                                    className="w-full bg-transparent outline-none"
-                                  />
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const headers = [
-                                        ...ensureStringArray(
-                                          block.data.headers,
-                                        ),
-                                      ];
-                                      if (headers.length <= 1) return;
-                                      headers.splice(headerIndex, 1);
-                                      const rows = Array.isArray(
-                                        block.data.rows,
-                                      )
-                                        ? (block.data.rows as string[][]).map(
-                                            (row) =>
-                                              row.filter(
-                                                (_, idx) => idx !== headerIndex,
-                                              ),
-                                          )
-                                        : [];
-                                      onChange(
-                                        updateBlock(
-                                          blocks,
-                                          block.id,
-                                          (current) => ({
-                                            ...current,
-                                            data: {
-                                              ...current.data,
-                                              headers,
-                                              rows,
-                                            },
-                                          }),
-                                        ),
-                                      );
-                                    }}
-                                    className={buttonClasses({
-                                      tone: "danger",
-                                      iconOnly: true,
-                                    })}
-                                  >
-                                    <Trash2 className="size-3.5" />
-                                  </button>
-                                </div>
-                              </th>
-                            ),
-                          )}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(Array.isArray(block.data.rows)
-                          ? (block.data.rows as string[][])
-                          : []
-                        ).map((row, rowIndex) => (
-                          <tr key={`${block.id}-row-${rowIndex}`}>
-                            {row.map((cell, cellIndex) => (
-                              <td
-                                key={`${block.id}-cell-${rowIndex}-${cellIndex}`}
-                                className="border-t border-white/10 px-3 py-2"
-                              >
-                                <input
-                                  value={cell}
-                                  onChange={(event) => {
-                                    const rows = Array.isArray(block.data.rows)
-                                      ? (block.data.rows as string[][]).map(
-                                          (item) => [...item],
-                                        )
-                                      : [];
-                                    rows[rowIndex][cellIndex] =
-                                      event.target.value;
-                                    onChange(
-                                      updateBlock(
-                                        blocks,
-                                        block.id,
-                                        (current) => ({
-                                          ...current,
-                                          data: { ...current.data, rows },
-                                        }),
-                                      ),
-                                    );
-                                  }}
-                                  className="w-full bg-transparent outline-none"
-                                />
-                              </td>
-                            ))}
-                            <td className="border-t border-white/10 px-3 py-2 text-right">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const rows = Array.isArray(block.data.rows)
-                                    ? (block.data.rows as string[][]).filter(
-                                        (_, idx) => idx !== rowIndex,
-                                      )
-                                    : [];
-                                  if (rows.length === 0) return;
-                                  onChange(
-                                    updateBlock(
-                                      blocks,
-                                      block.id,
-                                      (current) => ({
-                                        ...current,
-                                        data: { ...current.data, rows },
-                                      }),
-                                    ),
-                                  );
-                                }}
-                                className={buttonClasses({
-                                  tone: "danger",
-                                  iconOnly: true,
-                                })}
-                              >
-                                <Trash2 className="size-3.5" />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const headers = ensureStringArray(block.data.headers);
-                        const rows = Array.isArray(block.data.rows)
-                          ? (block.data.rows as string[][]).map((row) => [
-                              ...row,
-                              "",
-                            ])
-                          : [];
-                        onChange(
-                          updateBlock(blocks, block.id, (current) => ({
-                            ...current,
-                            data: {
-                              ...current.data,
-                              headers: [
-                                ...headers,
-                                `Column ${headers.length + 1}`,
-                              ],
-                              rows,
-                            },
-                          })),
-                        );
-                      }}
-                      className={buttonClasses({
-                        tone: "muted",
-                        size: "xs",
-                        className: "normal-case tracking-normal",
-                      })}
-                    >
-                      <PlusCircle className="size-3.5" />
-                      Add column
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const headers = ensureStringArray(block.data.headers);
-                        const rows = Array.isArray(block.data.rows)
-                          ? (block.data.rows as string[][])
-                          : [];
-                        onChange(
-                          updateBlock(blocks, block.id, (current) => ({
-                            ...current,
-                            data: {
-                              ...current.data,
-                              rows: [
-                                ...rows,
-                                new Array(headers.length).fill(""),
-                              ],
-                            },
-                          })),
-                        );
-                      }}
-                      className={buttonClasses({
-                        tone: "muted",
-                        size: "xs",
-                        className: "normal-case tracking-normal",
-                      })}
-                    >
-                      <PlusCircle className="size-3.5" />
-                      Add row
-                    </button>
-                  </div>
-                </div>
-              ) : null}
-
-              {block.type === "accordion" ? (
-                <div className="space-y-3">
-                  {Array.isArray(block.data.items)
-                    ? (
-                        block.data.items as Array<{
-                          title: string;
-                          content: string;
-                        }>
-                      ).map((item, itemIndex) => (
-                        <div
-                          key={`${block.id}-accordion-${itemIndex}`}
-                          className="rounded-[1rem] border border-white/10 p-3"
-                        >
-                          <div className="flex items-center gap-3">
-                            <input
-                              value={item.title}
-                              onChange={(event) => {
-                                const items = [
-                                  ...(block.data.items as Array<{
-                                    title: string;
-                                    content: string;
-                                  }>),
-                                ];
-                                items[itemIndex] = {
-                                  ...items[itemIndex],
-                                  title: event.target.value,
-                                };
-                                onChange(
-                                  updateBlock(blocks, block.id, (current) => ({
-                                    ...current,
-                                    data: { ...current.data, items },
-                                  })),
-                                );
-                              }}
-                              className="w-full bg-transparent text-sm text-white outline-none"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const items = [
-                                  ...(block.data.items as Array<{
-                                    title: string;
-                                    content: string;
-                                  }>),
-                                ].filter((_, idx) => idx !== itemIndex);
-                                onChange(
-                                  updateBlock(blocks, block.id, (current) => ({
-                                    ...current,
-                                    data: { ...current.data, items },
-                                  })),
-                                );
-                              }}
-                              className={buttonClasses({
-                                tone: "danger",
-                                iconOnly: true,
-                              })}
-                            >
-                              <Trash2 className="size-4" />
-                            </button>
-                          </div>
-                          <AutoGrowTextarea
-                            value={item.content}
-                            onChange={(value) => {
-                              const items = [
-                                ...(block.data.items as Array<{
-                                  title: string;
-                                  content: string;
-                                }>),
-                              ];
-                              items[itemIndex] = {
-                                ...items[itemIndex],
-                                content: value,
-                              };
-                              onChange(
-                                updateBlock(blocks, block.id, (current) => ({
-                                  ...current,
-                                  data: { ...current.data, items },
-                                })),
-                              );
-                            }}
-                            className="mt-3 min-h-[1lh] w-full resize-none overflow-hidden bg-transparent text-sm leading-6 text-white/68 outline-none"
-                          />
-                        </div>
-                      ))
-                    : null}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const items = Array.isArray(block.data.items)
-                        ? [
-                            ...(block.data.items as Array<{
-                              title: string;
-                              content: string;
-                            }>),
-                          ]
-                        : [];
-                      items.push({
-                        title: "Accordion item",
-                        content: "Accordion content",
-                      });
-                      onChange(
-                        updateBlock(blocks, block.id, (current) => ({
-                          ...current,
-                          data: { ...current.data, items },
-                        })),
-                      );
-                    }}
-                    className={buttonClasses({
-                      tone: "muted",
-                      size: "xs",
-                      className: "normal-case tracking-normal",
-                    })}
-                  >
-                    <PlusCircle className="size-3.5" />
-                    Add item
-                  </button>
-                </div>
-              ) : null}
-
-              {block.type === "divider" ? (
-                <p className="text-sm text-white/42">
-                  Divider block — no editable content.
-                </p>
-              ) : null}
-            </div>
-          );
-        })}
-      </div>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext items={blocks.map((b) => b.id)} strategy={verticalListSortingStrategy}>
+          <div className="space-y-4">
+            {blocks.map((block) => (
+              <SortableBlock
+                key={block.id}
+                block={block}
+                blocks={blocks}
+                onChange={onChange}
+                removeBlock={removeBlock}
+                duplicateBlock={duplicateBlockHandler}
+                mediaBucket={mediaBucket}
+                openHeadingMenu={openHeadingMenu}
+                setOpenHeadingMenu={setOpenHeadingMenu}
+                openCodeLangMenu={openCodeLangMenu}
+                setCodeLangMenu={setCodeLangMenu}
+              />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
     </div>
   );
 }

@@ -15,7 +15,7 @@ import { SideNavRail } from "@/components/nav/side-nav-rail";
 import { HeroMediaPreview } from "@/components/ui/hero-media-preview";
 import { NextEntryCard } from "@/components/content/next-entry-card";
 import { BlockRenderer } from "@/components/content/block-renderer";
-import { BlockEditor } from "@/components/editor/block-editor";
+import { BlockEditor, syncDiagramBlocks } from "@/components/editor/block-editor";
 import { MediaAssetField } from "@/components/editor/media-asset-field";
 import { TagSelector } from "@/components/editor/tag-selector";
 import { PublishMonthYearField } from "@/components/editor/publish-month-year-field";
@@ -99,6 +99,8 @@ export function BlogDetailShell({
     setSaveState("saving");
 
     try {
+      // Sync diagram editor snapshots to block data before saving
+      const syncedBlocks = syncDiagramBlocks(blog.contentBlocks);
       const payload = {
         title: blog.title,
         excerpt: blog.excerpt,
@@ -108,7 +110,7 @@ export function BlogDetailShell({
         status: nextStatus ?? blog.status,
         heroImage: blog.heroImage,
         publishedLabel: blog.publishedLabel,
-        contentBlocks: blog.contentBlocks,
+        contentBlocks: syncedBlocks,
       };
 
       const endpoint = isNew
@@ -129,7 +131,7 @@ export function BlogDetailShell({
         return;
       }
 
-      setBlog((current) => ({ ...current, status: payload.status }));
+      setBlog((current) => ({ ...current, status: payload.status, contentBlocks: syncedBlocks }));
       setSaveState("saved");
       window.setTimeout(() => setSaveState("idle"), 1200);
     } catch (error) {

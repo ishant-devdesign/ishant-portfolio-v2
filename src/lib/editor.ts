@@ -23,7 +23,23 @@ export function createBlock(type: ContentBlock["type"]): ContentBlock {
     case "divider":
       return { id, type, data: {} };
     case "callout":
-      return { id, type, data: { title: "Callout", text: "Helpful note" } };
+      return { id, type, data: { variant: "note", title: "Note", text: "Helpful information" } };
+    case "code":
+      return { id, type, data: { language: "javascript", code: "// Your code here", showPreview: false } };
+    case "stepper":
+      return { id, type, data: { steps: [{ title: "Step 1", description: "Step description" }] } };
+    case "gallery":
+      return { id, type, data: { images: [{ url: "", alt: "" }] } };
+    case "link":
+      return { id, type, data: { url: "https://example.com", title: "Link title", description: "Description" } };
+    case "metric":
+      return { id, type, data: { label: "Metric", value: "100%", description: "Additional context" } };
+    case "timeline":
+      return { id, type, data: { items: [{ date: "Jan 2026", title: "Milestone", description: "Details" }] } };
+    case "columns-2":
+      return { id, type, data: { left: [], right: [] } };
+    case "diagram":
+      return { id, type, data: { snapshot: null } };
     default:
       return { id, type, data: {} };
   }
@@ -40,6 +56,14 @@ export const PROJECT_BLOCK_TYPES = [
   "quote",
   "divider",
   "callout",
+  "code",
+  "stepper",
+  "gallery",
+  "link",
+  "metric",
+  "timeline",
+  "columns-2",
+  "diagram",
 ] as const;
 
 export const BLOG_BLOCK_TYPES = PROJECT_BLOCK_TYPES;
