@@ -1302,36 +1302,21 @@ function DiagramEditor({
 }: {
   block: ContentBlock;
 }) {
-  // Use a ref to store the latest snapshot without causing re-renders
-  const latestSnapshotRef = useRef(block.data?.snapshot);
+  // Ensure we have valid initial state
+  const initialSnapshot = block.data?.snapshot;
 
   return (
     <div className="w-full rounded-[1rem] border border-white/10 bg-white/[0.02] p-2">
       <div className="h-[300px] w-full">
         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
         <Tldraw
-          // Pass snapshot for initial load
-          snapshot={block.data?.snapshot as any}
+          // Pass existing snapshot or let tldraw create empty state
+          {...initialSnapshot ? { snapshot: initialSnapshot as any } : {}}
           onMount={(editor) => {
             // Store editor for syncing before form save
             diagramEditorInstances.set(block.id, editor);
-
-            // Also update local ref on every change (debounced via microtask queue)
-            // This ensures we have the latest data even if editor unmounts
-            let pending = false;
-            const unsub = editor.store.listen(() => {
-              if (!pending) {
-                pending = true;
-                queueMicrotask(() => {
-                  latestSnapshotRef.current = editor.getSnapshot();
-                  pending = false;
-                });
-              }
-            });
-
             return () => {
               diagramEditorInstances.delete(block.id);
-              unsub();
             };
           }}
         />

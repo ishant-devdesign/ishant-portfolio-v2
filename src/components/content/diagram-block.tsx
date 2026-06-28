@@ -16,10 +16,7 @@ export function DiagramBlock({
 
   return (
     <div className="h-[400px] w-full">
-      <Tldraw
-        snapshot={snapshot}
-        hideUi={true}
-      />
+      <Tldraw snapshot={snapshot} />
     </div>
   );
 }
