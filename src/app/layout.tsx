@@ -14,6 +14,7 @@ import { getLiveSiteSettings } from "@/lib/content";
 import { getAdminContext } from "@/lib/auth/admin";
 import { cn } from "@/lib/utils";
 import { ClientEffects } from "@/components/layout/client-effects";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -214,6 +215,7 @@ export default async function RootLayout({
           </ExperienceProvider>
           <AdminFloatPill />
         </AdminSessionProvider>
+        <SpeedInsights />
       </body>
     </html>
   );
