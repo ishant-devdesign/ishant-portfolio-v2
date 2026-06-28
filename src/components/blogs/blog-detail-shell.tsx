@@ -145,8 +145,8 @@ export function BlogDetailShell({
         <MobileSectionNav sections={sections} />
 
         {isEditing ? (
-          <section className="mb-6 rounded-[1.6rem] border border-white/10 bg-white/[0.03] p-4 text-sm text-white/72">
-            <div className="flex flex-wrap items-center justify-between gap-3">
+          <section className="mb-6 rounded-[1.6rem] border border-white/10 bg-white/[0.03] p-4 text-sm text-white/72 mt-24">
+            <div className="flex flex-col items-start justify-between gap-3">
               <p>
                 {isNew ? "Creating new blog" : `Editing blog: ${blog.title}`}
               </p>

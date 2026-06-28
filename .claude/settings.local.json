@@ -10,7 +10,8 @@
       "Bash(curl -s http://localhost:3001/auth)",
       "Bash(curl -s http://localhost:3000/auth)",
       "Bash(curl -s http://localhost:3000/api/docs)",
-      "Bash(curl *)"
+      "Bash(curl *)",
+      "PowerShell(npm run *)"
     ]
   }
 }
