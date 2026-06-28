@@ -38,8 +38,6 @@ export function createBlock(type: ContentBlock["type"]): ContentBlock {
       return { id, type, data: { items: [{ date: "Jan 2026", title: "Milestone", description: "Details" }] } };
     case "columns-2":
       return { id, type, data: { left: [], right: [] } };
-    case "diagram":
-      return { id, type, data: { snapshot: null } };
     default:
       return { id, type, data: {} };
   }
@@ -63,7 +61,6 @@ export const PROJECT_BLOCK_TYPES = [
   "metric",
   "timeline",
   "columns-2",
-  "diagram",
 ] as const;
 
 export const BLOG_BLOCK_TYPES = PROJECT_BLOCK_TYPES;

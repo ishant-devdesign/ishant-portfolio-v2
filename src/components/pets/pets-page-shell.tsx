@@ -311,7 +311,7 @@ function PetLightbox({
       <button
         type="button"
         onClick={onClose}
-        className="absolute inset-0 h-full w-full cursor-zoom-out"
+        className="absolute inset-0 h-full w-full"
         aria-label="Close image viewer"
       />
 

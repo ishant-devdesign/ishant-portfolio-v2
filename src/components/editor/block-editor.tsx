@@ -28,9 +28,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useEffect, useRef, useState } from "react";
-import { Tldraw } from "@tldraw/tldraw";
-import "@tldraw/tldraw/tldraw.css";
+import { useState } from "react";
 import type { ContentBlock } from "@/lib/site-config";
 import type { CalloutVariant } from "@/components/content/callout-block";
 import { createBlock } from "@/lib/editor";
@@ -981,7 +979,7 @@ function BlockEditorContent({
                           data: { ...current.data, images },
                         }));
                       }}
-                      placeholder="Alt text"
+                      placeholder="Alt text (F"
                       className="mt-2 w-full rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
                     />
                     <AutoGrowTextarea
@@ -1286,59 +1284,8 @@ function BlockEditorContent({
           />
         </div>
       ) : null}
-
-      {block.type === "diagram" ? (
-        <DiagramEditor block={block} />
-      ) : null}
     </div>
   );
-}
-
-// Global registry for syncing diagram snapshots to block data before save
-const diagramEditorInstances = new Map<string, any>();
-
-function DiagramEditor({
-  block,
-}: {
-  block: ContentBlock;
-}) {
-  // Ensure we have valid initial state
-  const initialSnapshot = block.data?.snapshot;
-
-  return (
-    <div className="w-full rounded-[1rem] border border-white/10 bg-white/[0.02] p-2">
-      <div className="h-[300px] w-full">
-        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-        <Tldraw
-          // Pass existing snapshot or let tldraw create empty state
-          {...initialSnapshot ? { snapshot: initialSnapshot as any } : {}}
-          onMount={(editor) => {
-            // Store editor for syncing before form save
-            diagramEditorInstances.set(block.id, editor);
-            return () => {
-              diagramEditorInstances.delete(block.id);
-            };
-          }}
-        />
-      </div>
-    </div>
-  );
-}
-
-// Call this before saving to sync diagram changes to block data
-// Returns updated blocks with diagram snapshots
-export function syncDiagramBlocks(blocks: ContentBlock[]): ContentBlock[] {
-  return blocks.map((block) => {
-    if (block.type === "diagram") {
-      const editor = diagramEditorInstances.get(block.id);
-      if (editor) {
-        const snapshot = editor.getSnapshot();
-        // Always return the snapshot from the editor to ensure it's captured
-        return { ...block, data: { ...block.data, snapshot } };
-      }
-    }
-    return block;
-  });
 }
 
 function SortableBlock({
@@ -1448,20 +1395,6 @@ export function BlockEditor({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-2">
-        {blockTypes.map((type) => (
-          <button
-            key={type}
-            type="button"
-            onClick={() => addBlock(type)}
-            className={buttonClasses({ tone: "muted", size: "xs" })}
-          >
-            <Plus className="size-3.5" />
-            {type}
-          </button>
-        ))}
-      </div>
-
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -1487,6 +1420,20 @@ export function BlockEditor({
           </div>
         </SortableContext>
       </DndContext>
+
+      <div className="flex flex-wrap gap-2 pt-2">
+        {blockTypes.map((type) => (
+          <button
+            key={type}
+            type="button"
+            onClick={() => addBlock(type)}
+            className={buttonClasses({ tone: "muted", size: "xs" })}
+          >
+            <Plus className="size-3.5" />
+            {type}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

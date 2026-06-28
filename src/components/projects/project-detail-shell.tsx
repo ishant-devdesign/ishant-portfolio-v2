@@ -17,7 +17,7 @@ import { SideNavRail } from "@/components/nav/side-nav-rail";
 import { HeroMediaPreview } from "@/components/ui/hero-media-preview";
 import { NextEntryCard } from "@/components/content/next-entry-card";
 import { BlockRenderer } from "@/components/content/block-renderer";
-import { BlockEditor, syncDiagramBlocks } from "@/components/editor/block-editor";
+import { BlockEditor } from "@/components/editor/block-editor";
 import { MediaAssetField } from "@/components/editor/media-asset-field";
 import { TagSelector } from "@/components/editor/tag-selector";
 import { PublishMonthYearField } from "@/components/editor/publish-month-year-field";
@@ -100,8 +100,6 @@ export function ProjectDetailShell({
     setSaveState("saving");
 
     try {
-      // Sync diagram editor snapshots to block data before saving
-      const syncedBlocks = syncDiagramBlocks(project.contentBlocks);
       const payload = {
         title: project.title,
         summary: project.summary,
@@ -114,7 +112,7 @@ export function ProjectDetailShell({
         status: nextStatus ?? project.status,
         heroImage: project.heroImage,
         publishedLabel: project.publishedLabel,
-        contentBlocks: syncedBlocks,
+        contentBlocks: project.contentBlocks,
       };
 
       const endpoint = isNew
@@ -135,7 +133,7 @@ export function ProjectDetailShell({
         return;
       }
 
-      setProject((current) => ({ ...current, status: payload.status, contentBlocks: syncedBlocks }));
+      setProject((current) => ({ ...current, status: payload.status }));
       setSaveState("saved");
       window.setTimeout(() => setSaveState("idle"), 1200);
     } catch (error) {

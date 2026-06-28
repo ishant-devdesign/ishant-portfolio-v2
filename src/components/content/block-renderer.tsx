@@ -4,7 +4,9 @@ import { AccordionBlock } from "@/components/content/accordion-block";
 import { CalloutBlock } from "@/components/content/callout-block";
 import { QuoteBlock } from "@/components/content/quote-block";
 import { CodeBlock } from "@/components/content/code-block";
-import { DiagramBlock } from "@/components/content/diagram-block";
+import { Maximize2, X, ArrowLeft, ArrowRight } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 
 function decodeHtml(input: string) {
   return input
@@ -22,7 +24,311 @@ function getParagraphText(block: ContentBlock) {
   return html.replace(/<[^>]+>/g, "").trim();
 }
 
+// Extract YouTube video ID from various URL formats
+function getYouTubeVideoId(url: string): string | null {
+  if (!url) return null;
+
+  // Handle youtu.be short URLs
+  const shortMatch = url.match(/youtu\.be\/([^?&]+)/);
+  if (shortMatch) return shortMatch[1];
+
+  // Handle youtube.com regular URLs
+  const regularMatch = url.match(/youtube\.com\/watch\?v=([^?&]+)/);
+  if (regularMatch) return regularMatch[1];
+
+  // Handle youtube.com embed URLs
+  const embedMatch = url.match(/youtube\.com\/embed\/([^?&]+)/);
+  if (embedMatch) return embedMatch[1];
+
+  // Handle youtube.com shorts URLs
+  const shortsMatch = url.match(/youtube\.com\/shorts\/([^?&]+)/);
+  if (shortsMatch) return shortsMatch[1];
+
+  // Handle m.youtube.com mobile URLs
+  const mobileMatch = url.match(/m\.youtube\.com\/watch\?v=([^?&]+)/);
+  if (mobileMatch) return mobileMatch[1];
+
+  return null;
+}
+
+// Check if URL is a YouTube URL
+function isYouTubeUrl(url: string): boolean {
+  return /youtube\.com|youtu\.be/.test(url);
+}
+
+// Lightbox component using createPortal like the pets page
+function ImageLightbox({
+  images,
+  activeIndex,
+  onChangeIndex,
+  onClose,
+}: {
+  images: Array<{ url: string; alt: string; caption: string }>;
+  activeIndex: number | null;
+  onChangeIndex: (index: number) => void;
+  onClose: () => void;
+}) {
+  const previousOverflow = useRef<string>("");
+
+  useEffect(() => {
+    if (activeIndex === null) return;
+
+    previousOverflow.current = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        onClose();
+        return;
+      }
+
+      if (images.length <= 1) return;
+
+      if (activeIndex === null) return;
+
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        onChangeIndex((activeIndex - 1 + images.length) % images.length);
+      }
+
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        onChangeIndex((activeIndex + 1) % images.length);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow.current;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [activeIndex, images.length, onChangeIndex, onClose]);
+
+  if (
+    typeof document === "undefined" ||
+    activeIndex === null ||
+    !images[activeIndex]
+  ) {
+    return null;
+  }
+
+  const canNavigate = images.length > 1;
+  const goToPrevious = () => {
+    if (activeIndex > 0) {
+      onChangeIndex(activeIndex - 1);
+    }
+  };
+
+  const goToNext = () => {
+    if (activeIndex < images.length - 1) {
+      onChangeIndex(activeIndex + 1);
+    }
+  };
+
+  const image = images[activeIndex];
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[260] flex items-center justify-center bg-black/95 text-white"
+      style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0 }}
+    >
+      <div
+        className="absolute inset-x-0 top-0 z-[2] flex items-center justify-between gap-4 border-b border-white/10 bg-black/45 px-5 py-4 backdrop-blur-xl"
+        style={{ position: "fixed" }}
+      >
+        <div className="min-w-0">
+          <p className="text-sm text-white/82">
+            Image {activeIndex + 1} of {images.length}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white/78 hover:bg-white/[0.08]"
+        >
+          <X className="size-4" /> Close
+        </button>
+      </div>
+
+      <div className="flex h-full w-full items-center justify-center px-4 pb-8 pt-24 sm:px-6">
+        {canNavigate ? (
+          <button
+            type="button"
+            onClick={goToPrevious}
+            disabled={activeIndex === 0}
+            className="absolute left-3 top-1/2 z-[2] -translate-y-1/2 rounded-full border border-white/10 bg-black/45 p-3 text-white/84 backdrop-blur disabled:opacity-30 hover:bg-white/[0.08]"
+            aria-label="Previous image"
+          >
+            <ArrowLeft className="size-5" />
+          </button>
+        ) : null}
+
+        <div
+          className="relative z-[2] max-h-full max-w-[min(1400px,100%)]"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <img
+            src={image.url}
+            alt={image.alt}
+            className="max-h-[82vh] w-auto max-w-full object-contain"
+          />
+          {(image.caption || image.alt) ? (
+            <div className="mx-auto mt-4 max-w-3xl rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-center text-sm text-white/62 backdrop-blur">
+              {image.caption || image.alt}
+            </div>
+          ) : null}
+        </div>
+
+        {canNavigate ? (
+          <button
+            type="button"
+            onClick={goToNext}
+            disabled={activeIndex === images.length - 1}
+            className="absolute right-3 top-1/2 z-[2] -translate-y-1/2 rounded-full border border-white/10 bg-black/45 p-3 text-white/84 backdrop-blur disabled:opacity-30 hover:bg-white/[0.08]"
+            aria-label="Next image"
+          >
+            <ArrowRight className="size-5" />
+          </button>
+        ) : null}
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+// ImageBlock component with lightbox support
+function ImageBlock({
+  block,
+  onLightboxOpen,
+}: {
+  block: ContentBlock;
+  onLightboxOpen?: () => void;
+}) {
+  const url = String(block.data?.url ?? "");
+  const alt = String(block.data?.alt ?? "");
+  const caption = String(block.data?.caption ?? "");
+
+  if (!url) return null;
+
+  return (
+    <figure className="space-y-3">
+      <button
+        type="button"
+        onClick={onLightboxOpen}
+        className="group block w-full text-left"
+      >
+        <div className="relative overflow-hidden rounded-[1.8rem] border border-white/10">
+          <img
+            src={url}
+            alt={alt}
+            className="w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+          />
+        </div>
+      </button>
+      {caption ? (
+        <figcaption className="text-sm text-white/44">{caption}</figcaption>
+      ) : null}
+    </figure>
+  );
+}
+
+// VideoBlock component with YouTube support
+function VideoBlock({ block }: { block: ContentBlock }) {
+  const url = String(block.data?.url ?? "");
+  const caption = String(block.data?.caption ?? "");
+  const videoId = getYouTubeVideoId(url);
+  const isYouTube = isYouTubeUrl(url);
+
+  if (!url) return null;
+
+  return (
+    <figure className="space-y-3">
+      {isYouTube && videoId ? (
+        <div className="rounded-[1.8rem] border border-white/10 bg-black">
+          <iframe
+            src={`https://www.youtube.com/embed/${videoId}`}
+            className="aspect-video w-full rounded-[1.8rem]"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            title="Embedded video"
+          />
+        </div>
+      ) : (
+        <div className="rounded-[1.8rem] border border-white/10 bg-black/50 overflow-hidden">
+          <video
+            src={url}
+            controls
+            className="w-full aspect-video"
+            style={{ backgroundColor: "#000" }}
+          />
+        </div>
+      )}
+      {caption ? (
+        <figcaption className="text-sm text-white/44">{caption}</figcaption>
+      ) : null}
+    </figure>
+  );
+}
+
 export function BlockRenderer({ blocks }: { blocks: ContentBlock[] }) {
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  // Collect all images from image blocks and gallery blocks
+  const allImages = blocks.flatMap((block) => {
+    if (block.type === "image") {
+      const url = String(block.data?.url ?? "");
+      if (!url) return [];
+      return [
+        {
+          url,
+          alt: String(block.data?.alt ?? ""),
+          caption: String(block.data?.caption ?? ""),
+        },
+      ];
+    }
+    if (block.type === "gallery") {
+      const images = Array.isArray(block.data?.images)
+        ? (block.data.images as Array<{
+            url?: string;
+            alt?: string;
+            caption?: string;
+          }>)
+        : [];
+      return images
+        .filter((img) => img.url)
+        .map((img) => ({
+          url: img.url ?? "",
+          alt: img.alt ?? "",
+          caption: img.caption ?? "",
+        }));
+    }
+    return [];
+  });
+
+  // Determine which image block maps to which lightbox index
+  let imageLightboxMap: number[] = [];
+  let currentLightboxIndex = 0;
+  blocks.forEach((block) => {
+    if (block.type === "image") {
+      const url = String(block.data?.url ?? "");
+      if (url) {
+        imageLightboxMap.push(currentLightboxIndex);
+        currentLightboxIndex++;
+      }
+    } else if (block.type === "gallery") {
+      const images = Array.isArray(block.data?.images)
+        ? (block.data.images as Array<{ url?: string }>)
+        : [];
+      const count = images.filter((img) => img.url).length;
+      imageLightboxMap.push(-1); // gallery doesn't trigger lightbox individually in this implementation
+      currentLightboxIndex += count;
+    }
+  });
+
+  // Track image block index for lightbox
+  let imageBlockIndex = -1;
+
   return (
     <div className="space-y-10">
       {blocks.map((block) => {
@@ -30,7 +336,14 @@ export function BlockRenderer({ blocks }: { blocks: ContentBlock[] }) {
           case "heading": {
             const level = Number(block.data?.level ?? 2);
             const text = String(block.data?.text ?? "");
-            const Tag = level <= 2 ? "h2" : level === 3 ? "h3" : level === 4 ? "h4" : "h5";
+            const Tag =
+              level <= 2
+                ? "h2"
+                : level === 3
+                  ? "h3"
+                  : level === 4
+                    ? "h4"
+                    : "h5";
             return (
               <Tag
                 key={block.id}
@@ -51,7 +364,10 @@ export function BlockRenderer({ blocks }: { blocks: ContentBlock[] }) {
           case "paragraph": {
             const text = getParagraphText(block);
             return (
-              <p key={block.id} className="max-w-4xl text-base leading-8 text-white/60 sm:text-lg">
+              <p
+                key={block.id}
+                className="max-w-4xl text-base leading-8 text-white/60 sm:text-lg"
+              >
                 {text}
               </p>
             );
@@ -61,9 +377,15 @@ export function BlockRenderer({ blocks }: { blocks: ContentBlock[] }) {
               ? (block.data.items as unknown[]).map((item) => String(item))
               : [];
             return (
-              <ul key={block.id} className="list-decimal space-y-2 pl-5 text-sm leading-7 text-white/66">
+              <ul
+                key={block.id}
+                className="list-decimal space-y-2 pl-5 text-sm leading-7 text-white/66"
+              >
                 {items.map((item, index) => (
-                  <li key={`${block.id}-${index}`} className="marker:text-white/34">
+                  <li
+                    key={`${block.id}-${index}`}
+                    className="marker:text-white/34"
+                  >
                     {item}
                   </li>
                 ))}
@@ -72,7 +394,10 @@ export function BlockRenderer({ blocks }: { blocks: ContentBlock[] }) {
           }
           case "stepper": {
             const steps = Array.isArray(block.data?.steps)
-              ? (block.data.steps as Array<{ title?: string; description?: string }>)
+              ? (block.data.steps as Array<{
+                  title?: string;
+                  description?: string;
+                }>)
               : [];
             return (
               <div key={block.id} className="space-y-6">
@@ -83,10 +408,14 @@ export function BlockRenderer({ blocks }: { blocks: ContentBlock[] }) {
                     </div>
                     <div className="flex-1">
                       {step.title ? (
-                        <p className="text-sm font-medium uppercase tracking-[0.24em] text-white/82">{step.title}</p>
+                        <p className="text-sm font-medium uppercase tracking-[0.24em] text-white/82">
+                          {step.title}
+                        </p>
                       ) : null}
                       {step.description ? (
-                        <p className="mt-1 text-sm leading-7 text-white/60">{step.description}</p>
+                        <p className="mt-1 text-sm leading-7 text-white/60">
+                          {step.description}
+                        </p>
                       ) : null}
                     </div>
                   </div>
@@ -95,26 +424,23 @@ export function BlockRenderer({ blocks }: { blocks: ContentBlock[] }) {
             );
           }
           case "image": {
+            imageBlockIndex++;
             const url = String(block.data?.url ?? "");
-            const alt = String(block.data?.alt ?? "");
-            const caption = String(block.data?.caption ?? "");
-            return url ? (
-              <figure key={block.id} className="space-y-3">
-                <img src={url} alt={alt} className="w-full rounded-[1.8rem] border border-white/10 object-cover" />
-                {caption ? <figcaption className="text-sm text-white/44">{caption}</figcaption> : null}
-              </figure>
-            ) : null;
+            const lightboxIdx = url ? imageLightboxMap[imageBlockIndex] : -1;
+            return (
+              <ImageBlock
+                key={block.id}
+                block={block}
+                onLightboxOpen={() => {
+                  if (lightboxIdx >= 0) {
+                    setLightboxIndex(lightboxIdx);
+                  }
+                }}
+              />
+            );
           }
-          case "video": {
-            const url = String(block.data?.url ?? "");
-            const caption = String(block.data?.caption ?? "");
-            return url ? (
-              <figure key={block.id} className="space-y-3">
-                <video src={url} controls className="w-full rounded-[1.8rem] border border-white/10 object-cover" />
-                {caption ? <figcaption className="text-sm text-white/44">{caption}</figcaption> : null}
-              </figure>
-            ) : null;
-          }
+          case "video":
+            return <VideoBlock key={block.id} block={block} />;
           case "quote": {
             const text = String(block.data?.text ?? "");
             const author = String(block.data?.author ?? "");
@@ -124,25 +450,47 @@ export function BlockRenderer({ blocks }: { blocks: ContentBlock[] }) {
             const variant = (block.data?.variant as CalloutVariant) ?? "note";
             const title = String(block.data?.title ?? "");
             const text = String(block.data?.text ?? "");
-            return <CalloutBlock key={block.id} variant={variant} title={title} text={text} />;
+            return (
+              <CalloutBlock
+                key={block.id}
+                variant={variant}
+                title={title}
+                text={text}
+              />
+            );
           }
           case "divider": {
             return <div key={block.id} className="h-px w-full bg-white/8" />;
           }
           case "gallery": {
             const images = Array.isArray(block.data?.images)
-              ? (block.data.images as Array<{ url?: string; alt?: string; caption?: string }>)
+              ? (block.data.images as Array<{
+                  url?: string;
+                  alt?: string;
+                  caption?: string;
+                }>)
               : [];
             return (
               <div key={block.id} className="grid gap-4 sm:grid-cols-2">
-                {images.map((img, idx) => (
+                {images.map((img, idx) =>
                   img.url ? (
-                    <figure key={`${block.id}-img-${idx}`} className="space-y-2">
-                      <img src={img.url} alt={img.alt ?? ""} className="w-full rounded-[1.4rem] border border-white/10 object-cover" />
-                      {img.caption ? <figcaption className="text-sm text-white/44">{img.caption}</figcaption> : null}
+                    <figure
+                      key={`${block.id}-img-${idx}`}
+                      className="space-y-2"
+                    >
+                      <img
+                        src={img.url}
+                        alt={img.alt ?? ""}
+                        className="w-full rounded-[1.4rem] border border-white/10 object-cover"
+                      />
+                      {img.caption ? (
+                        <figcaption className="text-sm text-white/44">
+                          {img.caption}
+                        </figcaption>
+                      ) : null}
                     </figure>
-                  ) : null
-                ))}
+                  ) : null,
+                )}
               </div>
             );
           }
@@ -158,8 +506,12 @@ export function BlockRenderer({ blocks }: { blocks: ContentBlock[] }) {
                 rel="noopener noreferrer"
                 className="block rounded-[1.4rem] border border-white/10 bg-white/[0.03] p-4 transition-colors hover:bg-white/[0.06]"
               >
-                <p className="text-sm font-medium text-white/90">{title || url}</p>
-                {description ? <p className="mt-1 text-sm text-white/44">{description}</p> : null}
+                <p className="text-sm font-medium text-white/90">
+                  {title || url}
+                </p>
+                {description ? (
+                  <p className="mt-1 text-sm text-white/44">{description}</p>
+                ) : null}
               </a>
             ) : null;
           }
@@ -168,27 +520,46 @@ export function BlockRenderer({ blocks }: { blocks: ContentBlock[] }) {
             const value = String(block.data?.value ?? "");
             const description = String(block.data?.description ?? "");
             return (
-              <div key={block.id} className="rounded-[1.4rem] border border-white/10 bg-white/[0.03] p-5">
-                <p className="text-[0.62rem] uppercase tracking-[0.28em] text-white/34">{label}</p>
+              <div
+                key={block.id}
+                className="rounded-[1.4rem] border border-white/10 bg-white/[0.03] p-5"
+              >
+                <p className="text-[0.62rem] uppercase tracking-[0.28em] text-white/34">
+                  {label}
+                </p>
                 <p className="mt-2 font-heading text-3xl text-white">{value}</p>
-                {description ? <p className="mt-1 text-sm text-white/44">{description}</p> : null}
+                {description ? (
+                  <p className="mt-1 text-sm text-white/44">{description}</p>
+                ) : null}
               </div>
             );
           }
           case "timeline": {
             const items = Array.isArray(block.data?.items)
-              ? (block.data.items as Array<{ date?: string; title?: string; description?: string }>)
+              ? (block.data.items as Array<{
+                  date?: string;
+                  title?: string;
+                  description?: string;
+                }>)
               : [];
             return (
               <div key={block.id} className="space-y-6">
                 {items.map((item, index) => (
                   <div key={`${block.id}-tl-${index}`} className="flex gap-4">
                     <div className="w-20 shrink-0">
-                      <p className="text-[0.62rem] uppercase tracking-[0.2em] text-white/34">{item.date}</p>
+                      <p className="text-[0.62rem] uppercase tracking-[0.2em] text-white/34">
+                        {item.date}
+                      </p>
                     </div>
                     <div className="flex-1 border-l-2 border-white/8 pl-4">
-                      <p className="text-sm font-medium text-white/90">{item.title}</p>
-                      {item.description ? <p className="mt-1 text-sm text-white/60">{item.description}</p> : null}
+                      <p className="text-sm font-medium text-white/90">
+                        {item.title}
+                      </p>
+                      {item.description ? (
+                        <p className="mt-1 text-sm text-white/60">
+                          {item.description}
+                        </p>
+                      ) : null}
                     </div>
                   </div>
                 ))}
@@ -203,7 +574,11 @@ export function BlockRenderer({ blocks }: { blocks: ContentBlock[] }) {
               ? (block.data.right as ContentBlock[])
               : [];
             return (
-              <div key={block.id} className="grid gap-4 sm:grid-cols-2" data-columns-container>
+              <div
+                key={block.id}
+                className="grid gap-4 sm:grid-cols-2"
+                data-columns-container
+              >
                 <div className="space-y-10">
                   <BlockRenderer blocks={leftBlocks} />
                 </div>
@@ -211,16 +586,6 @@ export function BlockRenderer({ blocks }: { blocks: ContentBlock[] }) {
                   <BlockRenderer blocks={rightBlocks} />
                 </div>
               </div>
-            );
-          }
-          case "diagram": {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const snapshot = block.data?.snapshot as any;
-            return (
-              <DiagramBlock
-                key={block.id}
-                snapshot={snapshot}
-              />
             );
           }
           case "code": {
@@ -241,15 +606,23 @@ export function BlockRenderer({ blocks }: { blocks: ContentBlock[] }) {
               ? (block.data.headers as unknown[]).map((item) => String(item))
               : [];
             const rows = Array.isArray(block.data?.rows)
-              ? (block.data.rows as unknown[][]).map((row) => row.map((cell) => String(cell)))
+              ? (block.data.rows as unknown[][]).map((row) =>
+                  row.map((cell) => String(cell)),
+                )
               : [];
             return (
-              <div key={block.id} className="overflow-x-auto rounded-[1.6rem] border border-white/10 bg-white/[0.03]">
+              <div
+                key={block.id}
+                className="overflow-x-auto rounded-[1.6rem] border border-white/10 bg-white/[0.03]"
+              >
                 <table className="min-w-full border-collapse text-left text-sm text-white/68">
                   <thead>
                     <tr>
                       {headers.map((header) => (
-                        <th key={`${block.id}-${header}`} className="border-b border-white/10 px-4 py-3 text-white/82">
+                        <th
+                          key={`${block.id}-${header}`}
+                          className="border-b border-white/10 px-4 py-3 text-white/82"
+                        >
                           {header}
                         </th>
                       ))}
@@ -259,7 +632,10 @@ export function BlockRenderer({ blocks }: { blocks: ContentBlock[] }) {
                     {rows.map((row, rowIndex) => (
                       <tr key={`${block.id}-row-${rowIndex}`}>
                         {row.map((cell, cellIndex) => (
-                          <td key={`${block.id}-cell-${rowIndex}-${cellIndex}`} className="border-t border-white/8 px-4 py-3">
+                          <td
+                            key={`${block.id}-cell-${rowIndex}-${cellIndex}`}
+                            className="border-t border-white/8 px-4 py-3"
+                          >
                             {cell}
                           </td>
                         ))}
@@ -272,7 +648,10 @@ export function BlockRenderer({ blocks }: { blocks: ContentBlock[] }) {
           }
           case "accordion": {
             const items = Array.isArray(block.data?.items)
-              ? (block.data.items as Array<{ title?: string; content?: string }>)
+              ? (block.data.items as Array<{
+                  title?: string;
+                  content?: string;
+                }>)
               : [];
             return <AccordionBlock key={block.id} items={items} />;
           }
@@ -280,6 +659,12 @@ export function BlockRenderer({ blocks }: { blocks: ContentBlock[] }) {
             return null;
         }
       })}
+      <ImageLightbox
+        images={allImages}
+        activeIndex={lightboxIndex}
+        onChangeIndex={setLightboxIndex}
+        onClose={() => setLightboxIndex(null)}
+      />
     </div>
   );
 }
