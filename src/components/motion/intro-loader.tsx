@@ -791,19 +791,21 @@ function LogoAnchorPoint({
       <circle
         cx={x}
         cy={y}
-        r="1.35"
-        fill="white"
-        opacity="0.55"
+        r="1.6"
+        fill="none"
+        stroke="white"
+        strokeWidth="0.65"
+        opacity="0.72"
         vectorEffect="non-scaling-stroke"
       />
       <circle
         cx={x}
         cy={y}
-        r="3.4"
+        r="3.8"
         fill="none"
         stroke="white"
-        strokeWidth="0.7"
-        opacity="0.35"
+        strokeWidth="0.65"
+        opacity="0.34"
         vectorEffect="non-scaling-stroke"
       />
     </motion.g>
@@ -1209,14 +1211,14 @@ function LogoConstructionLayer({
           d={LOGO_I_PATH}
           fill="none"
           stroke="white"
-          strokeWidth="1"
+          strokeWidth="1.25"
           strokeLinecap="round"
           strokeLinejoin="round"
           vectorEffect="non-scaling-stroke"
           initial={{ pathLength: 0, opacity: 0 }}
           animate={{
             pathLength: logoDraftVisible ? 1 : 0,
-            opacity: logoDraftVisible ? 0.32 : 0,
+            opacity: logoDraftVisible ? 0.5 : 0,
           }}
           transition={{
             duration: 1.45,
@@ -1229,14 +1231,14 @@ function LogoConstructionLayer({
           d={LOGO_K_PATH}
           fill="none"
           stroke="white"
-          strokeWidth="1"
+          strokeWidth="1.25"
           strokeLinecap="round"
           strokeLinejoin="round"
           vectorEffect="non-scaling-stroke"
           initial={{ pathLength: 0, opacity: 0 }}
           animate={{
             pathLength: logoDraftVisible ? 1 : 0,
-            opacity: logoDraftVisible ? 0.34 : 0,
+            opacity: logoDraftVisible ? 0.5 : 0,
           }}
           transition={{
             duration: 1.85,
