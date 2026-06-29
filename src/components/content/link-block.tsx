@@ -27,7 +27,7 @@ export function LinkBlock({
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      className="group block max-w-4xl border-y border-white/8 py-5 transition-colors hover:border-white/16"
+      className="group block border-y border-white/8 py-5 transition-colors hover:border-white/16"
     >
       <div className="flex items-start justify-between gap-5">
         <div className="min-w-0 flex-1">
@@ -40,7 +40,7 @@ export function LinkBlock({
           </h3>
 
           {description ? (
-            <p className="mt-3 max-w-3xl text-base leading-7 text-white/54 sm:text-lg sm:leading-8">
+            <p className="mt-3 text-base leading-7 text-white/54 sm:text-lg sm:leading-8">
               {description}
             </p>
           ) : null}

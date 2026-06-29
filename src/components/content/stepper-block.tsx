@@ -6,7 +6,7 @@ export function StepperBlock({
   if (!steps.length) return null;
 
   return (
-    <div className="max-w-4xl">
+    <div>
       {steps.map((step, index) => {
         const isLast = index === steps.length - 1;
 
@@ -36,7 +36,7 @@ export function StepperBlock({
               ) : null}
 
               {step.description ? (
-                <p className="mt-3 max-w-3xl whitespace-pre-line text-base leading-8 text-white/58 sm:text-lg">
+                <p className="mt-3 whitespace-pre-line text-base leading-8 text-white/58 sm:text-lg">
                   {step.description}
                 </p>
               ) : null}

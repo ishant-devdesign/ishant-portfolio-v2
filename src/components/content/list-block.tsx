@@ -33,7 +33,7 @@ export function ListBlock({
   }
 
   return (
-    <ul className="max-w-4xl divide-y divide-white/8 border-y border-white/8">
+    <ul className="divide-y divide-white/8 border-y border-white/8">
       {items.map((item, index) => (
         <li
           key={`${item}-${index}`}

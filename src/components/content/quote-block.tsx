@@ -1,6 +1,6 @@
 export function QuoteBlock({ text, author }: { text: string; author: string }) {
   return (
-    <blockquote className="relative max-w-5xl py-3 pl-5 sm:pl-8">
+    <blockquote className="relative py-3 pl-5 sm:pl-8">
       <span className="pointer-events-none absolute -left-1 top-0 font-heading text-6xl leading-none text-white/[0.08] sm:-left-2 sm:text-8xl">
         “
       </span>

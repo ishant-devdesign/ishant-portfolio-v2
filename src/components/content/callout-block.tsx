@@ -82,7 +82,7 @@ export function CalloutBlock({
       {text ? (
         <p
           className={cn(
-            "mt-3 max-w-4xl whitespace-pre-line text-base leading-8 sm:text-lg",
+            "mt-3 whitespace-pre-line text-base leading-8 sm:text-lg",
             config.text,
           )}
         >

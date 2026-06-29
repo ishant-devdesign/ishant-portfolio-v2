@@ -219,7 +219,7 @@ function ImageBlock({
       <button
         type="button"
         onClick={onLightboxOpen}
-        className="group block w-full text-left"
+        className="group block w-full text-left rounded-[1.8rem]"
       >
         <div className="relative overflow-hidden rounded-[1.8rem] border border-white/10">
           <img
