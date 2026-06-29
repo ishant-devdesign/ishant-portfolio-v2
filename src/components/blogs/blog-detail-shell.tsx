@@ -337,6 +337,9 @@ export function BlogDetailShell({
               subtitle="Cover image"
             />
           </RevealInView>
+          <p className="text-xs pt-2 text-zinc-500">
+            *This image is made in illustrator without the use of AI.
+          </p>
         </section>
 
         <section className="border-t border-white/8 py-12 sm:py-16">

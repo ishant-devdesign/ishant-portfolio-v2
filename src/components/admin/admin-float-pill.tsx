@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { animate, motion, useMotionValue } from "framer-motion";
-import { useEffect, useRef } from "react";
-import { Eye, EyeOff, Grip, Settings2, ShieldCheck } from "lucide-react";
+import { animate, motion, useMotionValue, AnimatePresence } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import { Eye, EyeOff, Grip, Settings2, ShieldCheck, CheckCircle2 } from "lucide-react";
 import { useAdminSession } from "@/components/admin/admin-session-provider";
 import { buttonClasses } from "@/components/ui/button";
 
@@ -12,6 +12,7 @@ export function AdminFloatPill() {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const x = useMotionValue(24);
   const y = useMotionValue(24);
+  const [showStatus, setShowStatus] = useState(true);
 
   useEffect(() => {
     const element = containerRef.current;
@@ -21,6 +22,14 @@ export function AdminFloatPill() {
     x.set(24);
     y.set(Math.max(24, window.innerHeight - rect.height - 24));
   }, [x, y]);
+
+  // Auto-hide status after 5 seconds
+  useEffect(() => {
+    if (isAllowedAdmin && user?.email) {
+      const timer = setTimeout(() => setShowStatus(false), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [isAllowedAdmin, user?.email]);
 
   if (!isAllowedAdmin || !user?.email) return null;
 
@@ -74,7 +83,7 @@ export function AdminFloatPill() {
             />
             <div className="min-w-0">
               <p className="text-[0.58rem] uppercase tracking-[0.3em] text-white/34">
-                Auth status
+                Admin panel
               </p>
               <p className="truncate text-sm text-white/78">{user.email}</p>
             </div>
@@ -83,6 +92,25 @@ export function AdminFloatPill() {
             <ShieldCheck className="size-4" />
           </div>
         </div>
+
+        <AnimatePresence>
+          {showStatus && (
+            <motion.div
+              initial={{ opacity: 0, height: 0, marginTop: 0 }}
+              animate={{ opacity: 1, height: "auto", marginTop: 12 }}
+              exit={{ opacity: 0, height: 0, marginTop: 0 }}
+              transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+              className="overflow-hidden rounded-[1rem] border border-emerald-400/18 bg-emerald-500/8 px-3 py-2.5"
+            >
+              <div className="flex items-center gap-2.5">
+                <CheckCircle2 className="size-4 text-emerald-300/90" />
+                <p className="text-xs text-emerald-200/88">
+                  Signed in successfully. Admin access is active.
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <div className="mt-3 grid grid-cols-3 gap-2">
           <button
