@@ -442,7 +442,7 @@ function SortableCertificationCard({
     : undefined;
 
   return (
-    <div ref={adminMode ? setNodeRef : undefined} style={dragWrapperStyle}>
+    <div ref={adminMode ? setNodeRef : undefined} style={dragWrapperStyle} className="h-full">
       <RevealInView
         delay={index * 0.04}
         className="h-full"

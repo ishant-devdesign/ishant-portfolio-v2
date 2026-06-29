@@ -9,6 +9,21 @@ import css from "react-syntax-highlighter/dist/cjs/languages/prism/css";
 import html from "react-syntax-highlighter/dist/cjs/languages/prism/markup";
 import json from "react-syntax-highlighter/dist/cjs/languages/prism/json";
 import bash from "react-syntax-highlighter/dist/cjs/languages/prism/bash";
+import python from "react-syntax-highlighter/dist/cjs/languages/prism/python";
+import java from "react-syntax-highlighter/dist/cjs/languages/prism/java";
+import c from "react-syntax-highlighter/dist/cjs/languages/prism/c";
+import cpp from "react-syntax-highlighter/dist/cjs/languages/prism/cpp";
+import csharp from "react-syntax-highlighter/dist/cjs/languages/prism/csharp";
+import go from "react-syntax-highlighter/dist/cjs/languages/prism/go";
+import rust from "react-syntax-highlighter/dist/cjs/languages/prism/rust";
+import php from "react-syntax-highlighter/dist/cjs/languages/prism/php";
+import ruby from "react-syntax-highlighter/dist/cjs/languages/prism/ruby";
+import swift from "react-syntax-highlighter/dist/cjs/languages/prism/swift";
+import kotlin from "react-syntax-highlighter/dist/cjs/languages/prism/kotlin";
+import sql from "react-syntax-highlighter/dist/cjs/languages/prism/sql";
+import markdown from "react-syntax-highlighter/dist/cjs/languages/prism/markdown";
+import yaml from "react-syntax-highlighter/dist/cjs/languages/prism/yaml";
+import scss from "react-syntax-highlighter/dist/cjs/languages/prism/scss";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import {
   Check,
@@ -33,6 +48,31 @@ SyntaxHighlighter.registerLanguage("markup", html);
 SyntaxHighlighter.registerLanguage("json", json);
 SyntaxHighlighter.registerLanguage("bash", bash);
 SyntaxHighlighter.registerLanguage("shell", bash);
+SyntaxHighlighter.registerLanguage("python", python);
+SyntaxHighlighter.registerLanguage("py", python);
+SyntaxHighlighter.registerLanguage("java", java);
+SyntaxHighlighter.registerLanguage("c", c);
+SyntaxHighlighter.registerLanguage("cpp", cpp);
+SyntaxHighlighter.registerLanguage("c++", cpp);
+SyntaxHighlighter.registerLanguage("csharp", csharp);
+SyntaxHighlighter.registerLanguage("cs", csharp);
+SyntaxHighlighter.registerLanguage("go", go);
+SyntaxHighlighter.registerLanguage("golang", go);
+SyntaxHighlighter.registerLanguage("rust", rust);
+SyntaxHighlighter.registerLanguage("rs", rust);
+SyntaxHighlighter.registerLanguage("php", php);
+SyntaxHighlighter.registerLanguage("ruby", ruby);
+SyntaxHighlighter.registerLanguage("rb", ruby);
+SyntaxHighlighter.registerLanguage("swift", swift);
+SyntaxHighlighter.registerLanguage("kotlin", kotlin);
+SyntaxHighlighter.registerLanguage("kt", kotlin);
+SyntaxHighlighter.registerLanguage("sql", sql);
+SyntaxHighlighter.registerLanguage("markdown", markdown);
+SyntaxHighlighter.registerLanguage("md", markdown);
+SyntaxHighlighter.registerLanguage("yaml", yaml);
+SyntaxHighlighter.registerLanguage("yml", yaml);
+SyntaxHighlighter.registerLanguage("scss", scss);
+SyntaxHighlighter.registerLanguage("xml", html);
 
 type MobilePanel = "preview" | "code";
 
@@ -48,7 +88,17 @@ export function normalizeCodeLanguage(language: string) {
   const value = language.trim().toLowerCase();
   if (value === "tsx") return "jsx";
   if (value === "ts") return "typescript";
-  if (value === "shell") return "bash";
+  if (value === "shell" || value === "sh" || value === "zsh") return "bash";
+  if (value === "py") return "python";
+  if (value === "c++") return "cpp";
+  if (value === "cs") return "csharp";
+  if (value === "golang") return "go";
+  if (value === "rs") return "rust";
+  if (value === "rb") return "ruby";
+  if (value === "kt") return "kotlin";
+  if (value === "md") return "markdown";
+  if (value === "yml") return "yaml";
+  if (value === "xml") return "markup";
   return value || "javascript";
 }
 
@@ -211,12 +261,6 @@ export function CodeBlock({
           background: "transparent",
           fontSize: "0.8125rem",
           overflow: "visible",
-        }}
-        codeTagProps={{
-          style: {
-            fontFamily:
-              'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace',
-          },
         }}
         wrapLongLines
       >
