@@ -200,9 +200,9 @@ function RouteTransitionLogo() {
       viewBox="-12 -12 94 98"
       fill="none"
       aria-hidden="true"
-      initial={{ opacity: 0, scale: 0.96 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 1.02 }}
+      initial={{ opacity: 0, scale: 1 }}
+      animate={{ opacity: 0.25, scale: 1 }}
+      exit={{ opacity: 0, scale: 1 }}
       transition={{
         duration: 0.45,
         ease: [0.22, 1, 0.36, 1],

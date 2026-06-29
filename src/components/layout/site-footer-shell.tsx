@@ -10,7 +10,6 @@ import {
   type SaveState,
 } from "@/components/admin/save-status-pill";
 import { buttonClasses } from "@/components/ui/button";
-import MagnetLines from "@/components/MagnetLines";
 import type { SiteSettings } from "@/lib/site-config";
 import { motion } from "framer-motion";
 

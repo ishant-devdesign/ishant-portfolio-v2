@@ -2052,7 +2052,7 @@ function ConstructionDetailLayer({
       <BracketMeasure
         x1={642}
         x2={832}
-        y={438}
+        y={148}
         label="optical spacing"
         phase={phase}
         delay={2.08}
@@ -2073,7 +2073,7 @@ function ConstructionDetailLayer({
 
       <ConstructionLabel
         x={613}
-        y={226}
+        y={200}
         phase={phase}
         showAt="construct"
         hideAt="hold"
