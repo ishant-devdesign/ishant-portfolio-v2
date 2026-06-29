@@ -432,18 +432,17 @@ function SortableCertificationCard({
     isDragging,
   } = useSortable({ id: certification.slug });
 
-  const dragStyle = adminMode && transform
+  const saveIndicator = saveState === "saving" ? "Saving…" : saveState === "saved" ? "Saved" : saveState === "error" ? "Error" : "";
+
+  const dragWrapperStyle = adminMode && transform
     ? {
         transform: CSS.Translate.toString(transform),
         transition,
-        opacity: isDragging ? 0.5 : 1,
       }
     : undefined;
 
-  const saveIndicator = saveState === "saving" ? "Saving…" : saveState === "saved" ? "Saved" : saveState === "error" ? "Error" : "";
-
   return (
-    <div ref={setNodeRef} style={dragStyle}>
+    <div ref={adminMode ? setNodeRef : undefined} style={dragWrapperStyle}>
       <RevealInView
         delay={index * 0.04}
         className="h-full"
