@@ -1,42 +1,38 @@
 "use client";
 
-import { Info, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export type CalloutVariant = "note" | "warning" | "success";
 
-const variantConfig: Record<
-  CalloutVariant,
-  { icon: React.ReactNode; label: string; colors: { border: string; bg: string; icon: string; text: string } }
-> = {
+type VariantConfig = {
+  label: string;
+  eyebrow: string;
+  accent: string;
+  marker: string;
+  text: string;
+};
+
+const variantConfig: Record<CalloutVariant, VariantConfig> = {
   note: {
-    icon: <Info className="size-5" />,
     label: "Note",
-    colors: {
-      border: "border-blue-400/20",
-      bg: "bg-blue-400/[0.03]",
-      icon: "text-blue-300/80",
-      text: "text-blue-300",
-    },
+    eyebrow: "text-white/36",
+    accent: "from-white/24 via-white/10 to-transparent",
+    marker: "border-white/14 text-white/44",
+    text: "text-white/74",
   },
   warning: {
-    icon: <AlertTriangle className="size-5" />,
     label: "Warning",
-    colors: {
-      border: "border-amber-400/20",
-      bg: "bg-amber-400/[0.03]",
-      icon: "text-amber-300/80",
-      text: "text-amber-300",
-    },
+    eyebrow: "text-amber-200/64",
+    accent: "from-amber-200/45 via-amber-200/14 to-transparent",
+    marker: "border-amber-200/18 text-amber-100/54",
+    text: "text-white/76",
   },
   success: {
-    icon: <CheckCircle2 className="size-5" />,
     label: "Success",
-    colors: {
-      border: "border-emerald-400/20",
-      bg: "bg-emerald-400/[0.03]",
-      icon: "text-emerald-300/80",
-      text: "text-emerald-300",
-    },
+    eyebrow: "text-emerald-200/64",
+    accent: "from-emerald-200/42 via-emerald-200/12 to-transparent",
+    marker: "border-emerald-200/18 text-emerald-100/54",
+    text: "text-white/76",
   },
 };
 
@@ -50,24 +46,49 @@ export function CalloutBlock({
   text: string;
 }) {
   const config = variantConfig[variant] ?? variantConfig.note;
+  const heading = title || config.label;
 
   return (
-    <div
-      className={`rounded-[1.8rem] border ${config.colors.border} ${config.colors.bg} p-5`}
-    >
-      <div className="flex items-start gap-3">
-        <span className={config.colors.icon}>{config.icon}</span>
-        <div className="flex-1 min-w-0">
-          {title ? (
-            <p className={`text-[0.62rem] uppercase tracking-[0.28em] ${config.colors.text}`}>
-              {title}
-            </p>
-          ) : null}
-          {text ? (
-            <p className="mt-2 text-base leading-7 text-white/82">{text}</p>
-          ) : null}
-        </div>
+    <aside className="group relative overflow-hidden py-2 pl-5 sm:pl-7">
+      <div
+        className={cn(
+          "absolute bottom-2 left-0 top-2 w-px bg-gradient-to-b",
+          config.accent,
+        )}
+      />
+
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <span
+          className={cn(
+            "rounded-full border px-2 py-0.5 text-[0.56rem] uppercase tracking-[0.24em]",
+            config.marker,
+          )}
+        >
+          {config.label}
+        </span>
+
+        {heading ? (
+          <p
+            className={cn(
+              "text-[0.66rem] font-medium uppercase tracking-[0.3em]",
+              config.eyebrow,
+            )}
+          >
+            {heading}
+          </p>
+        ) : null}
       </div>
-    </div>
+
+      {text ? (
+        <p
+          className={cn(
+            "mt-3 max-w-4xl whitespace-pre-line text-base leading-8 sm:text-lg",
+            config.text,
+          )}
+        >
+          {text}
+        </p>
+      ) : null}
+    </aside>
   );
 }

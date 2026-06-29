@@ -7,6 +7,9 @@ import { CodeBlock } from "@/components/content/code-block";
 import { Maximize2, X, ArrowLeft, ArrowRight } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import { ListBlock } from "./list-block";
+import { StepperBlock } from "./stepper-block";
+import { LinkBlock } from "./link-block";
 
 function decodeHtml(input: string) {
   return input
@@ -173,8 +176,8 @@ function ImageLightbox({
             alt={image.alt}
             className="max-h-[82vh] w-auto max-w-full object-contain"
           />
-          {(image.caption || image.alt) ? (
-            <div className="mx-auto mt-4 max-w-3xl rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-center text-sm text-white/62 backdrop-blur">
+          {image.caption || image.alt ? (
+            <div className="mx-auto mt-4 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-center text-sm text-white/62 backdrop-blur">
               {image.caption || image.alt}
             </div>
           ) : null}
@@ -366,7 +369,7 @@ export function BlockRenderer({ blocks }: { blocks: ContentBlock[] }) {
             return (
               <p
                 key={block.id}
-                className="max-w-4xl text-base leading-8 text-white/60 sm:text-lg"
+                className="text-base leading-8 text-white/60 sm:text-lg"
               >
                 {text}
               </p>
@@ -376,21 +379,10 @@ export function BlockRenderer({ blocks }: { blocks: ContentBlock[] }) {
             const items = Array.isArray(block.data?.items)
               ? (block.data.items as unknown[]).map((item) => String(item))
               : [];
-            return (
-              <ul
-                key={block.id}
-                className="list-decimal space-y-2 pl-5 text-sm leading-7 text-white/66"
-              >
-                {items.map((item, index) => (
-                  <li
-                    key={`${block.id}-${index}`}
-                    className="marker:text-white/34"
-                  >
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            );
+
+            const style = String(block.data?.style ?? "unordered");
+
+            return <ListBlock key={block.id} items={items} style={style} />;
           }
           case "stepper": {
             const steps = Array.isArray(block.data?.steps)
@@ -399,29 +391,8 @@ export function BlockRenderer({ blocks }: { blocks: ContentBlock[] }) {
                   description?: string;
                 }>)
               : [];
-            return (
-              <div key={block.id} className="space-y-6">
-                {steps.map((step, index) => (
-                  <div key={`${block.id}-step-${index}`} className="flex gap-4">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-white/20 text-sm font-medium text-white/82">
-                      {index + 1}
-                    </div>
-                    <div className="flex-1">
-                      {step.title ? (
-                        <p className="text-sm font-medium uppercase tracking-[0.24em] text-white/82">
-                          {step.title}
-                        </p>
-                      ) : null}
-                      {step.description ? (
-                        <p className="mt-1 text-sm leading-7 text-white/60">
-                          {step.description}
-                        </p>
-                      ) : null}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            );
+
+            return <StepperBlock key={block.id} steps={steps} />;
           }
           case "image": {
             imageBlockIndex++;
@@ -498,22 +469,15 @@ export function BlockRenderer({ blocks }: { blocks: ContentBlock[] }) {
             const url = String(block.data?.url ?? "");
             const title = String(block.data?.title ?? "");
             const description = String(block.data?.description ?? "");
-            return url ? (
-              <a
+
+            return (
+              <LinkBlock
                 key={block.id}
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block rounded-[1.4rem] border border-white/10 bg-white/[0.03] p-4 transition-colors hover:bg-white/[0.06]"
-              >
-                <p className="text-sm font-medium text-white/90">
-                  {title || url}
-                </p>
-                {description ? (
-                  <p className="mt-1 text-sm text-white/44">{description}</p>
-                ) : null}
-              </a>
-            ) : null;
+                url={url}
+                title={title}
+                description={description}
+              />
+            );
           }
           case "metric": {
             const label = String(block.data?.label ?? "");
