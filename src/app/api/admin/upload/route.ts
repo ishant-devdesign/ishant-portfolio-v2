@@ -8,6 +8,7 @@ const allowedBuckets = new Set([
   "blog-media",
   "certification-badges",
   "pet-media",
+  "archive-media",
 ]);
 
 export async function POST(request: NextRequest) {

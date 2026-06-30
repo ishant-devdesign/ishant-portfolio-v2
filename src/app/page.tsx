@@ -4,6 +4,7 @@ import { SiteFooter } from "@/components/layout/site-footer";
 import {
   getLiveBlogs,
   getLiveCertifications,
+  getLiveCreativeArchive,
   getLiveEducationItems,
   getLiveHomeToolsContent,
   getLivePets,
@@ -55,6 +56,7 @@ export default async function Page() {
     blogs,
     certifications,
     pets,
+    creativeArchive,
     workExperience,
     educationItems,
     toolsContent,
@@ -64,6 +66,7 @@ export default async function Page() {
     getLiveBlogs(),
     getLiveCertifications(),
     getLivePets(),
+    getLiveCreativeArchive(),
     getLiveWorkExperience(),
     getLiveEducationItems(),
     getLiveHomeToolsContent(),
@@ -77,6 +80,7 @@ export default async function Page() {
         blogs={blogs}
         certifications={certifications}
         pets={pets}
+        creativeArchive={creativeArchive}
         homeSections={homeSections}
         toolsGroups={toolsContent.groups}
         workExperience={workExperience}

@@ -35,12 +35,14 @@ import { RevealInView } from "@/components/motion/reveal-in-view";
 import { useExperience } from "@/components/motion/experience-provider";
 import type {
   Blog,
+  CreativeArchiveItem,
   HomeSectionItem,
   Pet,
   Project,
   SiteSettings,
 } from "@/lib/site-config";
 import GradualBlur from "../GradualBlur";
+import { ArchiveCard } from "@/components/archive/archive-card";
 
 type WorkExperienceItem = {
   company: string;
@@ -319,6 +321,7 @@ export function HomePage({
   projects,
   blogs,
   pets,
+  creativeArchive,
   homeSections,
   toolsGroups,
   workExperience,
@@ -329,6 +332,7 @@ export function HomePage({
   projects: Project[];
   blogs: Blog[];
   pets: Pet[];
+  creativeArchive: CreativeArchiveItem[];
   homeSections: HomeSectionItem[];
   toolsGroups: Array<{ title: string; text: string }>;
   workExperience: WorkExperienceItem[];
@@ -557,6 +561,7 @@ export function HomePage({
   const featuredCertifications = certifications.slice(0, 3);
   const homePets = pets.slice(0, 2);
   const hiddenPetsCount = Math.max(pets.length - 2, 0);
+  const homeCreativeArchive = creativeArchive.slice(0, 8);
 
   return (
     <main className="mx-auto w-full max-w-[1600px] px-5 pt-6 sm:px-8 lg:px-10 xl:pr-32 2xl:pr-40">
@@ -1083,6 +1088,47 @@ export function HomePage({
               subtitle="A visual archive documenting the creative journey—from branding and illustration to motion, 3D, and the product interfaces that followed."
             />
           </div>
+
+          <>
+            <div className="mt-10 columns-1 gap-4 sm:columns-2 xl:columns-3">
+              {homeCreativeArchive.length > 0
+                ? homeCreativeArchive.slice(0, 7).map((item) => {
+                    const isVideo = item.type === "video";
+                    return (
+                      <div key={item.id} className="mb-4 break-inside-avoid">
+                        <div className="group block overflow-hidden rounded-[1.6rem] border border-white/10 bg-black/20">
+                          {isVideo ? (
+                            <video
+                              src={item.url}
+                              muted
+                              className="h-auto w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                            />
+                          ) : (
+                            <img
+                              src={item.url}
+                              alt="Creative archive preview"
+                              className="h-auto w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                            />
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                : // Mock placeholders when no items exist - 7 placeholders + ArchiveCard
+                  Array.from({ length: 7 }).map((_, index) => (
+                    <div key={index} className="mb-4 break-inside-avoid">
+                      <MockMedia
+                        title="Creative work placeholder"
+                        tone="gold"
+                        aspect="portrait"
+                      />
+                    </div>
+                  ))}
+              <div className="mb-4 break-inside-avoid">
+                <ArchiveCard />
+              </div>
+            </div>
+          </>
         </HomeSectionFrame>
 
         <HomeSectionFrame

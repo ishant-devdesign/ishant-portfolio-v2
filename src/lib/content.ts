@@ -4,6 +4,7 @@ import {
   blankSiteSettings,
   type Blog,
   type Certification,
+  type CreativeArchiveItem,
   type Pet,
   type Project,
   type SiteSettings,
@@ -764,4 +765,30 @@ export async function getLiveTagSuggestions(): Promise<string[]> {
   const rows = data ?? [];
   logFetch("tags", `Fetched ${rows.length} rows.`);
   return rows.map((row) => row.slug || row.name).filter(Boolean);
+}
+
+export async function getLiveCreativeArchive(): Promise<CreativeArchiveItem[]> {
+  const supabase = getContentClient("creative_archive");
+  if (!supabase) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from("creative_archive")
+    .select("id, media_url, media_type, sort_order")
+    .order("sort_order", { ascending: true });
+
+  if (error) {
+    logFetch("creative_archive", "Query error, returning empty array.", error.message);
+    return [];
+  }
+
+  const rows = data ?? [];
+  logFetch("creative_archive", `Fetched ${rows.length} rows.`);
+
+  return rows.map((row) => ({
+    id: row.id,
+    url: row.media_url,
+    type: (row.media_type as "image" | "video") ?? "image",
+  }));
 }
