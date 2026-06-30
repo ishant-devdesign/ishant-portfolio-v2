@@ -123,7 +123,55 @@ export type CreativeArchiveItem = {
   id: string;
   url: string;
   type: "image" | "video";
+  filename?: string; // Optional for static assets
 };
+
+// Static archive assets that can be used for home page preview
+// These showcase design/creative work when no dynamic items are uploaded
+export const staticArchiveAssets: CreativeArchiveItem[] = [
+  {
+    id: "static-1",
+    url: "/previews/blog-designing-for-calm-complexity.svg",
+    type: "image",
+    filename: "designing-for-calm-complexity",
+  },
+  {
+    id: "static-2",
+    url: "/previews/blog-what-makes-a-portfolio-feel-authored.svg",
+    type: "image",
+    filename: "portfolio-branding",
+  },
+  {
+    id: "static-3",
+    url: "/previews/project-atlas-client-portal.svg",
+    type: "image",
+    filename: "atlas-dashboard",
+  },
+  {
+    id: "static-4",
+    url: "/previews/project-estate-clarity-workbench.svg",
+    type: "image",
+    filename: "estate-ui",
+  },
+  {
+    id: "static-5",
+    url: "/previews/project-pulse-design-language.svg",
+    type: "image",
+    filename: "pulse-design-system",
+  },
+  {
+    id: "static-6",
+    url: "/previews/project-sentinel-command-center.svg",
+    type: "image",
+    filename: "sentinel-monitoring",
+  },
+  {
+    id: "static-7",
+    url: "/previews/blog-when-frontend-becomes-product-design.svg",
+    type: "image",
+    filename: "frontend-product-design",
+  },
+];
 
 export const blankSiteSettings: SiteSettings = {
   siteName: "Ishant Kumar",

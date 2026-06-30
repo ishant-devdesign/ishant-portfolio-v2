@@ -50,8 +50,14 @@ export async function POST(request: NextRequest) {
   });
 
   if (error) {
-    console.error("[media-upload] server upload failed", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[media-upload] server upload failed", {
+      message: error.message,
+      statusCode: error.statusCode ?? "unknown",
+      bucket,
+      fileName: file.name,
+      fileSize: file.size,
+    });
+    return NextResponse.json({ error: error.message, details: error }, { status: 500 });
   }
 
   const {

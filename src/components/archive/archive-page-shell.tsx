@@ -13,6 +13,7 @@ import { PageHero } from "@/components/ui/page-hero";
 import { MediaMasonry } from "@/components/shared/media-masonry";
 import { MediaLightbox } from "@/components/shared/media-lightbox";
 import type { CreativeArchiveItem } from "@/lib/site-config";
+import { Shuffle } from "lucide-react";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
@@ -44,6 +45,15 @@ function moveItem<T>(items: T[], fromIndex: number, toIndex: number): T[] {
   const [moved] = next.splice(fromIndex, 1);
   next.splice(toIndex, 0, moved);
   return next;
+}
+
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
 }
 
 export function ArchivePageShell({
@@ -156,7 +166,10 @@ export function ArchivePageShell({
 
         const uploadData = await uploadResponse.json();
         if (!uploadResponse.ok) {
-          throw new Error(getErrorMessage(uploadData.error ?? "upload-failed"));
+          const errorMsg = uploadData.error === "file-too-large"
+            ? `File "${file.name}" exceeds 50MB limit`
+            : uploadData.error ?? "upload-failed";
+          throw new Error(errorMsg);
         }
 
         const mediaType = file.type.startsWith("video/") ? "video" : "image";
@@ -186,7 +199,7 @@ export function ArchivePageShell({
         ]);
       } catch (error) {
         console.error("[creative-archive] upload failed", error);
-        setUploadState("Upload failed");
+        setUploadState(`Failed: ${error instanceof Error ? error.message : "Unknown error"}`);
         return;
       }
     }
@@ -265,6 +278,19 @@ export function ArchivePageShell({
                         ? "Save error"
                         : uploadState || "Ready"}
                 </span>
+                <button
+                  type="button"
+                  onClick={() => setItems((current) => shuffleArray(current))}
+                  disabled={items.length === 0}
+                  className={buttonClasses({
+                    tone: "muted",
+                    size: "sm",
+                  })}
+                  title="Randomize display order"
+                >
+                  <Shuffle className="size-4" />
+                  Randomize
+                </button>
                 <label
                   className={buttonClasses({
                     tone: "ghost",

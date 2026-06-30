@@ -43,6 +43,7 @@ import type {
 } from "@/lib/site-config";
 import GradualBlur from "../GradualBlur";
 import { ArchiveCard } from "@/components/archive/archive-card";
+import { staticArchiveAssets } from "@/lib/site-config";
 
 type WorkExperienceItem = {
   company: string;
@@ -1091,39 +1092,65 @@ export function HomePage({
 
           <>
             <div className="mt-10 columns-1 gap-4 sm:columns-2 xl:columns-3">
-              {homeCreativeArchive.length > 0
-                ? homeCreativeArchive.slice(0, 7).map((item) => {
-                    const isVideo = item.type === "video";
-                    return (
-                      <div key={item.id} className="mb-4 break-inside-avoid">
-                        <div className="group block overflow-hidden rounded-[1.6rem] border border-white/10 bg-black/20">
-                          {isVideo ? (
-                            <video
-                              src={item.url}
-                              muted
-                              className="h-auto w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
-                            />
-                          ) : (
-                            <img
-                              src={item.url}
-                              alt="Creative archive preview"
-                              className="h-auto w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
-                            />
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })
-                : // Mock placeholders when no items exist - 7 placeholders + ArchiveCard
-                  Array.from({ length: 7 }).map((_, index) => (
-                    <div key={index} className="mb-4 break-inside-avoid">
-                      <MockMedia
-                        title="Creative work placeholder"
-                        tone="gold"
-                        aspect="portrait"
-                      />
-                    </div>
-                  ))}
+              {/* Video */}
+              <div className="mb-4 break-inside-avoid">
+                <div className="group overflow-hidden rounded-[1.6rem] border border-white/10 bg-black/20">
+                  <video
+                    src="/archive-preview/video-1.mp4"
+                    muted
+                    autoPlay
+                    loop
+                    playsInline
+                    className="h-auto w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                  />
+                </div>
+              </div>
+
+              {/* Image 1 */}
+              <div className="mb-4 break-inside-avoid">
+                <div className="group overflow-hidden rounded-[1.6rem] border border-white/10 bg-black/20">
+                  <img
+                    src="/archive-preview/image-1.webp"
+                    alt="Creative archive preview"
+                    className="h-auto w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                  />
+                </div>
+              </div>
+
+              {/* Image 2 */}
+              <div className="mb-4 break-inside-avoid">
+                <div className="group overflow-hidden rounded-[1.6rem] border border-white/10 bg-black/20">
+                  <img
+                    src="/archive-preview/image-2.webp"
+                    alt="Creative archive preview"
+                    className="h-auto w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                  />
+                </div>
+              </div>
+
+              {/* Image 3 */}
+              <div className="mb-4 break-inside-avoid">
+                <div className="group overflow-hidden rounded-[1.6rem] border border-white/10 bg-black/20">
+                  <img
+                    src="/archive-preview/image-3.webp"
+                    alt="Creative archive preview"
+                    className="h-auto w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                  />
+                </div>
+              </div>
+
+              {/* Image 4 */}
+              <div className="mb-4 break-inside-avoid">
+                <div className="group overflow-hidden rounded-[1.6rem] border border-white/10 bg-black/20">
+                  <img
+                    src="/archive-preview/image-4.webp"
+                    alt="Creative archive preview"
+                    className="h-auto w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                  />
+                </div>
+              </div>
+
+              {/* Archive Card */}
               <div className="mb-4 break-inside-avoid">
                 <ArchiveCard />
               </div>
