@@ -144,28 +144,44 @@ export function ArchivePageShell({
 
     for (const file of validFiles) {
       try {
+        // Step 1: Upload to storage
         const formData = new FormData();
         formData.append("file", file);
         formData.append("bucket", "archive-media");
 
-        const response = await fetch("/api/admin/upload", {
+        const uploadResponse = await fetch("/api/admin/upload", {
           method: "POST",
           body: formData,
         });
 
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(getErrorMessage(data.error ?? "upload-failed"));
+        const uploadData = await uploadResponse.json();
+        if (!uploadResponse.ok) {
+          throw new Error(getErrorMessage(uploadData.error ?? "upload-failed"));
         }
 
         const mediaType = file.type.startsWith("video/") ? "video" : "image";
 
+        // Step 2: Create database record
+        const createResponse = await fetch("/api/admin/creative-archive", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            url: uploadData.publicUrl,
+            type: mediaType,
+          }),
+        });
+
+        const createData = await createResponse.json();
+        if (!createResponse.ok) {
+          throw new Error(getErrorMessage(createData.error ?? "create-failed"));
+        }
+
         setItems((current) => [
           ...current,
           {
-            id: crypto.randomUUID(),
-            url: data.publicUrl,
-            type: mediaType,
+            id: createData.item.id,
+            url: createData.item.url,
+            type: createData.item.type,
           },
         ]);
       } catch (error) {
