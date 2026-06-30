@@ -11,6 +11,12 @@ const allowedBuckets = new Set([
   "archive-media",
 ]);
 
+// Max file size: 50MB (matches Supabase bucket limit)
+const MAX_FILE_SIZE = 50 * 1024 * 1024;
+
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
 export async function POST(request: NextRequest) {
   const adminCheck = await verifyAdminRequest(request);
   if (!adminCheck.ok) return adminCheck.response;
@@ -25,6 +31,13 @@ export async function POST(request: NextRequest) {
 
   if (!allowedBuckets.has(bucket)) {
     return NextResponse.json({ error: "invalid-bucket" }, { status: 400 });
+  }
+
+  if (file.size > MAX_FILE_SIZE) {
+    return NextResponse.json(
+      { error: "file-too-large", message: "File must be under 50MB" },
+      { status: 413 },
+    );
   }
 
   const extension = file.name.includes(".") ? file.name.split(".").pop() : "bin";
