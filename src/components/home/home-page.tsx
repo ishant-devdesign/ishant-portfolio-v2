@@ -23,7 +23,10 @@ import {
 import { AutoGrowTextarea } from "@/components/admin/auto-grow-textarea";
 import { useHomeHeroEditor } from "@/components/admin/home-hero-editor";
 import { useAdminSession } from "@/components/admin/admin-session-provider";
-import { SaveStatusPill, type SaveState } from "@/components/admin/save-status-pill";
+import {
+  SaveStatusPill,
+  type SaveState,
+} from "@/components/admin/save-status-pill";
 import { buttonClasses } from "@/components/ui/button";
 import { MobileSectionNav } from "@/components/nav/mobile-section-nav";
 import { SideNavRail } from "@/components/nav/side-nav-rail";
@@ -368,7 +371,7 @@ export function HomePage({
         ];
   const contactCta =
     siteSettings.contactCtaText ??
-    "If you are building something that needs stronger interface clarity, sharper frontend execution, or a more thoughtful bridge between design and implementation, I would be glad to talk.";
+    "Whether you're building a product from scratch, refining an existing experience, or looking for someone who understands both design and engineering, I'd be happy to talk.";
   const [workDraft, setWorkDraft] = useState(workExperience);
   const [educationDraft, setEducationDraft] = useState(educationItems);
   const [trajectoryState, setTrajectoryState] = useState<
@@ -1050,23 +1053,34 @@ export function HomePage({
         >
           <div className="grid gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(280px,0.85fr)] lg:gap-12">
             <div className="space-y-3 text-base leading-7 text-white/60 sm:text-lg mt-2">
-              <p>My journey into technology started through design.</p>
               <p>
-                I was drawn to how layouts, visual hierarchy, and interactions
-                could shape the way people experience a product. Over time, that
-                curiosity expanded beyond visuals into frontend development,
-                where I discovered the challenge of turning ideas into working
-                interfaces.
+                My journey into technology started through design. Long before I
+                wrote my first line of code, I was creating posters, branding,
+                marketing visuals, illustrations, motion graphics, and 3D
+                experiments. Those years taught me how typography, composition,
+                and visual hierarchy shape the way people experience
+                information.
               </p>
+
               <p>
-                Today I work at the intersection of design and engineering,
-                building products that balance usability, performance, and
-                maintainability.
+                As my curiosity grew, I found myself drawn to interface design
+                and eventually frontend development. Building products allowed
+                me to combine visual thinking with technical problem-solving,
+                transforming ideas into experiences that were both intuitive and
+                functional.
+              </p>
+
+              <p>
+                Today I work where those disciplines meet. Design continues to
+                influence every engineering decision I make, while frontend
+                development has become another way to create thoughtful,
+                user-centered experiences.
               </p>
             </div>
+
             <MockMedia
               title="Designer at heart. Engineer by craft."
-              subtitle="A visual study standing in for the quieter story of how interface thinking and frontend craft came to meet in one practice."
+              subtitle="A visual archive documenting the creative journey—from branding and illustration to motion, 3D, and the product interfaces that followed."
             />
           </div>
         </HomeSectionFrame>
@@ -1081,29 +1095,35 @@ export function HomePage({
           <div className="space-y-5">
             <div className="space-y-3 text-base leading-7 text-white/58 sm:text-lg mt-2">
               <p>
-                My career started with smaller client projects where the focus
-                was simply delivering working features and responsive
-                interfaces.
+                Every role introduced a different set of challenges, gradually
+                shaping how I think about products, engineering, and user
+                experience.
               </p>
+
               <p>
-                Over time, those projects evolved into larger products with more
-                demanding requirements, introducing challenges around
-                scalability, maintainability, performance, and user experience.
-                Moving into cybersecurity products pushed that growth further,
-                requiring me to work with dense information, complex workflows,
-                and interfaces designed for users making important decisions
-                under pressure.
+                My professional career began building responsive interfaces and
+                shipping features for client projects. Those early experiences
+                established the fundamentals—writing maintainable code,
+                collaborating with teams, and learning that delivering software
+                is about solving problems rather than simply completing tasks.
               </p>
+
               <p>
-                Through each role, one lesson has stayed consistent: good
-                frontend development is about more than implementation. It's
-                about understanding the problem, simplifying complexity, and
-                creating experiences that feel intuitive despite everything
-                happening behind the scenes.
+                As I moved into product-focused development, the complexity
+                increased. Working on cybersecurity platforms meant designing
+                for dense information, reusable component systems, evolving
+                design languages, and workflows where clarity directly
+                influenced how users made important decisions. Performance,
+                accessibility, and scalability became everyday engineering
+                considerations rather than afterthoughts.
               </p>
+
               <p>
-                That perspective continues to shape how I approach product
-                development today.
+                Today I approach frontend development as a balance between
+                design thinking and technical execution. Every project is an
+                opportunity to simplify complexity, create intuitive
+                experiences, and build products that remain maintainable as they
+                grow.
               </p>
             </div>
 
@@ -1503,12 +1523,23 @@ export function HomePage({
           saveState={toolsState}
         >
           <div className="grid gap-4 xl:grid-cols-2">
-            <p className="mt-1 max-w-3xl text-base leading-7 text-white/58 sm:text-lg">
-              The toolkit matters less as a badge list and more as a set of
-              instruments for shipping better interface systems, stronger
-              frontend foundations, and cleaner collaboration between design and
-              engineering.
-            </p>
+            <div className="space-y-3 text-base leading-7 text-white/58 sm:text-lg mt-2">
+              <p>
+                Every role has added another layer to how I approach product
+                development. From client projects to complex cybersecurity
+                platforms, each experience reinforced that good frontend
+                engineering is about far more than writing code—it's about
+                understanding users, solving problems, and building systems that
+                can grow.
+              </p>
+
+              <p>
+                Today I work at the intersection of design and engineering,
+                creating interfaces that balance clarity, performance,
+                accessibility, and maintainability while making complex products
+                feel approachable.
+              </p>
+            </div>
 
             <div className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-5 sm:p-6">
               <div className="flex items-center gap-3 text-white/36 mb-6">

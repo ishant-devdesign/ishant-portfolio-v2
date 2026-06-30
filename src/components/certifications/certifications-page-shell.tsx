@@ -13,6 +13,7 @@ import { PageHero } from "@/components/ui/page-hero";
 import { AutoGrowTextarea } from "@/components/admin/auto-grow-textarea";
 import { useAdminSession } from "@/components/admin/admin-session-provider";
 import { buttonClasses } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import type { Certification } from "@/lib/site-config";
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, useSortable, rectSortingStrategy } from "@dnd-kit/sortable";
@@ -188,10 +189,14 @@ export function CertificationsPageShell({
     }
   }
 
+  const confirm = useConfirm();
+
   async function deleteCertification(slug: string, title: string) {
-    const confirmed = window.confirm(
-      `Delete certification "${title}"? This cannot be undone.`,
-    );
+    const confirmed = await confirm({
+      title: `Delete certification "${title}"?`,
+      message: "This cannot be undone.",
+      confirmLabel: "Delete",
+    });
     if (!confirmed) return;
 
     setSaveStates((current) => ({ ...current, [slug]: "saving" }));

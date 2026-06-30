@@ -10,6 +10,7 @@ import "./globals.css";
 import { AdminSessionProvider } from "@/components/admin/admin-session-provider";
 import { AdminFloatPill } from "@/components/admin/admin-float-pill";
 import { ExperienceProvider } from "@/components/motion/experience-provider";
+import { ConfirmDialogProvider } from "@/components/ui/confirm-dialog";
 import { getLiveSiteSettings } from "@/lib/content";
 import { getAdminContext } from "@/lib/auth/admin";
 import { cn } from "@/lib/utils";
@@ -211,7 +212,9 @@ export default async function RootLayout({
       <body className="min-h-full bg-[#050505] font-sans text-white antialiased">
         <AdminSessionProvider initialAdmin={adminContext}>
           <ExperienceProvider settings={siteSettings}>
-            {children}
+            <ConfirmDialogProvider>
+              {children}
+            </ConfirmDialogProvider>
           </ExperienceProvider>
           <AdminFloatPill />
         </AdminSessionProvider>

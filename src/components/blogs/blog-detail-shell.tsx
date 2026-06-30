@@ -22,6 +22,7 @@ import { PublishMonthYearField } from "@/components/editor/publish-month-year-fi
 import { AutoGrowTextarea } from "@/components/admin/auto-grow-textarea";
 import { useAdminSession } from "@/components/admin/admin-session-provider";
 import { buttonClasses } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { BLOG_BLOCK_TYPES, createEmptyBlog } from "@/lib/editor";
 import type { Blog, HomeSectionItem } from "@/lib/site-config";
 import { slugify } from "@/lib/utils";
@@ -53,6 +54,7 @@ export function BlogDetailShell({
   const [saveState, setSaveState] = useState<
     "idle" | "saving" | "saved" | "error"
   >("idle");
+  const confirm = useConfirm();
 
   const sections: HomeSectionItem[] = useMemo(() => {
     const contentSections = blog.contentBlocks
@@ -73,9 +75,11 @@ export function BlogDetailShell({
 
   async function deleteBlog() {
     if (isNew) return;
-    const confirmed = window.confirm(
-      `Delete blog “${blog.title}”? This cannot be undone.`,
-    );
+    const confirmed = await confirm({
+      title: `Delete blog "${blog.title}"?`,
+      message: "This cannot be undone.",
+      confirmLabel: "Delete",
+    });
     if (!confirmed) return;
 
     setSaveState("saving");

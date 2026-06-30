@@ -24,6 +24,7 @@ import { PublishMonthYearField } from "@/components/editor/publish-month-year-fi
 import { AutoGrowTextarea } from "@/components/admin/auto-grow-textarea";
 import { useAdminSession } from "@/components/admin/admin-session-provider";
 import { buttonClasses } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { createEmptyProject, PROJECT_BLOCK_TYPES } from "@/lib/editor";
 import type { HomeSectionItem, Project } from "@/lib/site-config";
 import { slugify } from "@/lib/utils";
@@ -54,6 +55,7 @@ export function ProjectDetailShell({
   const [saveState, setSaveState] = useState<
     "idle" | "saving" | "saved" | "error"
   >("idle");
+  const confirm = useConfirm();
 
   const sections: HomeSectionItem[] = useMemo(() => {
     const contentSections = project.contentBlocks
@@ -74,9 +76,11 @@ export function ProjectDetailShell({
 
   async function deleteProject() {
     if (isNew) return;
-    const confirmed = window.confirm(
-      `Delete project “${project.title}”? This cannot be undone.`,
-    );
+    const confirmed = await confirm({
+      title: `Delete project "${project.title}"?`,
+      message: "This cannot be undone.",
+      confirmLabel: "Delete",
+    });
     if (!confirmed) return;
 
     setSaveState("saving");

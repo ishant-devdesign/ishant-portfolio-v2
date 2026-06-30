@@ -19,6 +19,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { AutoGrowTextarea } from "@/components/admin/auto-grow-textarea";
 import { useAdminSession } from "@/components/admin/admin-session-provider";
 import { buttonClasses } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { RevealInView } from "@/components/motion/reveal-in-view";
 import { MobileSectionNav } from "@/components/nav/mobile-section-nav";
 import { SideNavRail } from "@/components/nav/side-nav-rail";
@@ -390,6 +391,7 @@ function PetArticle({
   const [draggingImageIndex, setDraggingImageIndex] = useState<number | null>(
     null,
   );
+  const confirm = useConfirm();
   const autosaveTimeoutRef = useRef<number | null>(null);
   const clearSavedRef = useRef<number | null>(null);
   const savedPetRef = useRef(pet);
@@ -498,13 +500,12 @@ function PetArticle({
   }
 
   async function deletePet() {
-    if (
-      !window.confirm(
-        `Delete ${draft.name}? This will remove the pet and all gallery images.`,
-      )
-    ) {
-      return;
-    }
+    const confirmed = await confirm({
+      title: `Delete ${draft.name}?`,
+      message: "This will remove the pet and all gallery images.",
+      confirmLabel: "Delete",
+    });
+    if (!confirmed) return;
 
     setDeleteState("saving");
 

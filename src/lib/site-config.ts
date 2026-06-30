@@ -119,6 +119,12 @@ export type Pet = {
   homeImage?: string;
 };
 
+export type CreativeArchiveItem = {
+  id: string;
+  url: string;
+  type: "image" | "video";
+};
+
 export const blankSiteSettings: SiteSettings = {
   siteName: "Ishant Kumar",
   shortMark: "ik",
