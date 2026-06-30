@@ -18,7 +18,7 @@ export function MockMedia({
   title: string;
   subtitle?: string;
   tone?: keyof typeof tones;
-  aspect?: "video" | "portrait" | "square" | "banner";
+  aspect?: "video" | "portrait" | "square" | "banner" | "fill";
   className?: string;
 }) {
   const aspectClass =
@@ -28,7 +28,9 @@ export function MockMedia({
         ? "aspect-square"
         : aspect === "banner"
           ? "aspect-[16/5]"
-          : "aspect-[16/10]";
+          : aspect === "fill"
+            ? "h-full"
+            : "aspect-[16/10]";
 
   return (
     <div
