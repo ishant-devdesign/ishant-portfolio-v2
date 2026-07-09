@@ -27,6 +27,13 @@ export function MediaAssetField({
 
   async function handleFile(file: File | null) {
     if (!file) return;
+
+    const MAX_CLIENT_FILE_SIZE = 4.4 * 1024 * 1024; // Vercel default body limit is ~4.5MB
+    if (file.size > MAX_CLIENT_FILE_SIZE) {
+      setStatus(`File too large (Vercel upload limit: 4.5MB)`);
+      return;
+    }
+
     setStatus("Uploading…");
 
     try {
@@ -39,12 +46,18 @@ export function MediaAssetField({
         body: formData,
       });
 
-      const data = await response.json();
+      let data: { error?: string; publicUrl?: string } | null = null;
+      try {
+        data = await response.json();
+      } catch {
+        // Response was not JSON (likely HTML error from Vercel)
+        data = { error: `Upload failed (status ${response.status})` };
+      }
       if (!response.ok) {
-        throw new Error(data.error ?? "upload-failed");
+        throw new Error(data?.error ?? "upload-failed");
       }
 
-      onChange(data.publicUrl);
+      onChange(data?.publicUrl || "");
       setStatus("Uploaded");
       window.setTimeout(() => setStatus(""), 1200);
     } catch (error) {

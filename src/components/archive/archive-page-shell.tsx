@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Plus, ImagePlus } from "lucide-react";
-import { AutoGrowTextarea } from "@/components/admin/auto-grow-textarea";
+import { ImagePlus } from "lucide-react";
 import { useAdminSession } from "@/components/admin/admin-session-provider";
 import { buttonClasses } from "@/components/ui/button";
 import { useConfirm } from "@/components/ui/confirm-dialog";
@@ -143,10 +142,23 @@ export function ArchivePageShell({
   async function uploadFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
 
+    const MAX_CLIENT_FILE_SIZE = 4.4 * 1024 * 1024; // Vercel default body limit is ~4.5MB
     const validFiles = Array.from(files).filter(
       (file) =>
-        file.type.startsWith("image/") || file.type.startsWith("video/"),
+        (file.type.startsWith("image/") || file.type.startsWith("video/")) &&
+        file.size <= MAX_CLIENT_FILE_SIZE,
     );
+
+    // Check for oversized files and warn user
+    const oversizedFiles = Array.from(files).filter(
+      (f) => f.size > MAX_CLIENT_FILE_SIZE,
+    );
+    if (oversizedFiles.length > 0) {
+      setUploadState(
+        `${oversizedFiles.length} file(s) too large (Vercel limit: 4.5MB) - skipped`,
+      );
+      window.setTimeout(() => setUploadState(""), 3000);
+    }
 
     if (validFiles.length === 0) return;
 
@@ -164,11 +176,16 @@ export function ArchivePageShell({
           body: formData,
         });
 
-        const uploadData = await uploadResponse.json();
+        let uploadData: { error?: string; publicUrl?: string } | null = null;
+        try {
+          uploadData = await uploadResponse.json();
+        } catch {
+          uploadData = { error: `Upload failed (status ${uploadResponse.status})` };
+        }
         if (!uploadResponse.ok) {
-          const errorMsg = uploadData.error === "file-too-large"
-            ? `File "${file.name}" exceeds 50MB limit`
-            : uploadData.error ?? "upload-failed";
+          const errorMsg = uploadData?.error === "file-too-large"
+            ? `File "${file.name}" exceeds Vercel upload limit`
+            : uploadData?.error ?? "upload-failed";
           throw new Error(errorMsg);
         }
 
@@ -179,22 +196,31 @@ export function ArchivePageShell({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            url: uploadData.publicUrl,
+            url: uploadData?.publicUrl,
             type: mediaType,
           }),
         });
 
-        const createData = await createResponse.json();
+        let createData: { error?: unknown; item?: CreativeArchiveItem } | null = null;
+        try {
+          createData = await createResponse.json();
+        } catch {
+          createData = { error: `Create failed (status ${createResponse.status})` };
+        }
         if (!createResponse.ok) {
-          throw new Error(getErrorMessage(createData.error ?? "create-failed"));
+          throw new Error(getErrorMessage(createData?.error ?? "create-failed"));
+        }
+        const item = createData?.item;
+        if (!item) {
+          throw new Error("Upload succeeded but no item returned");
         }
 
         setItems((current) => [
           ...current,
           {
-            id: createData.item.id,
-            url: createData.item.url,
-            type: createData.item.type,
+            id: item.id,
+            url: item.url,
+            type: item.type,
           },
         ]);
       } catch (error) {
@@ -265,7 +291,7 @@ export function ArchivePageShell({
               <div>
                 <p className="text-white/82">Creative Archive editor</p>
                 <p className="mt-1 text-white/44">
-                  Upload images and videos, reorder via drag-drop.
+                  Upload images and videos (under 4.5MB), reorder via drag-drop.
                 </p>
               </div>
               <div className="flex items-center gap-3">
