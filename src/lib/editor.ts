@@ -65,20 +65,30 @@ export const PROJECT_BLOCK_TYPES = [
 
 export const BLOG_BLOCK_TYPES = PROJECT_BLOCK_TYPES;
 
+const months = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
 export function createEmptyProject(): Project {
+  const now = new Date();
+  const day = String(now.getDate());
+  const month = months[now.getMonth()];
+  const year = String(now.getFullYear());
+
   return {
     slug: "new-project",
     title: "Untitled Project",
     summary: "Short project summary.",
     sector: "Project",
-    yearLabel: "2026",
+    yearLabel: year,
     role: "Role",
     stack: [],
     tags: [],
     featured: false,
     status: "draft",
     heroImage: "",
-    publishedLabel: "Jan 2026",
+    publishedLabel: `${day} ${month} ${year}`,
     metrics: [],
     challenge: "",
     approach: "",
@@ -88,12 +98,18 @@ export function createEmptyProject(): Project {
 }
 
 export function createEmptyBlog(): Blog {
+  const now = new Date();
+  const day = String(now.getDate());
+  const month = months[now.getMonth()];
+  const year = String(now.getFullYear());
+  const publishedAtDefault = `${day} ${month} ${year}`;
+
   return {
     slug: "new-post",
     title: "Untitled Blog",
     excerpt: "Short post excerpt.",
-    publishedAt: "Draft",
-    publishedLabel: "Jan 2026",
+    publishedAt: publishedAtDefault,
+    publishedLabel: publishedAtDefault,
     readingTime: "5 min",
     tags: [],
     featured: false,

@@ -85,6 +85,7 @@ export function ExperienceProvider({
       {loaderState.showLoader ? (
         <IntroLoader
           name={settings.loaderNameText}
+          preloadImages={settings.loaderSymbols?.length ? ["/og-image.png"] : []}
           onComplete={() => {
             setLoaderState((current) => ({
               ...current,

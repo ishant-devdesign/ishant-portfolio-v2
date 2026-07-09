@@ -244,6 +244,6 @@ export const projectArchiveSections: HomeSectionItem[] = [
 
 export const blogArchiveSections: HomeSectionItem[] = [
   { id: "intro", index: "00", label: "Blogs", title: "Overview" },
-  { id: "featured", index: "01", label: "Featured", title: "Latest post" },
+  { id: "featured", index: "01", label: "Latest", title: "Latest post" },
   { id: "archive", index: "02", label: "Archive", title: "Writing index" },
 ];

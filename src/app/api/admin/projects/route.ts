@@ -3,6 +3,7 @@ import { z } from "zod";
 import { verifyAdminRequest } from "@/lib/auth/route-admin";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { slugify } from "@/lib/utils";
+import { revalidatePath } from "next/cache";
 
 const payloadSchema = z.object({
   slug: z.string().optional(),
@@ -66,7 +67,7 @@ export async function POST(request: NextRequest) {
   const slug = slugify(parsed.data.slug || parsed.data.title);
   const publishedAt =
     parsed.data.status === "published"
-      ? new Date(`1 ${parsed.data.publishedLabel}`).toISOString()
+      ? new Date(parsed.data.publishedLabel).toISOString()
       : null;
 
   const { data: project, error } = await adminCheck.adminSupabase
@@ -98,6 +99,7 @@ export async function POST(request: NextRequest) {
   }
 
   await syncTags(adminCheck.adminSupabase, project.id, parsed.data.tags);
+  revalidatePath("/sitemap.xml");
 
   return NextResponse.json({ ok: true, slug: project.slug });
 }

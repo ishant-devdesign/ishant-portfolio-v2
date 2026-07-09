@@ -20,7 +20,8 @@ const toneClasses: Record<ButtonTone, string> = {
   danger:
     "border-white/10 text-white/72 hover:bg-white/[0.04] hover:text-rose-300",
   selected: "border-white/10 bg-white/[0.06] text-white/86",
-  inverted: "border-white/10 bg-white text-black hover:bg-white/[0.12]",
+  inverted:
+    "border-white/10 bg-white text-black hover:bg-white/[0.22] hover:text-white",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {

@@ -6,16 +6,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 type IntroLoaderProps = {
   name?: string;
   onComplete: () => void;
+  preloadImages?: string[];
 };
-
-type LoaderPhase =
-  | "empty"
-  | "canvas"
-  | "construct"
-  | "discover"
-  | "clean"
-  | "hold"
-  | "exit";
 
 const PHASE_TIMING: Array<{ phase: LoaderPhase; at: number }> = [
   { phase: "canvas", at: 420 },
@@ -25,6 +17,15 @@ const PHASE_TIMING: Array<{ phase: LoaderPhase; at: number }> = [
   { phase: "hold", at: 7600 },
   { phase: "exit", at: 8750 },
 ];
+
+type LoaderPhase =
+  | "empty"
+  | "canvas"
+  | "construct"
+  | "discover"
+  | "clean"
+  | "hold"
+  | "exit";
 
 function phaseIndex(phase: LoaderPhase) {
   return [
@@ -2242,21 +2243,10 @@ function SkipIntroButton({
       aria-label="Skip intro animation"
       onClick={onSkip}
       disabled={!isVisible}
-      className="absolute z-20 rounded-full border border-white/10 bg-[#050505]/70 px-4 py-2 text-[10px] uppercase tracking-[0.22em] text-white/55 backdrop-blur-md transition-colors hover:border-white/20 hover:text-white/80 focus:outline-none focus:ring-1 focus:ring-white/30 disabled:cursor-default"
-      style={
-        isMobile
-          ? {
-              left: "50%",
-              bottom: "calc(env(safe-area-inset-bottom, 0px) + 24px)",
-              transform: "translateX(-50%)",
-              pointerEvents: isVisible ? "auto" : "none",
-            }
-          : {
-              right: 24,
-              bottom: "calc(env(safe-area-inset-bottom, 0px) + 24px)",
-              pointerEvents: isVisible ? "auto" : "none",
-            }
-      }
+      className="absolute bottom-6 left-1/2 z-20 -translate-x-1/2 rounded-full border border-white/10 bg-[#050505]/70 px-4 py-2 text-[10px] uppercase tracking-[0.22em] text-white/55 backdrop-blur-md transition-colors hover:border-white/20 hover:text-white/80 focus:outline-none focus:ring-1 focus:ring-white/30 disabled:cursor-default"
+      style={{
+        pointerEvents: isVisible ? "auto" : "none",
+      }}
       initial={{ opacity: 0, y: 6 }}
       animate={{
         opacity: isVisible ? 1 : 0,
@@ -2276,9 +2266,11 @@ function SkipIntroButton({
 export function IntroLoader({
   name = "ISHANT KUMAR",
   onComplete,
+  preloadImages = [],
 }: IntroLoaderProps) {
   const [phase, setPhase] = useState<LoaderPhase>("empty");
   const [hasSkipped, setHasSkipped] = useState(false);
+  const [preloaded, setPreloaded] = useState(false);
 
   const shouldReduceMotion = useReducedMotion();
   const isMobile = useIsMobile();
@@ -2296,6 +2288,38 @@ export function IntroLoader({
   useEffect(() => {
     onCompleteRef.current = onComplete;
   }, [onComplete]);
+
+  // Preload images when component mounts
+  useEffect(() => {
+    if (preloadImages.length === 0) {
+      setPreloaded(true);
+      return;
+    }
+
+    let loadedCount = 0;
+    const total = preloadImages.length;
+
+    const onImageLoad = () => {
+      loadedCount++;
+      if (loadedCount >= total) {
+        setPreloaded(true);
+      }
+    };
+
+    const onImageError = () => {
+      loadedCount++;
+      if (loadedCount >= total) {
+        setPreloaded(true);
+      }
+    };
+
+    preloadImages.forEach((src) => {
+      const img = new Image();
+      img.onload = onImageLoad;
+      img.onerror = onImageError;
+      img.src = src;
+    });
+  }, [preloadImages]);
 
   const clearLoaderTimers = () => {
     timersRef.current.forEach((timer) => {
@@ -2353,6 +2377,8 @@ export function IntroLoader({
   }, [shouldReduceMotion]);
 
   const isExiting = phase === "exit";
+  // Skip button visible when preloading is done and not exiting
+  const showSkip = preloaded && !isExiting;
 
   return (
     <motion.div
@@ -2457,7 +2483,7 @@ export function IntroLoader({
 
       <SkipIntroButton
         isMobile={isMobile}
-        isVisible={!isExiting}
+        isVisible={showSkip}
         onSkip={handleSkip}
       />
     </motion.div>

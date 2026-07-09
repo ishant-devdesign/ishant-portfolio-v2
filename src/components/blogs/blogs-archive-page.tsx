@@ -33,8 +33,10 @@ export function BlogsArchivePage({ blogs }: { blogs: Blog[] }) {
     return visibleBlogs.filter((blog) => blog.tags.includes(activeTag));
   }, [activeTag, visibleBlogs]);
 
-  const featuredBlogs = filtered.filter((blog) => blog.featured);
-  const archiveBlogs = filtered.filter((blog) => !blog.featured);
+  // Latest post is the first (most recently published) blog
+  const latestBlog = filtered[0];
+  // Archive shows all posts except the latest
+  const archiveBlogs = filtered.slice(1);
 
   return (
     <main className="mx-auto w-full max-w-[1300px] px-5 pb-24 sm:px-8 lg:px-10">
@@ -90,7 +92,7 @@ export function BlogsArchivePage({ blogs }: { blogs: Blog[] }) {
         <RevealInView>
           <div className="mb-6">
             <p className="text-[0.66rem] uppercase tracking-[0.36em] text-white/30">
-              01 / Featured
+              01 / Latest
             </p>
             <h2 className="font-heading mt-3 text-3xl text-white sm:text-4xl">
               Latest post
@@ -99,55 +101,55 @@ export function BlogsArchivePage({ blogs }: { blogs: Blog[] }) {
         </RevealInView>
 
         <div className="space-y-5">
-          {featuredBlogs.map((blog, index) => (
-            <RevealInView key={blog.slug} delay={index * 0.06}>
+          {latestBlog ? (
+            <RevealInView>
               <Link
-                href={`/blogs/${blog.slug}`}
+                href={`/blogs/${latestBlog.slug}`}
                 className="grid gap-5 rounded-[2rem] border border-white/10 bg-white/[0.03] p-4 transition-colors hover:bg-white/[0.05] lg:grid-cols-[minmax(320px,0.95fr)_minmax(0,1.05fr)]"
                 data-cursor="Read blog"
                 data-cursor-preview="blog"
-                data-cursor-title={blog.title}
-                data-cursor-image={blog.heroImage}
+                data-cursor-title={latestBlog.title}
+                data-cursor-image={latestBlog.heroImage}
               >
-                {blog.heroImage ? (
+                {latestBlog.heroImage ? (
                   <div className="overflow-hidden rounded-[2rem] border border-white/10 bg-black/20">
                     <img
-                      src={blog.heroImage}
-                      alt={blog.title}
+                      src={latestBlog.heroImage}
+                      alt={latestBlog.title}
                       className="h-full min-h-[260px] w-full object-cover"
                     />
                   </div>
                 ) : (
                   <MockMedia
-                    title={blog.title}
-                    subtitle={blog.tags.join(" · ")}
+                    title={latestBlog.title}
+                    subtitle={latestBlog.tags.join(" · ")}
                     tone="plum"
                   />
                 )}
                 <div className="flex flex-col justify-between gap-6 p-2 sm:p-4">
                   <div>
                     <p className="text-[0.66rem] uppercase tracking-[0.36em] text-white/30">
-                      {blog.publishedAt} · {blog.readingTime}
+                      {latestBlog.publishedAt} · {latestBlog.readingTime}
                     </p>
                     {showAdminCreate ? (
                       <div className="mt-3 flex flex-wrap gap-2">
                         <span
                           className={
-                            blog.status === "published"
+                            latestBlog.status === "published"
                               ? "rounded-full border border-emerald-400/18 bg-emerald-500/8 px-3 py-1 text-xs text-emerald-200/80"
                               : "rounded-full border border-amber-400/18 bg-amber-500/8 px-3 py-1 text-xs text-amber-200/80"
                           }
                         >
-                          {blog.status}
+                          {latestBlog.status}
                         </span>
                       </div>
                     ) : null}
                     <p className="mt-4 max-w-2xl text-base leading-7 text-white/58 sm:text-lg sm:leading-8">
-                      {blog.excerpt}
+                      {latestBlog.excerpt}
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {blog.tags.map((tag) => (
+                    {latestBlog.tags.map((tag) => (
                       <span
                         key={tag}
                         className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/44"
@@ -159,15 +161,13 @@ export function BlogsArchivePage({ blogs }: { blogs: Blog[] }) {
                 </div>
               </Link>
             </RevealInView>
-          ))}
-
-          {featuredBlogs.length === 0 ? (
+          ) : (
             <RevealInView>
               <div className="rounded-[1.6rem] border border-dashed border-white/10 px-5 py-8 text-white/44">
-                No featured blogs match the current filter.
+                No published blogs match the current filter.
               </div>
             </RevealInView>
-          ) : null}
+          )}
         </div>
       </section>
 

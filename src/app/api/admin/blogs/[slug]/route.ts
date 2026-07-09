@@ -3,6 +3,7 @@ import { z } from "zod";
 import { verifyAdminRequest } from "@/lib/auth/route-admin";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { slugify } from "@/lib/utils";
+import { revalidatePath } from "next/cache";
 
 const payloadSchema = z.object({
   title: z.string().min(1),
@@ -130,7 +131,7 @@ export async function PATCH(
   const readingMinutes = parseInt(parsed.data.readingTime, 10) || 5;
   const publishedAt =
     parsed.data.status === "published"
-      ? new Date(`1 ${parsed.data.publishedLabel}`).toISOString()
+      ? new Date(parsed.data.publishedLabel).toISOString()
       : null;
 
   const { error } = await adminCheck.adminSupabase
@@ -154,6 +155,7 @@ export async function PATCH(
 
   await syncTags(adminCheck.adminSupabase, existing.id, parsed.data.tags);
   await deleteUploadedAssets(adminCheck.adminSupabase, "blog-media", removedPaths);
+  revalidatePath("/sitemap.xml");
 
   return NextResponse.json({ ok: true, slug: nextSlug });
 }
@@ -189,6 +191,7 @@ export async function DELETE(
   }
 
   await deleteUploadedAssets(adminCheck.adminSupabase, "blog-media", removedPaths);
+  revalidatePath("/sitemap.xml");
 
   return NextResponse.json({ ok: true, slug: existing.slug });
 }

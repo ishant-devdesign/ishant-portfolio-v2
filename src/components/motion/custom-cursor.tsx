@@ -322,22 +322,43 @@ export function CustomCursor() {
         <div className="translate-x-5 -translate-y-[96px] overflow-hidden rounded-2xl border border-white/10 bg-[#111] shadow-[0_20px_60px_rgba(0,0,0,0.4)]">
           <div className="relative h-[110px] w-[180px] overflow-hidden bg-[#111]">
             {previewImage ? (
-              <img
+              <motion.img
                 src={previewImage}
                 alt=""
                 className="absolute inset-0 h-full w-full object-cover"
+                initial={{ filter: "blur(12px)", opacity: 0 }}
+                animate={{
+                  filter: showPreview ? "blur(0px)" : "blur(12px)",
+                  opacity: showPreview ? 1 : 0,
+                }}
+                transition={{ duration: 0.36, ease: [0.22, 1, 0.36, 1] }}
               />
             ) : null}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/82 via-black/36 to-transparent" />
-            <div className="absolute inset-0 opacity-18 [background-image:linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] [background-size:24px_24px]" />
-            <div className="absolute bottom-3 left-3 right-3">
+            <motion.div
+              className="absolute inset-0 bg-gradient-to-t from-black/82 via-black/36 to-transparent"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: showPreview ? 1 : 0 }}
+              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            />
+            <motion.div
+              className="absolute inset-0 opacity-18 [background-image:linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] [background-size:24px_24px]"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: showPreview ? 0.18 : 0 }}
+              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            />
+            <motion.div
+              className="absolute bottom-3 left-3 right-3"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: showPreview ? 1 : 0, y: showPreview ? 0 : 8 }}
+              transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
+            >
               <p className="text-[0.52rem] uppercase tracking-[0.28em] text-white/48">
                 {previewKind}
               </p>
               <p className="mt-1 line-clamp-2 text-sm leading-5 text-white/88">
                 {previewTitle}
               </p>
-            </div>
+            </motion.div>
           </div>
         </div>
       </motion.div>
