@@ -365,7 +365,7 @@ export function BlogDetailShell({
                 return (
                   <RevealInView
                     key={block.id}
-                    delay={index * 0.03}
+                    delay={index * 0.01}
                     className={isHeading ? "scroll-mt-28" : undefined}
                   >
                     <div

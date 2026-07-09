@@ -29,12 +29,15 @@ export const metadata: Metadata = {
   },
 };
 
+import { getLiveArchiveBlocks } from "@/lib/content";
+
 export default async function ArchivePage() {
   const items = await getLiveCreativeArchive();
+  const blocks = await getLiveArchiveBlocks();
 
   return (
     <SiteShell>
-      <ArchivePageShell initialItems={items} />
+      <ArchivePageShell initialItems={items} initialBlocks={blocks} />
       <SiteFooter />
     </SiteShell>
   );

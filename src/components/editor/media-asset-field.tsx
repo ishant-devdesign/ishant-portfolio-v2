@@ -28,36 +28,80 @@ export function MediaAssetField({
   async function handleFile(file: File | null) {
     if (!file) return;
 
-    const MAX_CLIENT_FILE_SIZE = 4.4 * 1024 * 1024; // Vercel default body limit is ~4.5MB
-    if (file.size > MAX_CLIENT_FILE_SIZE) {
-      setStatus(`File too large (Vercel upload limit: 4.5MB)`);
+    const VERCEL_LIMIT = 4.4 * 1024 * 1024; // Vercel default body limit is ~4.5MB
+    const SUPABASE_LIMIT = 50 * 1024 * 1024; // Supabase supports up to 50MB
+
+    // Check for files exceeding Supabase's limit
+    if (file.size > SUPABASE_LIMIT) {
+      setStatus("File exceeds 50MB Supabase limit");
       return;
     }
 
     setStatus("Uploading…");
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("bucket", bucket);
+      let publicUrl: string | null = null;
 
-      const response = await fetch("/api/admin/upload", {
-        method: "POST",
-        body: formData,
-      });
+      if (file.size > VERCEL_LIMIT) {
+        // Use signed URL for large files (bypasses Vercel's body limit)
+        const signedResponse = await fetch("/api/admin/upload/signed-url", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fileName: file.name,
+            contentType: file.type,
+            bucket,
+            size: file.size,
+          }),
+        });
 
-      let data: { error?: string; publicUrl?: string } | null = null;
-      try {
-        data = await response.json();
-      } catch {
-        // Response was not JSON (likely HTML error from Vercel)
-        data = { error: `Upload failed (status ${response.status})` };
+        let signedData: { error?: string; signedUrl?: string; publicUrl?: string } | null = null;
+        try {
+          signedData = await signedResponse.json();
+        } catch {
+          signedData = { error: `Signed URL failed (status ${signedResponse.status})` };
+        }
+        if (!signedResponse.ok || !signedData?.signedUrl) {
+          throw new Error(signedData?.error ?? "signed-url-failed");
+        }
+
+        // Upload directly to Supabase using the signed URL
+        const putResponse = await fetch(signedData.signedUrl, {
+          method: "PUT",
+          headers: { "Content-Type": file.type || "application/octet-stream" },
+          body: file,
+        });
+
+        if (!putResponse.ok) {
+          throw new Error(`Direct upload failed (status ${putResponse.status})`);
+        }
+
+        publicUrl = signedData.publicUrl || null;
+      } else {
+        // Use regular upload for small files
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("bucket", bucket);
+
+        const response = await fetch("/api/admin/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        let data: { error?: string; publicUrl?: string } | null = null;
+        try {
+          data = await response.json();
+        } catch {
+          // Response was not JSON (likely HTML error from Vercel)
+          data = { error: `Upload failed (status ${response.status})` };
+        }
+        if (!response.ok) {
+          throw new Error(data?.error ?? "upload-failed");
+        }
+        publicUrl = data?.publicUrl || null;
       }
-      if (!response.ok) {
-        throw new Error(data?.error ?? "upload-failed");
-      }
 
-      onChange(data?.publicUrl || "");
+      onChange(publicUrl || "");
       setStatus("Uploaded");
       window.setTimeout(() => setStatus(""), 1200);
     } catch (error) {

@@ -124,6 +124,19 @@ export type CreativeArchiveItem = {
   url: string;
   type: "image" | "video";
   filename?: string; // Optional for static assets
+  title?: string | null;
+  description?: string | null;
+  fileHash?: string | null;
+  block_id?: string | null;
+  block_title?: string | null;
+  block_description?: string | null;
+};
+
+export type ArchiveBlock = {
+  id: string;
+  title: string;
+  description?: string | null;
+  sort_order: number;
 };
 
 // Static archive assets that can be used for home page preview

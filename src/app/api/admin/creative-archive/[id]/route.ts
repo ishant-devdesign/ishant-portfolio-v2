@@ -44,8 +44,9 @@ export async function DELETE(
 
   const { id } = await context.params;
 
+  // Get item with its URL for storage deletion
   const { data: existingItem, error: itemLookupError } = await adminCheck.adminSupabase
-    .from("creative_archive")
+    .from("archive_items")
     .select("id, media_url")
     .eq("id", id)
     .maybeSingle();
@@ -54,8 +55,9 @@ export async function DELETE(
     return NextResponse.json({ error: "item-not-found" }, { status: 404 });
   }
 
+  // Delete from database
   const { error: deleteError } = await adminCheck.adminSupabase
-    .from("creative_archive")
+    .from("archive_items")
     .delete()
     .eq("id", existingItem.id);
 
@@ -63,6 +65,7 @@ export async function DELETE(
     return NextResponse.json({ error: deleteError.message }, { status: 500 });
   }
 
+  // Delete from storage
   if (existingItem.media_url) {
     await deleteArchiveAssets([existingItem.media_url], adminCheck.adminSupabase);
   }

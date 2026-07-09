@@ -773,22 +773,67 @@ export async function getLiveCreativeArchive(): Promise<CreativeArchiveItem[]> {
     return [];
   }
 
+  // Fetch from archive_items with block information
   const { data, error } = await supabase
-    .from("creative_archive")
-    .select("id, media_url, media_type, sort_order")
+    .from("archive_items")
+    .select(`
+      id,
+      media_url,
+      media_type,
+      sort_order,
+      filename,
+      file_hash,
+      block_id,
+      archive_blocks!inner (
+        title,
+        description
+      )
+    `)
     .order("sort_order", { ascending: true });
 
   if (error) {
-    logFetch("creative_archive", "Query error, returning empty array.", error.message);
+    logFetch("archive_items", "Query error, returning empty array.", error.message);
     return [];
   }
 
   const rows = data ?? [];
-  logFetch("creative_archive", `Fetched ${rows.length} rows.`);
+  logFetch("archive_items", `Fetched ${rows.length} rows.`);
 
   return rows.map((row) => ({
     id: row.id,
     url: row.media_url,
     type: (row.media_type as "image" | "video") ?? "image",
+    filename: row.filename,
+    fileHash: row.file_hash,
+    block_id: row.block_id,
+    block_title: (row.archive_blocks as { title?: string })?.title ?? null,
+    block_description: (row.archive_blocks as { description?: string })?.description ?? null,
+  }));
+}
+
+export async function getLiveArchiveBlocks(){
+  const supabase = getContentClient("archive_blocks");
+  if (!supabase) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from("archive_blocks")
+    .select("*")
+    .order("sort_order", { ascending: true });
+
+  if (error) {
+    logFetch("archive_blocks", "Query error, returning empty array.", error.message);
+    return [];
+  }
+
+  const rows = data ?? [];
+  logFetch("archive_blocks", `Fetched ${rows.length} rows.`);
+
+  return rows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    sort_order: row.sort_order,
   }));
 }

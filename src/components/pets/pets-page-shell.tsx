@@ -950,7 +950,7 @@ export function PetsPageShell({ initialPets }: { initialPets: Pet[] }) {
         />
 
         {adminMode ? (
-          <section className="pb-2 sm:pb-4">
+          <section className="pb-2 sm:pb-4 mt-4">
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-[1.6rem] border border-white/10 bg-white/[0.03] px-4 py-4 text-sm text-white/72">
               <div>
                 <p className="text-white/82">Pets editor</p>

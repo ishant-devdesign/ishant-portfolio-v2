@@ -22,7 +22,7 @@ export async function PATCH(request: NextRequest) {
 
   for (const [index, id] of parsed.data.ids.entries()) {
     const { error } = await adminCheck.adminSupabase
-      .from("creative_archive")
+      .from("archive_items")
       .update({ sort_order: index + 1 })
       .eq("id", id);
 
