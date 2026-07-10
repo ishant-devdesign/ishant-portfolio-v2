@@ -59,7 +59,7 @@ export function ProjectDetailShell({
 
   const sections: HomeSectionItem[] = useMemo(() => {
     const contentSections = project.contentBlocks
-      .filter((block) => block.type === "heading")
+      .filter((block) => block.type === "heading" && block.data?.level === 2)
       .map((block, index) => ({
         id: toSectionId(String(block.data?.text ?? `section-${index + 1}`)),
         index: String(index + 2).padStart(2, "0"),

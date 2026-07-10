@@ -197,7 +197,7 @@ function BlockEditorContent({
   const [codeLangHighlightedIndex, setCodeLangHighlightedIndex] = useState(0);
   const codeLangButtonRef = useRef<HTMLButtonElement>(null);
   const nestedBlockTypes = blockTypes.filter(
-    (type) => type !== "columns-2" && type !== "heading",
+    (type) => type !== "columns-2",
   );
 
   // Keyboard handling for heading dropdown
@@ -736,7 +736,7 @@ function BlockEditorContent({
                   ...current,
                   data: {
                     ...current.data,
-                    headers: [...headers, `Column ${headers.length + 1}`],
+                    headers: [...headers, ""],
                     rows,
                   },
                 }));
@@ -1182,7 +1182,7 @@ function BlockEditorContent({
                   ]
                 : [];
               steps.push({
-                title: `Step ${steps.length + 1}`,
+                title: "",
                 description: "",
               });
               updateBlockHandler(block.id, (current) => ({
