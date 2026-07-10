@@ -127,10 +127,13 @@ export function BlogsArchivePage({ blogs }: { blogs: Blog[] }) {
                   />
                 )}
                 <div className="flex flex-col justify-between gap-6 p-2 sm:p-4">
-                  <div>
+                  <div className="space-y-2">
                     <p className="text-[0.66rem] uppercase tracking-[0.36em] text-white/30">
                       {latestBlog.publishedAt} · {latestBlog.readingTime}
                     </p>
+                    <h3 className="font-heading text-2xl text-white sm:text-3xl">
+                      {latestBlog.title}
+                    </h3>
                     {showAdminCreate ? (
                       <div className="mt-3 flex flex-wrap gap-2">
                         <span
