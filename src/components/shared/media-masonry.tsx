@@ -1,6 +1,6 @@
 "use client";
 
-import { GripVertical, X } from "lucide-react";
+import { GripVertical, X, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buttonClasses } from "@/components/ui/button";
 import type { CreativeArchiveItem } from "@/lib/site-config";
@@ -76,11 +76,18 @@ export function MediaMasonry({
 
               <div className="relative overflow-hidden rounded-[1.2rem] border border-white/10 bg-black/20">
                 {isVideo ? (
-                  <video
-                    src={item.url}
-                    muted
-                    className="h-auto w-full object-cover"
-                  />
+                  <>
+                    <video
+                      src={item.url}
+                      muted
+                      className="h-auto w-full object-cover"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-black/45 backdrop-blur-sm">
+                        <Play className="size-6 text-white" />
+                      </div>
+                    </div>
+                  </>
                 ) : (
                   <img
                     src={item.url}
@@ -110,19 +117,28 @@ export function MediaMasonry({
               onClick={() => onItemClick?.(index)}
               className="group block w-full overflow-hidden rounded-[1.6rem] border border-white/10 bg-black/20 text-left"
             >
-              {isVideo ? (
-                <video
-                  src={item.url}
-                  muted
-                  className="h-auto w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
-                />
-              ) : (
-                <img
-                  src={item.url}
-                  alt="Archive media"
-                  className="h-auto w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
-                />
-              )}
+              <div className="relative">
+                {isVideo ? (
+                  <>
+                    <video
+                      src={item.url}
+                      muted
+                      className="h-auto w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black/45 backdrop-blur-sm transition-transform duration-200 group-hover:scale-110">
+                        <Play className="size-5 text-white" />
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <img
+                    src={item.url}
+                    alt="Archive media"
+                    className="h-auto w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                  />
+                )}
+              </div>
             </button>
           </div>
         );
