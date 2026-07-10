@@ -2125,19 +2125,6 @@ export function BlockEditor({
               />
             </div>
           ))}
-          <div className="flex flex-wrap gap-2 pt-2">
-            {blockTypes.map((type) => (
-              <button
-                key={type}
-                type="button"
-                onClick={() => addBlock(type)}
-                className={buttonClasses({ tone: "muted", size: "xs" })}
-              >
-                <Plus className="size-3.5" />
-                {type}
-              </button>
-            ))}
-          </div>
         </div>
       </div>
     );
@@ -2195,21 +2182,6 @@ export function BlockEditor({
           </div>
         </SortableContext>
       </DndContext>
-
-      {/* Bottom block type buttons for quick add */}
-      <div className="flex flex-wrap gap-2 pt-2">
-        {blockTypes.map((type) => (
-          <button
-            key={type}
-            type="button"
-            onClick={() => addBlock(type)}
-            className={buttonClasses({ tone: "muted", size: "xs" })}
-          >
-            <Plus className="size-3.5" />
-            {type}
-          </button>
-        ))}
-      </div>
     </div>
   );
 }
