@@ -81,9 +81,6 @@ export function ArchivePageShell({
   const [showBlockForm, setShowBlockForm] = useState(false);
   const [newBlockTitle, setNewBlockTitle] = useState("");
   const [newBlockDescription, setNewBlockDescription] = useState("");
-  const [selectedBlockId, setSelectedBlockId] = useState<string | undefined>(
-    blocks[0]?.id,
-  );
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [uploadState, setUploadState] = useState("");
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
@@ -576,57 +573,85 @@ export function ArchivePageShell({
 
         <section className="space-y-12 py-12 sm:py-16">
           <RevealInView>
-            {items.length > 0 ? (
-              // Group items by block
+            {blocks.length > 0 ? (
+              // Group items by block - show all blocks including empty ones
               blocks.map((block) => {
                 const blockItems = items.filter(
                   (item) => item.block_id === block.id,
                 );
-                if (blockItems.length === 0) return null;
 
                 return (
                   <div key={block.id} className="space-y-6">
-                    <div className="space-y-2">
-                      <h2 className="text-2xl font-semibold text-white">
-                        {block.title}
-                      </h2>
-                      {block.description ? (
-                        <p className="text-sm text-white/52">
-                          {block.description}
-                        </p>
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/8 pb-4">
+                      <div className="space-y-2">
+                        <h2 className="text-2xl font-semibold text-white">
+                          {block.title}
+                        </h2>
+                        {block.description ? (
+                          <p className="text-sm text-white/52">
+                            {block.description}
+                          </p>
+                        ) : null}
+                      </div>
+                      {adminMode ? (
+                        <label
+                          className={buttonClasses({
+                            tone: "ghost",
+                            size: "sm",
+                            className: "cursor-pointer",
+                          })}
+                        >
+                          <ImagePlus className="size-4" />
+                          Add media
+                          <input
+                            type="file"
+                            accept="image/*,video/*"
+                            multiple
+                            className="hidden"
+                            onChange={(event) =>
+                              void uploadFiles(event.target.files, block.id)
+                            }
+                          />
+                        </label>
                       ) : null}
                     </div>
-                    <MediaMasonry
-                      items={blockItems}
-                      onItemClick={(index) =>
-                        setActiveIndex(
-                          items.findIndex((i) => i.id === blockItems[index].id),
-                        )
-                      }
-                      adminMode={adminMode}
-                      draggingIndex={draggingIndex}
-                      onDragStart={(index) => setDraggingIndex(index)}
-                      onDragOver={() => {}}
-                      onDrop={(targetIndex) => {
-                        if (draggingIndex === null) return;
-                        const targetItem = blockItems[targetIndex];
-                        const targetGlobalIndex = items.findIndex(
-                          (i) => i.id === targetItem.id,
-                        );
-                        if (targetGlobalIndex !== -1) {
-                          setItems((current) =>
-                            moveItem(current, draggingIndex, targetGlobalIndex),
-                          );
-                          setDraggingIndex(null);
+                    {blockItems.length > 0 ? (
+                      <MediaMasonry
+                        items={blockItems}
+                        onItemClick={(index) =>
+                          setActiveIndex(
+                            items.findIndex((i) => i.id === blockItems[index].id),
+                          )
                         }
-                      }}
-                      onDragEnd={() => setDraggingIndex(null)}
-                      onDeleteItem={(index) =>
-                        deleteItem(
-                          items.findIndex((i) => i.id === blockItems[index].id),
-                        )
-                      }
-                    />
+                        adminMode={adminMode}
+                        draggingIndex={draggingIndex}
+                        onDragStart={(index) => setDraggingIndex(index)}
+                        onDragOver={() => {}}
+                        onDrop={(targetIndex) => {
+                          if (draggingIndex === null) return;
+                          const targetItem = blockItems[targetIndex];
+                          const targetGlobalIndex = items.findIndex(
+                            (i) => i.id === targetItem.id,
+                          );
+                          if (targetGlobalIndex !== -1) {
+                            setItems((current) =>
+                              moveItem(current, draggingIndex, targetGlobalIndex),
+                            );
+                            setDraggingIndex(null);
+                          }
+                        }}
+                        onDragEnd={() => setDraggingIndex(null)}
+                        onDeleteItem={(index) =>
+                          deleteItem(
+                            items.findIndex((i) => i.id === blockItems[index].id),
+                          )
+                        }
+                      />
+                    ) : adminMode ? (
+                      <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.02] p-8 text-center">
+                        <p className="text-sm text-white/44">No items in this block yet. Use the "Add media" button above to upload.</p>
+                      </div>
+                    ) : null}
                   </div>
                 );
               })
