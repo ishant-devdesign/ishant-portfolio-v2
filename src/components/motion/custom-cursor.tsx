@@ -1,7 +1,13 @@
 "use client";
 
-import { motion, useMotionValue, useSpring } from "framer-motion";
+import {
+  AnimatePresence,
+  motion,
+  useMotionValue,
+  useSpring,
+} from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 type PreviewKind = "blog" | "project" | null;
 
@@ -17,11 +23,41 @@ type CursorSnapshot = {
   snapRadius: number;
 };
 
+type PreviewPayload = {
+  title: string;
+  kind: NonNullable<PreviewKind>;
+  image: string;
+};
+
 function parseRadius(value: string, fallback: number) {
   const radius = Number.parseFloat(value);
   if (Number.isNaN(radius)) return fallback;
   return radius;
 }
+
+function getFullscreenElement(): Element | null {
+  const doc = document as Document & {
+    webkitFullscreenElement?: Element | null;
+    mozFullScreenElement?: Element | null;
+    msFullscreenElement?: Element | null;
+  };
+  return (
+    doc.fullscreenElement ??
+    doc.webkitFullscreenElement ??
+    doc.mozFullScreenElement ??
+    doc.msFullscreenElement ??
+    null
+  );
+}
+
+const EASE_OUT = [0.16, 1, 0.3, 1] as const;
+const EASE_SOFT = [0.33, 1, 0.68, 1] as const;
+
+// Tiny intent delay so skimming doesn't flash the card
+const PREVIEW_ENTER_DELAY_MS = 40;
+// Hold just long enough for the exit fade to finish — keep this short
+// so leaving a card dismisses the preview promptly.
+const PREVIEW_EXIT_MS = 220;
 
 export function CustomCursor() {
   const [enabled, setEnabled] = useState(false);
@@ -34,6 +70,16 @@ export function CustomCursor() {
   const [snapWidth, setSnapWidth] = useState(0);
   const [snapHeight, setSnapHeight] = useState(0);
   const [snapRadius, setSnapRadius] = useState(999);
+  const [portalHost, setPortalHost] = useState<Element | null>(null);
+
+  const [previewShown, setPreviewShown] = useState(false);
+  const [previewData, setPreviewData] = useState<PreviewPayload | null>(null);
+
+  const enterTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const exitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Ref so the hit-test loop can read "is the card open?" without stale state
+  const previewShownRef = useRef(false);
+  const pointerRef = useRef({ x: -100, y: -100 });
 
   const dotX = useMotionValue(-100);
   const dotY = useMotionValue(-100);
@@ -41,14 +87,14 @@ export function CustomCursor() {
   const orbTargetY = useMotionValue(-100);
 
   const orbX = useSpring(orbTargetX, {
-    stiffness: 160,
-    damping: 20,
-    mass: 0.72,
+    stiffness: 170,
+    damping: 24,
+    mass: 0.7,
   });
   const orbY = useSpring(orbTargetY, {
-    stiffness: 160,
-    damping: 20,
-    mass: 0.72,
+    stiffness: 170,
+    damping: 24,
+    mass: 0.7,
   });
 
   const cursorStateRef = useRef<CursorSnapshot>({
@@ -63,8 +109,11 @@ export function CustomCursor() {
     snapRadius: 999,
   });
 
-  // Minimum width for custom cursor (below this, use default cursor)
   const MIN_CURSOR_WIDTH = 768;
+
+  useEffect(() => {
+    previewShownRef.current = previewShown;
+  }, [previewShown]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -72,11 +121,14 @@ export function CustomCursor() {
     const pointerFine = window.matchMedia("(pointer: fine)");
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
 
-    let lastX = -100;
-    let lastY = -100;
     let rafId = 0;
 
     const isWideEnough = () => window.innerWidth >= MIN_CURSOR_WIDTH;
+
+    const resolvePortalHost = () => {
+      const fs = getFullscreenElement();
+      setPortalHost(fs ?? document.body);
+    };
 
     const updateEnabled = () => {
       const nextEnabled =
@@ -109,8 +161,10 @@ export function CustomCursor() {
     };
 
     const clearState = (hide = false) => {
-      orbTargetX.set(lastX);
-      orbTargetY.set(lastY);
+      const { x, y } = pointerRef.current;
+      // Always park the orb on the last known pointer — never (0,0)/top-left
+      orbTargetX.set(x);
+      orbTargetY.set(y);
       applySnapshot({
         visible: hide ? false : cursorStateRef.current.visible,
         active: false,
@@ -125,6 +179,8 @@ export function CustomCursor() {
     };
 
     const syncFromPoint = (clientX: number, clientY: number) => {
+      pointerRef.current = { x: clientX, y: clientY };
+
       const target = document.elementFromPoint(
         clientX,
         clientY,
@@ -135,15 +191,36 @@ export function CustomCursor() {
         return;
       }
 
-      const interactiveTarget = target.closest(
-        "[data-cursor], button, input, textarea",
+      // Prefer an explicit preview host so nested buttons don't steal the hit
+      // and clear data-cursor-preview (which used to re-enable snap mid-hover).
+      const previewHost = target.closest(
+        "[data-cursor-preview]",
       ) as HTMLElement | null;
+      const interactiveTarget =
+        previewHost ??
+        (target.closest(
+          "[data-cursor], button, input, textarea",
+        ) as HTMLElement | null);
+
       const nextPreviewKind =
-        (interactiveTarget?.dataset.cursorPreview as PreviewKind) ?? null;
-      const nextTextMode = Boolean(target.closest("input, textarea"));
+        (previewHost?.dataset.cursorPreview as PreviewKind) ??
+        (interactiveTarget?.dataset.cursorPreview as PreviewKind) ??
+        null;
+
+      const nextTextMode = Boolean(
+        target.closest(
+          "input, textarea, [contenteditable='true'], [contenteditable='']",
+        ),
+      );
+
+      // Never snap while a preview card is live OR still exiting — snap was
+      // yanking the orb toward element centers (often near the top of large
+      // cards) and it only "caught up" again on the next pointer move.
+      const previewLock = Boolean(nextPreviewKind) || previewShownRef.current;
+
       const shouldSnap =
         Boolean(interactiveTarget) &&
-        !nextPreviewKind &&
+        !previewLock &&
         !nextTextMode &&
         !interactiveTarget?.closest("[data-cursor-no-snap='true']");
 
@@ -163,17 +240,24 @@ export function CustomCursor() {
           Math.min(nextSnapWidth, nextSnapHeight) / 2,
         );
       } else {
+        // Strict pointer follow — including all preview enter/exit frames
         orbTargetX.set(clientX);
         orbTargetY.set(clientY);
       }
 
       applySnapshot({
         visible: true,
-        active: Boolean(interactiveTarget),
+        active: Boolean(interactiveTarget) && !nextTextMode,
         textMode: nextTextMode,
-        previewTitle: interactiveTarget?.dataset.cursorTitle ?? "",
+        previewTitle:
+          previewHost?.dataset.cursorTitle ??
+          interactiveTarget?.dataset.cursorTitle ??
+          "",
         previewKind: nextPreviewKind,
-        previewImage: interactiveTarget?.dataset.cursorImage ?? "",
+        previewImage:
+          previewHost?.dataset.cursorImage ??
+          interactiveTarget?.dataset.cursorImage ??
+          "",
         snapWidth: nextSnapWidth,
         snapHeight: nextSnapHeight,
         snapRadius: nextSnapRadius,
@@ -181,11 +265,10 @@ export function CustomCursor() {
     };
 
     const onMove = (event: MouseEvent) => {
-      lastX = event.clientX;
-      lastY = event.clientY;
-      dotX.set(lastX);
-      dotY.set(lastY);
-      syncFromPoint(lastX, lastY);
+      pointerRef.current = { x: event.clientX, y: event.clientY };
+      dotX.set(event.clientX);
+      dotY.set(event.clientY);
+      syncFromPoint(event.clientX, event.clientY);
     };
 
     const onLeaveWindow = () => {
@@ -193,12 +276,16 @@ export function CustomCursor() {
     };
 
     const tick = () => {
-      if (lastX >= 0 && lastY >= 0) {
-        syncFromPoint(lastX, lastY);
+      const { x, y } = pointerRef.current;
+      if (x >= 0 && y >= 0) {
+        // Re-assert pointer tracking every frame so springs never drift
+        // away during preview open/close when the mouse is still.
+        syncFromPoint(x, y);
       }
       rafId = window.requestAnimationFrame(tick);
     };
 
+    resolvePortalHost();
     updateEnabled();
     pointerFine.addEventListener("change", updateEnabled);
     reduced.addEventListener("change", updateEnabled);
@@ -206,6 +293,10 @@ export function CustomCursor() {
     window.addEventListener("mousemove", onMove, { passive: true });
     window.addEventListener("blur", onLeaveWindow);
     window.addEventListener("mouseleave", onLeaveWindow);
+    document.addEventListener("fullscreenchange", resolvePortalHost);
+    document.addEventListener("webkitfullscreenchange", resolvePortalHost);
+    document.addEventListener("mozfullscreenchange", resolvePortalHost);
+    document.addEventListener("MSFullscreenChange", resolvePortalHost);
     rafId = window.requestAnimationFrame(tick);
 
     return () => {
@@ -215,21 +306,81 @@ export function CustomCursor() {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("blur", onLeaveWindow);
       window.removeEventListener("mouseleave", onLeaveWindow);
+      document.removeEventListener("fullscreenchange", resolvePortalHost);
+      document.removeEventListener("webkitfullscreenchange", resolvePortalHost);
+      document.removeEventListener("mozfullscreenchange", resolvePortalHost);
+      document.removeEventListener("MSFullscreenChange", resolvePortalHost);
       window.cancelAnimationFrame(rafId);
       delete document.body.dataset.cursorEnabled;
     };
   }, [dotX, dotY, orbTargetX, orbTargetY]);
 
-  const showPreview = active && !!previewKind && !!previewTitle;
-  const orbUsesInstantPointer = textMode;
+  const previewLive = active && !!previewKind && !!previewTitle;
+
+  // Debounced open + held close
+  useEffect(() => {
+    if (enterTimer.current) {
+      clearTimeout(enterTimer.current);
+      enterTimer.current = null;
+    }
+    if (exitTimer.current) {
+      clearTimeout(exitTimer.current);
+      exitTimer.current = null;
+    }
+
+    if (previewLive && previewKind) {
+      const next: PreviewPayload = {
+        title: previewTitle,
+        kind: previewKind,
+        image: previewImage,
+      };
+
+      if (previewShown) {
+        setPreviewData(next);
+        return;
+      }
+
+      enterTimer.current = setTimeout(() => {
+        setPreviewData(next);
+        setPreviewShown(true);
+        enterTimer.current = null;
+      }, PREVIEW_ENTER_DELAY_MS);
+
+      return () => {
+        if (enterTimer.current) {
+          clearTimeout(enterTimer.current);
+          enterTimer.current = null;
+        }
+      };
+    }
+
+    exitTimer.current = setTimeout(() => {
+      setPreviewShown(false);
+      exitTimer.current = null;
+    }, PREVIEW_EXIT_MS);
+
+    return () => {
+      if (exitTimer.current) {
+        clearTimeout(exitTimer.current);
+        exitTimer.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewLive, previewTitle, previewKind, previewImage]);
+
+  const handlePreviewExitComplete = () => {
+    if (!previewLive) setPreviewData(null);
+  };
+
+  const cardOpen = visible && previewShown && !!previewData;
 
   const orbFrame = useMemo(() => {
     if (textMode) {
-      return { width: 3, height: 24, radius: 999 };
+      return { width: 3, height: 24, radius: 999, kind: "text" as const };
     }
 
-    if (showPreview) {
-      return { width: 12, height: 12, radius: 999 };
+    if (previewLive || previewShown) {
+      return { width: 12, height: 12, radius: 999, kind: "preview" as const };
     }
 
     if (active && snapWidth > 0 && snapHeight > 0) {
@@ -237,131 +388,214 @@ export function CustomCursor() {
         width: snapWidth,
         height: snapHeight,
         radius: snapRadius,
+        kind: "snap" as const,
       };
     }
 
     if (active) {
-      return { width: 16, height: 16, radius: 999 };
+      return { width: 16, height: 16, radius: 999, kind: "active" as const };
     }
 
-    return { width: 34, height: 34, radius: 999 };
-  }, [active, showPreview, snapHeight, snapRadius, snapWidth, textMode]);
+    return { width: 34, height: 34, radius: 999, kind: "idle" as const };
+  }, [
+    active,
+    previewLive,
+    previewShown,
+    snapHeight,
+    snapRadius,
+    snapWidth,
+    textMode,
+  ]);
 
-  if (!enabled) return null;
+  if (!enabled || !portalHost) return null;
 
-  return (
+  const isText = orbFrame.kind === "text";
+  const isSnap = orbFrame.kind === "snap" || orbFrame.kind === "active";
+  const isPreviewOrb = orbFrame.kind === "preview";
+
+  const cursorTree = (
     <>
+      {/* ── Center dot (instant pointer) ─────────────────────────── */}
       <motion.div
-        className="pointer-events-none fixed left-0 top-0 z-[360] hidden md:flex"
+        className="pointer-events-none fixed left-0 top-0 z-[360] hidden md:block"
         style={{ x: dotX, y: dotY }}
-        animate={{
-          opacity: visible ? 1 : 0,
-          scale: visible ? 1 : 0.72,
-        }}
-        transition={{ duration: 0.1, ease: [0.22, 1, 0.36, 1] }}
+        animate={{ opacity: visible ? 1 : 0 }}
+        transition={{ duration: 0.12, ease: EASE_OUT }}
       >
         <motion.div
-          className="bg-white/92"
+          className="box-border"
+          style={{ marginLeft: isText ? -1 : -3, marginTop: isText ? -11 : -3 }}
           animate={{
-            width: textMode ? 2 : 5,
-            height: textMode ? 24 : 5,
+            width: isText ? 2 : 6,
+            height: isText ? 22 : 6,
             borderRadius: 999,
-            x: textMode ? -1 : -2.5,
-            y: textMode ? -12 : -2.5,
+            backgroundColor: "rgba(255,255,255,0.96)",
+            borderWidth: isText ? 0 : 1.5,
+            borderStyle: "solid",
+            borderColor: "rgba(0,0,0,0.55)",
+            boxShadow: isText
+              ? "0 0 0 1px rgba(0,0,0,0.35)"
+              : "0 0 0 1px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.25)",
           }}
-          transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 0.2, ease: EASE_OUT }}
         />
       </motion.div>
 
+      {/* ── Outer orb (spring-follow; NEVER scaled on the positioner) ─ */}
       <motion.div
-        className="pointer-events-none fixed left-0 top-0 z-[359] hidden md:flex"
-        style={{
-          x: orbUsesInstantPointer ? dotX : orbX,
-          y: orbUsesInstantPointer ? dotY : orbY,
-        }}
-        animate={{
-          opacity: visible && !textMode ? 1 : 0,
-          scale: visible && !textMode ? 1 : 0.9,
-        }}
-        transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+        className="pointer-events-none fixed left-0 top-0 z-[359] hidden md:block"
+        style={{ x: orbX, y: orbY }}
+        animate={{ opacity: visible ? 1 : 0 }}
+        transition={{ duration: 0.2, ease: EASE_OUT }}
       >
+        {/*
+          Visual is centered with CSS translate(-50%, -50%) so Framer scale
+          on this node (if any) isn't needed — size is animated via width/height
+          only. This avoids transform-origin fights that yanked the ring upward.
+        */}
         <motion.div
-          className="relative -translate-x-1/2 -translate-y-1/2 overflow-hidden border border-white/16 bg-white/10"
+          className="box-border"
+          style={{
+            x: "-50%",
+            y: "-50%",
+            transformOrigin: "center center",
+          }}
           animate={{
             width: orbFrame.width,
             height: orbFrame.height,
             borderRadius: orbFrame.radius,
-            borderColor: active
-              ? "rgba(255,255,255,0.24)"
-              : "rgba(255,255,255,0.16)",
-            backgroundColor: active
-              ? "rgba(255,255,255,0.14)"
-              : "rgba(255,255,255,0.1)",
-            backdropFilter: active ? "blur(0px)" : "blur(4px)",
-            opacity: showPreview ? 0.82 : 1,
+            borderWidth: 1.5,
+            borderStyle: "solid",
+            borderColor: isText
+              ? "rgba(0,0,0,0.45)"
+              : isSnap
+                ? "rgba(0,0,0,0.35)"
+                : "rgba(0,0,0,0.28)",
+            backgroundColor: isText
+              ? "rgba(255,255,255,0.01)"
+              : isSnap
+                ? "rgba(255,255,255,0.01)"
+                : "rgba(255,255,255,0.01)",
+            boxShadow: isText
+              ? "0 0 0 1px rgba(255,255,255,0.55), 0 1px 4px rgba(0,0,0,0.2)"
+              : "0 0 0 1px rgba(255,255,255,0.45), 0 2px 10px rgba(0,0,0,0.12)",
+            backdropFilter: isText
+              ? "blur(0px)"
+              : isSnap
+                ? "blur(0px)"
+                : "blur(3px)",
+            opacity: isPreviewOrb ? 0.55 : 1,
           }}
           transition={{
             type: "spring",
             stiffness: 160,
-            damping: 20,
+            damping: 22,
             mass: 0.72,
           }}
-        ></motion.div>
+        />
       </motion.div>
 
+      {/* ── Preview card (sibling of orb; same spring anchor) ─────── */}
       <motion.div
         className="pointer-events-none fixed left-0 top-0 z-[362] hidden md:block"
         style={{ x: orbX, y: orbY }}
-        animate={{
-          opacity: visible && showPreview ? 1 : 0,
-          scale: visible && showPreview ? 1 : 0.94,
-          filter: visible && showPreview ? "blur(0px)" : "blur(16px)",
-        }}
-        transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
       >
-        <div className="translate-x-5 -translate-y-[96px] overflow-hidden rounded-2xl border border-white/10 bg-[#111] shadow-[0_20px_60px_rgba(0,0,0,0.4)]">
-          <div className="relative h-[110px] w-[180px] overflow-hidden bg-[#111]">
-            {previewImage ? (
-              <motion.img
-                src={previewImage}
-                alt=""
-                className="absolute inset-0 h-full w-full object-cover"
-                initial={{ filter: "blur(12px)", opacity: 0 }}
-                animate={{
-                  filter: showPreview ? "blur(0px)" : "blur(12px)",
-                  opacity: showPreview ? 1 : 0,
+        {/*
+          Static CSS offset only — do NOT animate `y`/`filter` on a node that
+          shares the pointer transform chain. Nested fixed + filter was making
+          the card (and perceived ring) drift toward the top of the viewport
+          until the next mousemove re-synced springs.
+        */}
+        <div
+          className="pointer-events-none"
+          style={{
+            transform: "translate(20px, -108px)",
+            transformOrigin: "bottom left",
+          }}
+        >
+          <AnimatePresence onExitComplete={handlePreviewExitComplete}>
+            {cardOpen && previewData ? (
+              <motion.div
+                key="preview-card"
+                initial={{ opacity: 0, scale: 0.94 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{
+                  opacity: 0,
+                  scale: 0.96,
+                  transition: {
+                    opacity: { duration: 0.18, ease: EASE_SOFT },
+                    scale: { duration: 0.18, ease: EASE_SOFT },
+                  },
                 }}
-                transition={{ duration: 0.36, ease: [0.22, 1, 0.36, 1] }}
-              />
+                transition={{
+                  opacity: { duration: 0.2, ease: EASE_SOFT },
+                  scale: {
+                    type: "spring",
+                    stiffness: 380,
+                    damping: 30,
+                    mass: 0.7,
+                  },
+                }}
+                style={{ transformOrigin: "bottom left" }}
+              >
+                <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#111] shadow-[0_28px_80px_rgba(0,0,0,0.5)]">
+                  <div className="relative h-[110px] w-[180px] overflow-hidden bg-[#111]">
+                    <AnimatePresence mode="sync" initial={false}>
+                      {previewData.image ? (
+                        <motion.img
+                          key={previewData.image}
+                          src={previewData.image}
+                          alt=""
+                          className="absolute inset-0 h-full w-full object-cover"
+                          initial={{ opacity: 0, scale: 1.04 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{
+                            opacity: 0,
+                            transition: { duration: 0.22, ease: EASE_SOFT },
+                          }}
+                          transition={{ duration: 0.4, ease: EASE_OUT }}
+                        />
+                      ) : null}
+                    </AnimatePresence>
+
+                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/36 to-transparent" />
+                    <div className="pointer-events-none absolute inset-0 opacity-[0.14] [background-image:linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] [background-size:24px_24px]" />
+
+                    <div className="absolute bottom-3 left-3 right-3">
+                      <AnimatePresence mode="wait" initial={false}>
+                        <motion.div
+                          key={`${previewData.kind}-${previewData.title}`}
+                          initial={{ opacity: 0, y: 6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{
+                            opacity: 0,
+                            y: -3,
+                            transition: { duration: 0.16, ease: EASE_SOFT },
+                          }}
+                          transition={{
+                            duration: 0.3,
+                            ease: EASE_OUT,
+                            delay: 0.04,
+                          }}
+                        >
+                          <p className="text-[0.52rem] uppercase tracking-[0.28em] text-white/48">
+                            {previewData.kind}
+                          </p>
+                          <p className="mt-1 line-clamp-2 text-sm leading-5 text-white/88">
+                            {previewData.title}
+                          </p>
+                        </motion.div>
+                      </AnimatePresence>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
             ) : null}
-            <motion.div
-              className="absolute inset-0 bg-gradient-to-t from-black/82 via-black/36 to-transparent"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: showPreview ? 1 : 0 }}
-              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-            />
-            <motion.div
-              className="absolute inset-0 opacity-18 [background-image:linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] [background-size:24px_24px]"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: showPreview ? 0.18 : 0 }}
-              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-            />
-            <motion.div
-              className="absolute bottom-3 left-3 right-3"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: showPreview ? 1 : 0, y: showPreview ? 0 : 8 }}
-              transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <p className="text-[0.52rem] uppercase tracking-[0.28em] text-white/48">
-                {previewKind}
-              </p>
-              <p className="mt-1 line-clamp-2 text-sm leading-5 text-white/88">
-                {previewTitle}
-              </p>
-            </motion.div>
-          </div>
+          </AnimatePresence>
         </div>
       </motion.div>
     </>
   );
+
+  return createPortal(cursorTree, portalHost);
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ImagePlus, Plus, GripVertical, X } from "lucide-react";
+import { ImagePlus, Plus, GripVertical, X, Trash2 } from "lucide-react";
 import { useAdminSession } from "@/components/admin/admin-session-provider";
 import { buttonClasses } from "@/components/ui/button";
 import { useConfirm } from "@/components/ui/confirm-dialog";
@@ -496,6 +496,27 @@ export function ArchivePageShell({
     setEditingBlock(null);
   }
 
+  async function confirmDeleteBlock(blockId: string) {
+    const confirmed = await confirm({
+      title: "Delete this block?",
+      message: "This will delete the block and all its media permanently.",
+      confirmLabel: "Delete",
+    });
+    if (!confirmed) return;
+    deleteBlock(blockId);
+  }
+
+  async function deleteBlock(blockId: string) {
+    // Delete all items in the block from UI state first
+    setItems((current) => current.filter((item) => item.block_id !== blockId));
+    setBlocks((current) => current.filter((b) => b.id !== blockId));
+
+    // Delete the block from database (CASCADE will delete items)
+    await fetch(`/api/admin/archive-blocks/${blockId}`, {
+      method: "DELETE",
+    });
+  }
+
   return (
     <>
       <SideNavRail sections={archiveSections} />
@@ -611,26 +632,35 @@ export function ArchivePageShell({
                         </p>
                       </div>
                       {adminMode ? (
-                        <label
-                          className={buttonClasses({
-                            tone: "ghost",
-                            size: "sm",
-                            className: "cursor-pointer",
-                          })}
-                          data-cursor="pointer"
-                        >
-                          <ImagePlus className="size-4" />
-                          Add media
-                          <input
-                            type="file"
-                            accept="image/*,video/*"
-                            multiple
-                            className="hidden"
-                            onChange={(event) =>
-                              void uploadFiles(event.target.files, block.id)
-                            }
-                          />
-                        </label>
+                        <div className="flex items-center gap-2">
+                          <label
+                            className={buttonClasses({
+                              tone: "ghost",
+                              size: "sm",
+                              className: "cursor-pointer",
+                            })}
+                            data-cursor="pointer"
+                          >
+                            <ImagePlus className="size-4" />
+                            Add media
+                            <input
+                              type="file"
+                              accept="image/*,video/*"
+                              multiple
+                              className="hidden"
+                              onChange={(event) =>
+                                void uploadFiles(event.target.files, block.id)
+                              }
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => void confirmDeleteBlock(block.id)}
+                            className={buttonClasses({ tone: "danger", size: "sm" })}
+                          >
+                            <Trash2 className="size-4" />
+                          </button>
+                        </div>
                       ) : null}
                     </div>
 
@@ -664,7 +694,7 @@ export function ArchivePageShell({
                       ) : adminMode ? (
                         <>
                           <h2
-                            className="text-2xl font-semibold text-white"
+                            className="text-2xl font-semibold text-white cursor-pointer"
                             onClick={() => {
                               setEditingBlock(block.id);
                               setEditingTitle(block.title);

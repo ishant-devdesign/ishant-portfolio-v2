@@ -38,3 +38,22 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
   return NextResponse.json({ ok: true, block: updated });
 }
+
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const adminCheck = await verifyAdminRequest(request);
+  if (!adminCheck.ok) return adminCheck.response;
+
+  const { id } = await params;
+
+  // Delete block - CASCADE will delete associated archive_items
+  const { error } = await adminCheck.adminSupabase
+    .from("archive_blocks")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ ok: true });
+}

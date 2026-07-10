@@ -2,7 +2,8 @@
 
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
-import { ArrowLeft, ArrowRight, X, Pause, Maximize2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, X } from "lucide-react";
+import { CustomVideoPlayer } from "@/components/ui/custom-video-player";
 import type { CreativeArchiveItem } from "@/lib/site-config";
 
 function isVideoUrl(url: string): boolean {
@@ -113,25 +114,17 @@ export function MediaLightbox({
           onClick={(event) => event.stopPropagation()}
         >
           {isVideo ? (
-            <div className="relative">
-              <video
-                src={item.url}
-                autoPlay
-                playsInline
-                className="max-h-[82vh] w-auto max-w-full object-contain"
-                onEnded={() => {
-                  // Auto-advance to next video when one ends
-                  if (canNavigate) {
-                    onChangeIndex((activeIndex + 1) % items.length);
-                  }
-                }}
-                controls
-              />
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-full border border-white/20 bg-black/60 px-3 py-2 text-xs text-white/80 backdrop-blur">
-                <Pause className="size-3" />
-                Video playing - click to pause/play
-              </div>
-            </div>
+            <CustomVideoPlayer
+              src={item.url}
+              autoPlay
+              onEnded={() => {
+                // Auto-advance to next video when one ends
+                if (canNavigate) {
+                  onChangeIndex((activeIndex + 1) % items.length);
+                }
+              }}
+              className="max-h-[82vh] w-auto max-w-full object-contain"
+            />
           ) : (
             <img
               src={item.url}
