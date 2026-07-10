@@ -5,37 +5,37 @@ export function createBlock(type: ContentBlock["type"]): ContentBlock {
 
   switch (type) {
     case "heading":
-      return { id, type, data: { level: 2, text: "New heading" } };
+      return { id, type, data: { level: 2, text: "" } };
     case "paragraph":
-      return { id, type, data: { text: "New paragraph", html: "<p>New paragraph</p>" } };
+      return { id, type, data: { text: "", html: "" } };
     case "image":
       return { id, type, data: { url: "", alt: "", caption: "" } };
     case "video":
       return { id, type, data: { url: "", caption: "" } };
     case "table":
-      return { id, type, data: { headers: ["Column 1", "Column 2"], rows: [["", ""]] } };
+      return { id, type, data: { headers: ["", ""], rows: [["", ""]] } };
     case "accordion":
-      return { id, type, data: { items: [{ title: "Accordion item", content: "Accordion content" }] } };
+      return { id, type, data: { items: [{ title: "", content: "" }] } };
     case "list":
-      return { id, type, data: { style: "unordered", items: ["List item"] } };
+      return { id, type, data: { style: "unordered", items: [""] } };
     case "quote":
-      return { id, type, data: { text: "Quote text", author: "" } };
+      return { id, type, data: { text: "", author: "" } };
     case "divider":
       return { id, type, data: {} };
     case "callout":
-      return { id, type, data: { variant: "note", title: "Note", text: "Helpful information" } };
+      return { id, type, data: { variant: "note", title: "", text: "" } };
     case "code":
-      return { id, type, data: { language: "javascript", code: "// Your code here", showPreview: false } };
+      return { id, type, data: { language: "javascript", code: "", showPreview: false } };
     case "stepper":
-      return { id, type, data: { steps: [{ title: "Step 1", description: "Step description" }] } };
+      return { id, type, data: { steps: [{ title: "", description: "" }] } };
     case "gallery":
       return { id, type, data: { images: [{ url: "", alt: "" }] } };
     case "link":
-      return { id, type, data: { url: "https://example.com", title: "Link title", description: "Description" } };
+      return { id, type, data: { url: "", title: "", description: "" } };
     case "metric":
-      return { id, type, data: { label: "Metric", value: "100%", description: "Additional context" } };
+      return { id, type, data: { label: "", value: "", description: "" } };
     case "timeline":
-      return { id, type, data: { items: [{ date: "Jan 2026", title: "Milestone", description: "Details" }] } };
+      return { id, type, data: { items: [{ date: "", title: "", description: "" }] } };
     case "columns-2":
       return { id, type, data: { left: [], right: [] } };
     default:
@@ -65,25 +65,29 @@ export const PROJECT_BLOCK_TYPES = [
 
 export const BLOG_BLOCK_TYPES = PROJECT_BLOCK_TYPES;
 
-const months = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-];
+function getCurrentDateFormatted(): string {
+  const now = new Date();
+  const day = String(now.getDate()).padStart(2, "0");
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const month = months[now.getMonth()];
+  const year = now.getFullYear();
+  return `${day} ${month} ${year}`;
+}
 
 export function createEmptyProject(): Project {
   return {
     slug: "new-project",
-    title: "Untitled Project",
-    summary: "Short project summary.",
-    sector: "Project",
+    title: "",
+    summary: "",
+    sector: "",
     yearLabel: "",
-    role: "Role",
+    role: "",
     stack: [],
     tags: [],
     featured: false,
     status: "draft",
     heroImage: "",
-    publishedLabel: "",
+    publishedLabel: getCurrentDateFormatted(),
     metrics: [],
     challenge: "",
     approach: "",
@@ -95,10 +99,10 @@ export function createEmptyProject(): Project {
 export function createEmptyBlog(): Blog {
   return {
     slug: "new-post",
-    title: "Untitled Blog",
-    excerpt: "Short post excerpt.",
+    title: "",
+    excerpt: "",
     publishedAt: "",
-    publishedLabel: "",
+    publishedLabel: getCurrentDateFormatted(),
     readingTime: "5 min",
     tags: [],
     featured: false,

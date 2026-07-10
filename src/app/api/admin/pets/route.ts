@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdminRequest } from "@/lib/auth/route-admin";
-import { slugify } from "@/lib/utils";
 
 export async function POST(request: NextRequest) {
   const adminCheck = await verifyAdminRequest(request);
   if (!adminCheck.ok) return adminCheck.response;
 
-  const baseName = "New pet";
-  const baseSlug = slugify(baseName) || "new-pet";
+  const baseSlug = "new-pet";
 
   const { data: slugMatches, error: slugError } = await adminCheck.adminSupabase
     .from("pets")
@@ -37,10 +35,10 @@ export async function POST(request: NextRequest) {
     .from("pets")
     .insert({
       slug,
-      name: baseName,
-      species: "Pet",
-      description: "Add a short description for this pet.",
-      story: "Add a more personal story here.",
+      name: "",
+      species: "",
+      description: "",
+      story: "",
       tags: [],
       visible: true,
       featured: false,
@@ -58,7 +56,7 @@ export async function POST(request: NextRequest) {
     pet: {
       slug: inserted.slug,
       name: inserted.name,
-      species: inserted.species ?? "Pet",
+      species: inserted.species ?? "",
       description: inserted.description,
       story: inserted.story ?? "",
       tags: Array.isArray(inserted.tags) ? inserted.tags : [],

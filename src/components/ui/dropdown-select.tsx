@@ -24,8 +24,12 @@ export function DropdownSelect({
   placeholder?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState<number>(0);
   const containerRef = useRef<HTMLDivElement>(null);
-  const current = options.find((option) => option.value === value) ?? options[0];
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const highlightedOption = options.find((opt) => opt.value === value)
+    ? options.findIndex((opt) => opt.value === value)
+    : 0;
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -36,18 +40,68 @@ export function DropdownSelect({
 
     if (open) {
       document.addEventListener("mousedown", handleClickOutside);
+      setHighlightedIndex(highlightedOption >= 0 ? highlightedOption : 0);
     }
 
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [open]);
+  }, [open, highlightedOption]);
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (!open) {
+        if (event.key === "Enter" || event.key === " " || event.key === "ArrowDown") {
+          event.preventDefault();
+          setOpen(true);
+        }
+        return;
+      }
+
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setOpen(false);
+        buttonRef.current?.focus();
+      } else if (event.key === "ArrowDown") {
+        event.preventDefault();
+        setHighlightedIndex((current) =>
+          current < options.length - 1 ? current + 1 : 0,
+        );
+      } else if (event.key === "ArrowUp") {
+        event.preventDefault();
+        setHighlightedIndex((current) =>
+          current > 0 ? current - 1 : options.length - 1,
+        );
+      } else if (event.key === "Enter") {
+        event.preventDefault();
+        if (options[highlightedIndex]) {
+          onChange(options[highlightedIndex].value);
+          setOpen(false);
+          buttonRef.current?.focus();
+        }
+      }
+    }
+
+    if (open) {
+      document.addEventListener("keydown", handleKeyDown);
+      return () => document.removeEventListener("keydown", handleKeyDown);
+    }
+  }, [open, onChange, options, highlightedIndex]);
+
+  const current = options.find((option) => option.value === value) ?? options[0];
 
   return (
     <div className={cn("relative", className)} ref={containerRef}>
       <button
+        ref={buttonRef}
         type="button"
         onClick={() => setOpen((state) => !state)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " " || event.key === "ArrowDown") {
+            event.preventDefault();
+            setOpen(true);
+          }
+        }}
         className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white"
       >
         <span className={!value && placeholder ? "text-white/42" : ""}>
@@ -65,15 +119,22 @@ export function DropdownSelect({
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             className="absolute left-0 top-[calc(100%+0.5rem)] z-20 w-full max-h-60 overflow-y-auto rounded-[1rem] border border-white/10 bg-[#0c0c0c]/96 p-2 backdrop-blur-xl"
           >
-            {options.map((option) => (
+            {options.map((option, index) => (
               <button
                 key={option.value}
                 type="button"
+                onMouseEnter={() => setHighlightedIndex(index)}
                 onClick={() => {
                   onChange(option.value);
                   setOpen(false);
+                  buttonRef.current?.focus();
                 }}
-                className="flex w-full rounded-[0.8rem] px-3 py-2 text-left text-sm text-white/72 transition-colors hover:bg-white/[0.04] hover:text-white"
+                className={cn(
+                  "flex w-full rounded-[0.8rem] px-3 py-2 text-left text-sm transition-colors",
+                  highlightedIndex === index
+                    ? "bg-white/[0.08] text-white"
+                    : "text-white/72 hover:bg-white/[0.04] hover:text-white",
+                )}
               >
                 {option.label}
               </button>

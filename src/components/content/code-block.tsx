@@ -82,7 +82,19 @@ const PREVIEWABLE_LANGUAGES = new Set([
   "css",
   "javascript",
   "js",
+  "json",
+  "markdown",
+  "md",
 ]);
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
 export function normalizeCodeLanguage(language: string) {
   const value = language.trim().toLowerCase();
@@ -154,6 +166,84 @@ ${code}
       <button>Button</button>
     </section>
   </main>
+</body>
+</html>`;
+  }
+
+  if (normalizedLanguage === "json") {
+    let formattedJson = code;
+    try {
+      const parsed = JSON.parse(code);
+      formattedJson = JSON.stringify(parsed, null, 2);
+    } catch {
+      // If invalid JSON, use as-is
+    }
+    return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #0f172a;
+      color: #e2e8f0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      padding: 16px;
+    }
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+  </style>
+</head>
+<body>
+  <pre>${escapeHtml(formattedJson)}</pre>
+</body>
+</html>`;
+  }
+
+  if (normalizedLanguage === "markdown") {
+    // Markdown preview - escaped and styled for readability
+    const escapedCode = escapeHtml(code);
+    // Convert line breaks to <br> for basic rendering
+    const htmlContent = escapedCode.replace(/\n/g, "<br>");
+    return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #0c1117;
+      color: #e6edf3;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      padding: 20px;
+    }
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    code {
+      background: #21262d;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: ui-monospace, monospace;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <pre>${htmlContent}</pre>
 </body>
 </html>`;
   }
@@ -283,8 +373,8 @@ export function CodeBlock({
       <div className="max-w-sm">
         <p className="text-sm font-medium text-white/80">Preview unavailable</p>
         <p className="mt-2 text-sm leading-6 text-white/46">
-          Live preview currently supports HTML, CSS, and JavaScript blocks. JSX,
-          TypeScript, JSON, and Bash are shown as code.
+          Live preview supports HTML, CSS, JavaScript, JSON, and Markdown. Other
+          languages are shown as code.
         </p>
       </div>
     </div>

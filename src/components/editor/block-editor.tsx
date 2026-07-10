@@ -29,11 +29,14 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
+  useEffect,
+  useRef,
   useState,
   type Dispatch,
   type ReactNode,
   type SetStateAction,
 } from "react";
+import { cn } from "@/lib/utils";
 import type { ContentBlock } from "@/lib/site-config";
 import type { CalloutVariant } from "@/components/content/callout-block";
 import { createBlock } from "@/lib/editor";
@@ -177,6 +180,8 @@ function BlockEditorContent({
   const headingLabel =
     headingOptions.find((option) => option.level === headingLevel)?.label ??
     "Large";
+  const [headingHighlightedIndex, setHeadingHighlightedIndex] = useState(0);
+  const headingButtonRef = useRef<HTMLButtonElement>(null);
 
   const codeLanguage = String(block.data?.language ?? "javascript");
   const showPreview = Boolean(block.data?.showPreview ?? false);
@@ -189,9 +194,87 @@ function BlockEditorContent({
   const canPreviewCode = Boolean(codePreviewDocument);
   const showCodePreview = showPreview && canPreviewCode;
   const [showAdminCodePanel, setShowAdminCodePanel] = useState(true);
+  const [codeLangHighlightedIndex, setCodeLangHighlightedIndex] = useState(0);
+  const codeLangButtonRef = useRef<HTMLButtonElement>(null);
   const nestedBlockTypes = blockTypes.filter(
     (type) => type !== "columns-2" && type !== "heading",
   );
+
+  // Keyboard handling for heading dropdown
+  useEffect(() => {
+    function handleHeadingKeyDown(event: KeyboardEvent) {
+      if (openHeadingMenu !== block.id) return;
+
+      if (event.key === "Escape") {
+        setOpenHeadingMenu(null);
+        headingButtonRef.current?.focus();
+      } else if (event.key === "ArrowDown") {
+        event.preventDefault();
+        setHeadingHighlightedIndex((current) =>
+          current < headingOptions.length - 1 ? current + 1 : 0,
+        );
+      } else if (event.key === "ArrowUp") {
+        event.preventDefault();
+        setHeadingHighlightedIndex((current) =>
+          current > 0 ? current - 1 : headingOptions.length - 1,
+        );
+      } else if (event.key === "Enter") {
+        event.preventDefault();
+        if (headingOptions[headingHighlightedIndex]) {
+          const option = headingOptions[headingHighlightedIndex];
+          setOpenHeadingMenu(null);
+          updateBlockHandler(block.id, (current) => ({
+            ...current,
+            data: { ...current.data, level: option.level },
+          }));
+          headingButtonRef.current?.focus();
+        }
+      }
+    }
+
+    if (openHeadingMenu === block.id) {
+      document.addEventListener("keydown", handleHeadingKeyDown);
+      return () => document.removeEventListener("keydown", handleHeadingKeyDown);
+    }
+  }, [openHeadingMenu, block.id, headingHighlightedIndex, headingOptions.length]);
+
+  // Keyboard handling for code language dropdown
+  useEffect(() => {
+    function handleCodeLangKeyDown(event: KeyboardEvent) {
+      if (openCodeLangMenu !== block.id) return;
+
+      if (event.key === "Escape") {
+        setCodeLangMenu(null);
+        codeLangButtonRef.current?.focus();
+      } else if (event.key === "ArrowDown") {
+        event.preventDefault();
+        setCodeLangHighlightedIndex((current) =>
+          current < codeLanguageOptions.length - 1 ? current + 1 : 0,
+        );
+      } else if (event.key === "ArrowUp") {
+        event.preventDefault();
+        setCodeLangHighlightedIndex((current) =>
+          current > 0 ? current - 1 : codeLanguageOptions.length - 1,
+        );
+      } else if (event.key === "Enter") {
+        event.preventDefault();
+        if (codeLanguageOptions[codeLangHighlightedIndex]) {
+          const opt = codeLanguageOptions[codeLangHighlightedIndex];
+          setCodeLangMenu(null);
+          updateBlockHandler(block.id, (current) => ({
+            ...current,
+            data: { ...current.data, language: opt.value },
+          }));
+          codeLangButtonRef.current?.focus();
+        }
+      }
+    }
+
+    if (openCodeLangMenu === block.id) {
+      document.addEventListener("keydown", handleCodeLangKeyDown);
+      return () => document.removeEventListener("keydown", handleCodeLangKeyDown);
+    }
+  }, [openCodeLangMenu, block.id, codeLangHighlightedIndex, codeLanguageOptions.length]);
 
   return (
     <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-4">
@@ -227,12 +310,24 @@ function BlockEditorContent({
         <div className="grid gap-3 sm:grid-cols-[160px_minmax(0,1fr)]">
           <div className="relative">
             <button
+              ref={headingButtonRef}
               type="button"
-              onClick={() =>
+              onClick={() => {
                 setOpenHeadingMenu((current) =>
                   current === block.id ? null : block.id,
-                )
-              }
+                );
+                setHeadingHighlightedIndex(
+                  headingOptions.findIndex((opt) => opt.level === headingLevel) || 0,
+                );
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " " || event.key === "ArrowDown") {
+                  event.preventDefault();
+                  setOpenHeadingMenu((current) =>
+                    current === block.id ? null : block.id,
+                  );
+                }
+              }}
               className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white"
             >
               <span>{headingLabel}</span>
@@ -247,18 +342,25 @@ function BlockEditorContent({
                   transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
                   className="absolute left-0 top-[calc(100%+0.5rem)] z-20 w-full rounded-[1rem] border border-white/10 bg-[#0c0c0c]/96 p-2 backdrop-blur-xl"
                 >
-                  {headingOptions.map((option) => (
+                  {headingOptions.map((option, index) => (
                     <button
                       key={option.level}
                       type="button"
+                      onMouseEnter={() => setHeadingHighlightedIndex(index)}
                       onClick={() => {
                         setOpenHeadingMenu(null);
                         updateBlockHandler(block.id, (current) => ({
                           ...current,
                           data: { ...current.data, level: option.level },
                         }));
+                        headingButtonRef.current?.focus();
                       }}
-                      className="flex w-full rounded-[0.8rem] px-3 py-2 text-left text-sm text-white/72 transition-colors hover:bg-white/[0.04] hover:text-white"
+                      className={cn(
+                        "flex w-full rounded-[0.8rem] px-3 py-2 text-left text-sm transition-colors",
+                        headingHighlightedIndex === index
+                          ? "bg-white/[0.08] text-white"
+                          : "text-white/72 hover:bg-white/[0.04] hover:text-white",
+                      )}
                     >
                       {option.label}
                     </button>
@@ -766,8 +868,8 @@ function BlockEditorContent({
                   ]
                 : [];
               items.push({
-                title: "Accordion item",
-                content: "Accordion content",
+                title: "",
+                content: "",
               });
               updateBlockHandler(block.id, (current) => ({
                 ...current,
@@ -798,12 +900,24 @@ function BlockEditorContent({
             <div className="flex flex-wrap gap-2">
               <div className="relative w-full min-w-0 sm:w-56">
                 <button
+                  ref={codeLangButtonRef}
                   type="button"
-                  onClick={() =>
+                  onClick={() => {
                     setCodeLangMenu((current) =>
                       current === block.id ? null : block.id,
-                    )
-                  }
+                    );
+                    setCodeLangHighlightedIndex(
+                      codeLanguageOptions.findIndex((opt) => opt.value === codeLanguage) || 0,
+                    );
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " " || event.key === "ArrowDown") {
+                      event.preventDefault();
+                      setCodeLangMenu((current) =>
+                        current === block.id ? null : block.id,
+                      );
+                    }
+                  }}
                   className="flex w-full min-w-0 items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white"
                 >
                   <span className="min-w-0 truncate">
@@ -820,18 +934,25 @@ function BlockEditorContent({
                       transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
                       className="absolute left-0 top-[calc(100%+0.5rem)] z-20 max-h-[18rem] w-full overflow-y-auto rounded-[1rem] border border-white/10 bg-[#0c0c0c]/96 p-2 backdrop-blur-xl"
                     >
-                      {codeLanguageOptions.map((opt) => (
+                      {codeLanguageOptions.map((opt, index) => (
                         <button
                           key={opt.value}
                           type="button"
+                          onMouseEnter={() => setCodeLangHighlightedIndex(index)}
                           onClick={() => {
                             setCodeLangMenu(null);
                             updateBlockHandler(block.id, (current) => ({
                               ...current,
                               data: { ...current.data, language: opt.value },
                             }));
+                            codeLangButtonRef.current?.focus();
                           }}
-                          className="flex w-full min-w-0 rounded-[0.8rem] px-3 py-2 text-left text-sm text-white/72 transition-colors hover:bg-white/[0.04] hover:text-white"
+                          className={cn(
+                            "flex w-full min-w-0 rounded-[0.8rem] px-3 py-2 text-left text-sm transition-colors",
+                            codeLangHighlightedIndex === index
+                              ? "bg-white/[0.08] text-white"
+                              : "text-white/72 hover:bg-white/[0.04] hover:text-white",
+                          )}
                         >
                           <span className="min-w-0 truncate">{opt.label}</span>
                         </button>

@@ -7,17 +7,17 @@ import { revalidatePath } from "next/cache";
 
 const payloadSchema = z.object({
   slug: z.string().optional(),
-  title: z.string().min(1),
-  summary: z.string().min(1),
-  sector: z.string().min(1),
-  yearLabel: z.string().min(1),
-  role: z.string().min(1),
+  title: z.string(),
+  summary: z.string(),
+  sector: z.string(),
+  yearLabel: z.string(),
+  role: z.string(),
   stack: z.array(z.string()).default([]),
   tags: z.array(z.string()).default([]),
   featured: z.boolean().default(false),
   status: z.enum(["draft", "published"]).default("draft"),
   heroImage: z.string().default(""),
-  publishedLabel: z.string().min(1),
+  publishedLabel: z.string(),
   contentBlocks: z.array(z.any()).default([]),
 });
 
