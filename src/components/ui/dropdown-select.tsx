@@ -48,6 +48,8 @@ export function DropdownSelect({
     };
   }, [open, highlightedOption]);
 
+  const typeAheadTimeoutRef = useRef<number | null>(null);
+
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (!open) {
@@ -79,6 +81,36 @@ export function DropdownSelect({
           setOpen(false);
           buttonRef.current?.focus();
         }
+      } else if (event.key.length === 1 && !event.altKey && !event.ctrlKey && !event.metaKey) {
+        // Type-ahead: single character keys (not modifiers)
+        const char = event.key.toLowerCase();
+
+        // Clear any pending type-ahead timeout
+        if (typeAheadTimeoutRef.current) {
+          clearTimeout(typeAheadTimeoutRef.current);
+        }
+
+        // Find the next option starting with this character after current highlight
+        const nextMatch = options.findIndex((opt, idx) => {
+          if (idx > highlightedIndex) {
+            return opt.label.toLowerCase().startsWith(char) || opt.value.toLowerCase().startsWith(char);
+          }
+          return false;
+        });
+
+        // If no match after current, search from beginning
+        const firstMatch = nextMatch === -1
+          ? options.findIndex((opt) => opt.label.toLowerCase().startsWith(char) || opt.value.toLowerCase().startsWith(char))
+          : nextMatch;
+
+        if (firstMatch !== -1) {
+          setHighlightedIndex(firstMatch);
+        }
+
+        // Reset the type-ahead search after a short delay
+        typeAheadTimeoutRef.current = window.setTimeout(() => {
+          typeAheadTimeoutRef.current = null;
+        }, 1000);
       }
     }
 
@@ -87,6 +119,15 @@ export function DropdownSelect({
       return () => document.removeEventListener("keydown", handleKeyDown);
     }
   }, [open, onChange, options, highlightedIndex]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (typeAheadTimeoutRef.current) {
+        clearTimeout(typeAheadTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const current = options.find((option) => option.value === value) ?? options[0];
 

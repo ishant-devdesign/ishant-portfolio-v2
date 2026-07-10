@@ -227,3 +227,24 @@ a {
     @apply font-sans;
   }
 }
+
+/* Custom scrollbars */
+@layer utilities {
+  .dropdown-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+  }
+  .dropdown-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+  .dropdown-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .dropdown-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 2px;
+  }
+  .dropdown-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.18);
+  }
+}

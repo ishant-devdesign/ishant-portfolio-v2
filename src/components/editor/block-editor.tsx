@@ -10,6 +10,9 @@ import {
   GripVertical,
   Eye,
   EyeOff,
+  Image,
+  Video,
+  Link,
 } from "lucide-react";
 import {
   DndContext,
@@ -33,8 +36,8 @@ import {
   useRef,
   useState,
   type Dispatch,
-  type ReactNode,
   type SetStateAction,
+  type ReactNode,
 } from "react";
 import { cn } from "@/lib/utils";
 import type { ContentBlock } from "@/lib/site-config";
@@ -53,6 +56,7 @@ type BlockEditorProps = {
   onChange: (blocks: ContentBlock[]) => void;
   blockTypes: readonly string[];
   mediaBucket: string;
+  isRoot?: boolean;
 };
 
 const headingOptions = [
@@ -142,6 +146,261 @@ function duplicateBlock(blocks: ContentBlock[], id: string): ContentBlock[] {
   return [...blocks.slice(0, index + 1), copy, ...blocks.slice(index + 1)];
 }
 
+type InsertBlockMenuProps = {
+  index: number;
+  open: boolean;
+  onOpen: () => void;
+  onClose: () => void;
+  blockTypes: readonly string[];
+  onInsert: (type: string, index: number) => void;
+};
+
+// Block type preview configurations
+const blockTypePreviews: Record<
+  string,
+  { icon: ReactNode; label: string; description: string }
+> = {
+  heading: {
+    icon: <strong className="text-base text-white">Heading</strong>,
+    label: "Heading",
+    description: "h2, h3, h4, or h5",
+  },
+  paragraph: {
+    icon: <p className="text-sm text-white/60">Paragraph text...</p>,
+    label: "Paragraph",
+    description: "Text content",
+  },
+  image: {
+    icon: (
+      <div className="flex h-8 w-12 items-center justify-center rounded border border-white/12">
+        <Image className="size-4 text-white/42" />
+      </div>
+    ),
+    label: "Image",
+    description: "Photo or graphic",
+  },
+  video: {
+    icon: (
+      <div className="flex h-8 w-12 items-center justify-center rounded border border-white/12">
+        <Video className="size-4 text-white/42" />
+      </div>
+    ),
+    label: "Video",
+    description: "Embedded video",
+  },
+  quote: {
+    icon: (
+      <div className="border-l-2 border-white/20 pl-2">
+        <p className="text-xs text-white/60">Quote text...</p>
+      </div>
+    ),
+    label: "Quote",
+    description: "Testimonial",
+  },
+  callout: {
+    icon: (
+      <div className="flex items-center gap-1.5 rounded border border-white/12 bg-white/[0.02] px-2 py-1">
+        <div className="size-2 rounded-full bg-blue-400/60" />
+        <span className="text-xs text-white/70">Callout text...</span>
+      </div>
+    ),
+    label: "Callout",
+    description: "Highlighted note",
+  },
+  list: {
+    icon: (
+      <div className="space-y-0.5">
+        <div className="flex items-center gap-1">
+          <div className="size-1.5 rounded-full bg-white/40" />
+          <span className="text-xs text-white/60">List item</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="size-1.5 rounded-full bg-white/40" />
+          <span className="text-xs text-white/60">Another item</span>
+        </div>
+      </div>
+    ),
+    label: "List",
+    description: "Bulleted or numbered",
+  },
+  accordion: {
+    icon: (
+      <div className="w-full space-y-0.5">
+        <div className="h-4 w-full rounded border border-white/12" />
+        <div className="h-3 w-full rounded border border-white/10" />
+      </div>
+    ),
+    label: "Accordion",
+    description: "Expandable items",
+  },
+  divider: {
+    icon: <div className="h-px w-8 bg-white/20" />,
+    label: "Divider",
+    description: "Visual separator",
+  },
+  table: {
+    icon: (
+      <div className="w-full space-y-0.5">
+        <div className="h-3 w-full rounded border border-white/12" />
+        <div className="h-2 w-full rounded border border-white/10" />
+      </div>
+    ),
+    label: "Table",
+    description: "Data table",
+  },
+  code: {
+    icon: (
+      <div className="flex items-center gap-1 rounded bg-white/[0.02] px-2 py-1 font-mono">
+        <span className="text-xs text-white/60">code</span>
+      </div>
+    ),
+    label: "Code",
+    description: "Code snippet",
+  },
+  stepper: {
+    icon: (
+      <div className="flex items-center gap-1">
+        <div className="flex h-4 w-4 items-center justify-center rounded-full border border-white/20 text-[10px] text-white/60">
+          1
+        </div>
+        <span className="text-xs text-white/60">Step</span>
+      </div>
+    ),
+    label: "Stepper",
+    description: "Process steps",
+  },
+  gallery: {
+    icon: (
+      <div className="grid grid-cols-3 gap-0.5">
+        <div className="h-3 w-3 rounded border border-white/12" />
+        <div className="h-3 w-3 rounded border border-white/12" />
+        <div className="h-3 w-3 rounded border border-white/12" />
+      </div>
+    ),
+    label: "Gallery",
+    description: "Image grid",
+  },
+  link: {
+    icon: (
+      <div className="flex items-center gap-1.5 rounded border border-white/12 bg-white/[0.02] px-2 py-1">
+        <Link className="size-3 text-white/42" />
+        <span className="text-xs text-white/70">Link title</span>
+      </div>
+    ),
+    label: "Link",
+    description: "External link",
+  },
+  metric: {
+    icon: (
+      <div className="rounded border border-white/12 bg-white/[0.02] px-2 py-1">
+        <div className="text-[10px] text-white/34">Metric</div>
+        <div className="text-xs font-medium text-white">84%</div>
+      </div>
+    ),
+    label: "Metric",
+    description: "Key stat",
+  },
+  timeline: {
+    icon: (
+      <div className="flex gap-1">
+        <div className="h-3 w-3 rounded-full border border-white/20" />
+        <div className="space-y-0.5">
+          <div className="h-2 w-6 rounded border border-white/12" />
+          <div className="h-1.5 w-4 rounded border border-white/10" />
+        </div>
+      </div>
+    ),
+    label: "Timeline",
+    description: "Chronological events",
+  },
+};
+
+function InsertBlockMenu({
+  index,
+  open,
+  onOpen,
+  onClose,
+  blockTypes,
+  onInsert,
+}: InsertBlockMenuProps) {
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        open &&
+        menuRef.current &&
+        !menuRef.current.contains(event.target as Node)
+      ) {
+        onClose();
+      }
+    }
+
+    if (open) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [open, onClose]);
+
+  // Filter out columns-2 from the insert menu (can't nest columns)
+  const availableBlockTypes = blockTypes.filter((type) => type !== "columns-2");
+
+  return (
+    <div className="flex justify-start transition-all" data-insert-menu>
+      <div ref={menuRef}>
+        <button
+          type="button"
+          onClick={open ? onClose : onOpen}
+          className={cn(
+            "flex items-center justify-center rounded-full border border-white/10 bg-white/[0.03] transition-all h-10 w-10 mt-3.5",
+            open
+              ? "border-white/20 bg-white/[0.08] hover:bg-white/[0.12]"
+              : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]",
+          )}
+          aria-label={
+            open
+              ? "Close block selector"
+              : `Insert block at position ${index + 1}`
+          }
+        >
+          <Plus
+            className={cn(
+              "text-white/42 transition-transform duration-200",
+              open ? "size-5 rotate-45" : "size-5",
+            )}
+          />
+        </button>
+
+        <AnimatePresence>
+          {open ? (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+              className="overflow-hidden"
+            >
+              <div className="flex flex-wrap items-center gap-2 pt-3">
+                {availableBlockTypes.map((type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => onInsert(type, index)}
+                    className={buttonClasses({ tone: "muted", size: "xs" })}
+                  >
+                    <Plus className="size-3.5" />
+                    {type}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
+
 function BlockEditorContent({
   block,
   blocks,
@@ -196,9 +455,22 @@ function BlockEditorContent({
   const [showAdminCodePanel, setShowAdminCodePanel] = useState(true);
   const [codeLangHighlightedIndex, setCodeLangHighlightedIndex] = useState(0);
   const codeLangButtonRef = useRef<HTMLButtonElement>(null);
-  const nestedBlockTypes = blockTypes.filter(
-    (type) => type !== "columns-2",
-  );
+  const nestedBlockTypes = blockTypes.filter((type) => type !== "columns-2");
+
+  const headingTypeAheadTimeoutRef = useRef<number | null>(null);
+  const codeLangTypeAheadTimeoutRef = useRef<number | null>(null);
+
+  // Cleanup type-ahead timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (headingTypeAheadTimeoutRef.current) {
+        clearTimeout(headingTypeAheadTimeoutRef.current);
+      }
+      if (codeLangTypeAheadTimeoutRef.current) {
+        clearTimeout(codeLangTypeAheadTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Keyboard handling for heading dropdown
   useEffect(() => {
@@ -229,14 +501,49 @@ function BlockEditorContent({
           }));
           headingButtonRef.current?.focus();
         }
+      } else if (
+        event.key.length === 1 &&
+        !event.altKey &&
+        !event.ctrlKey &&
+        !event.metaKey
+      ) {
+        // Type-ahead support
+        const char = event.key.toLowerCase();
+
+        if (headingTypeAheadTimeoutRef.current) {
+          clearTimeout(headingTypeAheadTimeoutRef.current);
+        }
+
+        const nextMatch = headingOptions.findIndex((opt, idx) => {
+          if (idx > headingHighlightedIndex) {
+            return opt.label.toLowerCase().startsWith(char);
+          }
+          return false;
+        });
+
+        const firstMatch =
+          nextMatch === -1
+            ? headingOptions.findIndex((opt) =>
+                opt.label.toLowerCase().startsWith(char),
+              )
+            : nextMatch;
+
+        if (firstMatch !== -1) {
+          setHeadingHighlightedIndex(firstMatch);
+        }
+
+        headingTypeAheadTimeoutRef.current = window.setTimeout(() => {
+          headingTypeAheadTimeoutRef.current = null;
+        }, 1000);
       }
     }
 
     if (openHeadingMenu === block.id) {
       document.addEventListener("keydown", handleHeadingKeyDown);
-      return () => document.removeEventListener("keydown", handleHeadingKeyDown);
+      return () =>
+        document.removeEventListener("keydown", handleHeadingKeyDown);
     }
-  }, [openHeadingMenu, block.id, headingHighlightedIndex, headingOptions.length]);
+  }, [openHeadingMenu, block.id, headingHighlightedIndex, headingOptions]);
 
   // Keyboard handling for code language dropdown
   useEffect(() => {
@@ -267,14 +574,59 @@ function BlockEditorContent({
           }));
           codeLangButtonRef.current?.focus();
         }
+      } else if (
+        event.key.length === 1 &&
+        !event.altKey &&
+        !event.ctrlKey &&
+        !event.metaKey
+      ) {
+        // Type-ahead support
+        const char = event.key.toLowerCase();
+
+        if (codeLangTypeAheadTimeoutRef.current) {
+          clearTimeout(codeLangTypeAheadTimeoutRef.current);
+        }
+
+        const nextMatch = codeLanguageOptions.findIndex((opt, idx) => {
+          if (idx > codeLangHighlightedIndex) {
+            return (
+              opt.label.toLowerCase().startsWith(char) ||
+              opt.value.toLowerCase().startsWith(char)
+            );
+          }
+          return false;
+        });
+
+        const firstMatch =
+          nextMatch === -1
+            ? codeLanguageOptions.findIndex(
+                (opt) =>
+                  opt.label.toLowerCase().startsWith(char) ||
+                  opt.value.toLowerCase().startsWith(char),
+              )
+            : nextMatch;
+
+        if (firstMatch !== -1) {
+          setCodeLangHighlightedIndex(firstMatch);
+        }
+
+        codeLangTypeAheadTimeoutRef.current = window.setTimeout(() => {
+          codeLangTypeAheadTimeoutRef.current = null;
+        }, 1000);
       }
     }
 
     if (openCodeLangMenu === block.id) {
       document.addEventListener("keydown", handleCodeLangKeyDown);
-      return () => document.removeEventListener("keydown", handleCodeLangKeyDown);
+      return () =>
+        document.removeEventListener("keydown", handleCodeLangKeyDown);
     }
-  }, [openCodeLangMenu, block.id, codeLangHighlightedIndex, codeLanguageOptions.length]);
+  }, [
+    openCodeLangMenu,
+    block.id,
+    codeLangHighlightedIndex,
+    codeLanguageOptions.length,
+  ]);
 
   return (
     <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-4">
@@ -317,11 +669,17 @@ function BlockEditorContent({
                   current === block.id ? null : block.id,
                 );
                 setHeadingHighlightedIndex(
-                  headingOptions.findIndex((opt) => opt.level === headingLevel) || 0,
+                  headingOptions.findIndex(
+                    (opt) => opt.level === headingLevel,
+                  ) || 0,
                 );
               }}
               onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " " || event.key === "ArrowDown") {
+                if (
+                  event.key === "Enter" ||
+                  event.key === " " ||
+                  event.key === "ArrowDown"
+                ) {
                   event.preventDefault();
                   setOpenHeadingMenu((current) =>
                     current === block.id ? null : block.id,
@@ -907,11 +1265,17 @@ function BlockEditorContent({
                       current === block.id ? null : block.id,
                     );
                     setCodeLangHighlightedIndex(
-                      codeLanguageOptions.findIndex((opt) => opt.value === codeLanguage) || 0,
+                      codeLanguageOptions.findIndex(
+                        (opt) => opt.value === codeLanguage,
+                      ) || 0,
                     );
                   }}
                   onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " " || event.key === "ArrowDown") {
+                    if (
+                      event.key === "Enter" ||
+                      event.key === " " ||
+                      event.key === "ArrowDown"
+                    ) {
                       event.preventDefault();
                       setCodeLangMenu((current) =>
                         current === block.id ? null : block.id,
@@ -938,7 +1302,9 @@ function BlockEditorContent({
                         <button
                           key={opt.value}
                           type="button"
-                          onMouseEnter={() => setCodeLangHighlightedIndex(index)}
+                          onMouseEnter={() =>
+                            setCodeLangHighlightedIndex(index)
+                          }
                           onClick={() => {
                             setCodeLangMenu(null);
                             updateBlockHandler(block.id, (current) => ({
@@ -1559,6 +1925,7 @@ function BlockEditorContent({
               Left column
             </p>
             <BlockEditor
+              isRoot={false}
               blocks={
                 Array.isArray(block.data?.left)
                   ? (block.data.left as ContentBlock[])
@@ -1580,6 +1947,7 @@ function BlockEditorContent({
               Right column
             </p>
             <BlockEditor
+              isRoot={false}
               blocks={
                 Array.isArray(block.data?.right)
                   ? (block.data.right as ContentBlock[])
@@ -1636,9 +2004,6 @@ function SortableBlock({
   } = useSortable({ id: block.id });
 
   const style = {
-    // Use translate-only transforms while sorting. CSS.Transform.toString(transform)
-    // includes scaleX/scaleY from dnd-kit, which makes rich previews/media stretch
-    // and squish while blocks are being dragged.
     transform: CSS.Translate.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
@@ -1684,9 +2049,11 @@ export function BlockEditor({
   onChange,
   blockTypes,
   mediaBucket,
+  isRoot = true,
 }: BlockEditorProps) {
   const [openHeadingMenu, setOpenHeadingMenu] = useState<string | null>(null);
   const [openCodeLangMenu, setCodeLangMenu] = useState<string | null>(null);
+  const [openInsertMenu, setOpenInsertMenu] = useState<number | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -1694,6 +2061,15 @@ export function BlockEditor({
       coordinateGetter: sortableKeyboardCoordinates,
     }),
   );
+
+  const insertBlock = (type: string, index: number) => {
+    onChange([
+      ...blocks.slice(0, index),
+      createBlock(type as ContentBlock["type"]),
+      ...blocks.slice(index),
+    ]);
+    setOpenInsertMenu(null);
+  };
 
   const addBlock = (type: string) => {
     onChange([...blocks, createBlock(type as ContentBlock["type"])]);
@@ -1706,34 +2082,27 @@ export function BlockEditor({
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
-    if (over && active.id !== over.id) {
-      const oldIndex = blocks.findIndex((block) => block.id === active.id);
-      const newIndex = blocks.findIndex((block) => block.id === over.id);
+    if (!over || active.id === over.id) return;
 
-      if (oldIndex === -1 || newIndex === -1) return;
-      onChange(arrayMove(blocks, oldIndex, newIndex));
-    }
+    const activeIndex = blocks.findIndex((block) => block.id === active.id);
+    const overIndex = blocks.findIndex((block) => block.id === over.id);
+
+    if (activeIndex === -1 || overIndex === -1) return;
+    onChange(arrayMove(blocks, activeIndex, overIndex));
   };
 
   const duplicateBlockHandler = (id: string) => {
     onChange(duplicateBlock(blocks, id));
   };
 
-  return (
-    <div className="space-y-4">
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-      >
-        <SortableContext
-          items={blocks.map((b) => b.id)}
-          strategy={verticalListSortingStrategy}
-        >
-          <div className="space-y-4">
-            {blocks.map((block) => (
+  // If this is a nested editor (inside columns), just render content without DndContext
+  if (!isRoot) {
+    return (
+      <div className="space-y-4">
+        <div className="space-y-4">
+          {blocks.map((block, index) => (
+            <div key={block.id}>
               <SortableBlock
-                key={block.id}
                 block={block}
                 blocks={blocks}
                 onChange={onChange}
@@ -1746,11 +2115,88 @@ export function BlockEditor({
                 openCodeLangMenu={openCodeLangMenu}
                 setCodeLangMenu={setCodeLangMenu}
               />
+              <InsertBlockMenu
+                index={index + 1}
+                open={openInsertMenu === index + 1}
+                onOpen={() => setOpenInsertMenu(index + 1)}
+                onClose={() => setOpenInsertMenu(null)}
+                blockTypes={blockTypes}
+                onInsert={insertBlock}
+              />
+            </div>
+          ))}
+          <div className="flex flex-wrap gap-2 pt-2">
+            {blockTypes.map((type) => (
+              <button
+                key={type}
+                type="button"
+                onClick={() => addBlock(type)}
+                className={buttonClasses({ tone: "muted", size: "xs" })}
+              >
+                <Plus className="size-3.5" />
+                {type}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Root editor with DndContext
+  return (
+    <div className="space-y-4">
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext
+          items={blocks.map((b) => b.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          <div className="space-y-4">
+            {/* Insert button at the beginning */}
+            <InsertBlockMenu
+              index={0}
+              open={openInsertMenu === 0}
+              onOpen={() => setOpenInsertMenu(0)}
+              onClose={() => setOpenInsertMenu(null)}
+              blockTypes={blockTypes}
+              onInsert={insertBlock}
+            />
+
+            {blocks.map((block, index) => (
+              <div key={block.id}>
+                <SortableBlock
+                  block={block}
+                  blocks={blocks}
+                  onChange={onChange}
+                  removeBlock={removeBlock}
+                  duplicateBlock={duplicateBlockHandler}
+                  mediaBucket={mediaBucket}
+                  blockTypes={blockTypes}
+                  openHeadingMenu={openHeadingMenu}
+                  setOpenHeadingMenu={setOpenHeadingMenu}
+                  openCodeLangMenu={openCodeLangMenu}
+                  setCodeLangMenu={setCodeLangMenu}
+                />
+                {/* Insert button between blocks */}
+                <InsertBlockMenu
+                  index={index + 1}
+                  open={openInsertMenu === index + 1}
+                  onOpen={() => setOpenInsertMenu(index + 1)}
+                  onClose={() => setOpenInsertMenu(null)}
+                  blockTypes={blockTypes}
+                  onInsert={insertBlock}
+                />
+              </div>
             ))}
           </div>
         </SortableContext>
       </DndContext>
 
+      {/* Bottom block type buttons for quick add */}
       <div className="flex flex-wrap gap-2 pt-2">
         {blockTypes.map((type) => (
           <button

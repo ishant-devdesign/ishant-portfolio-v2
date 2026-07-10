@@ -6,14 +6,14 @@ import { slugify } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 
 const payloadSchema = z.object({
-  title: z.string().min(1),
-  excerpt: z.string().min(1),
+  title: z.string(),
+  excerpt: z.string(),
   readingTime: z.string().default("5 min"),
   tags: z.array(z.string()).default([]),
   featured: z.boolean().default(false),
   status: z.enum(["draft", "published"]).default("draft"),
   heroImage: z.string().default(""),
-  publishedLabel: z.string().min(1),
+  publishedLabel: z.string(),
   contentBlocks: z.array(z.any()).default([]),
 });
 
@@ -113,6 +113,8 @@ export async function PATCH(
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
+  const data = parsed.data;
+
   const { data: existing, error: existingError } = await adminCheck.adminSupabase
     .from("blogs")
     .select("id, cover_image_url, content_blocks")
@@ -124,26 +126,49 @@ export async function PATCH(
   }
 
   const previousPaths = collectUploadedAssetPaths([existing.cover_image_url, existing.content_blocks], "blog-media");
-  const nextPaths = collectUploadedAssetPaths([parsed.data.heroImage, parsed.data.contentBlocks], "blog-media");
+  const nextPaths = collectUploadedAssetPaths([data.heroImage, data.contentBlocks], "blog-media");
   const removedPaths = [...previousPaths].filter((path) => !nextPaths.has(path));
 
-  const nextSlug = slugify(parsed.data.title);
-  const readingMinutes = parseInt(parsed.data.readingTime, 10) || 5;
-  const publishedAt =
-    parsed.data.status === "published"
-      ? new Date(parsed.data.publishedLabel).toISOString()
-      : null;
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+  const nextSlug = slugify(data.title);
+  const readingMinutes = parseInt(data.readingTime, 10) || 5;
+
+  // Parse "DD Mon YYYY" format (e.g., "15 Jan 2025")
+  function parsePublishedAt(label: string): string | null {
+    if (data.status !== "published" || !label) return null;
+
+    const parts = label.trim().split(/\s+/);
+    if (parts.length !== 3) return null;
+
+    const day = parseInt(parts[0], 10);
+    const monthName = parts[1];
+    const year = parseInt(parts[2], 10);
+
+    if (isNaN(day) || isNaN(year)) return null;
+
+    const monthIndex = months.indexOf(monthName);
+    if (monthIndex === -1) return null;
+
+    // Create date at noon UTC to avoid timezone issues
+    const date = new Date(Date.UTC(year, monthIndex, day, 12, 0, 0));
+    if (isNaN(date.getTime())) return null;
+
+    return date.toISOString();
+  }
+
+  const publishedAt = parsePublishedAt(data.publishedLabel);
 
   const { error } = await adminCheck.adminSupabase
     .from("blogs")
     .update({
       slug: nextSlug,
-      title: parsed.data.title,
-      excerpt: parsed.data.excerpt,
-      cover_image_url: parsed.data.heroImage,
-      content_blocks: parsed.data.contentBlocks,
-      featured: parsed.data.featured,
-      status: parsed.data.status,
+      title: data.title,
+      excerpt: data.excerpt,
+      cover_image_url: data.heroImage,
+      content_blocks: data.contentBlocks,
+      featured: data.featured,
+      status: data.status,
       reading_time_minutes: readingMinutes,
       published_at: publishedAt,
     })
@@ -153,7 +178,7 @@ export async function PATCH(
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  await syncTags(adminCheck.adminSupabase, existing.id, parsed.data.tags);
+  await syncTags(adminCheck.adminSupabase, existing.id, data.tags);
   await deleteUploadedAssets(adminCheck.adminSupabase, "blog-media", removedPaths);
   revalidatePath("/sitemap.xml");
 

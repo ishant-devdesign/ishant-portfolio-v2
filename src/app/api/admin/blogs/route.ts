@@ -56,12 +56,36 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const slug = slugify(parsed.data.slug || parsed.data.title);
-  const readingMinutes = parseInt(parsed.data.readingTime, 10) || 5;
-  const publishedAt =
-    parsed.data.status === "published"
-      ? new Date(parsed.data.publishedLabel).toISOString()
-      : null;
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const data = parsed.data;
+
+  const slug = slugify(data.slug || data.title);
+  const readingMinutes = parseInt(data.readingTime, 10) || 5;
+
+  // Parse "DD Mon YYYY" format (e.g., "15 Jan 2025")
+  function parsePublishedAt(label: string): string | null {
+    if (data.status !== "published" || !label) return null;
+
+    const parts = label.trim().split(/\s+/);
+    if (parts.length !== 3) return null;
+
+    const day = parseInt(parts[0], 10);
+    const monthName = parts[1];
+    const year = parseInt(parts[2], 10);
+
+    if (isNaN(day) || isNaN(year)) return null;
+
+    const monthIndex = months.indexOf(monthName);
+    if (monthIndex === -1) return null;
+
+    // Create date at noon UTC to avoid timezone issues
+    const date = new Date(Date.UTC(year, monthIndex, day, 12, 0, 0));
+    if (isNaN(date.getTime())) return null;
+
+    return date.toISOString();
+  }
+
+  const publishedAt = parsePublishedAt(data.publishedLabel);
 
   const { data: blog, error } = await adminCheck.adminSupabase
     .from("blogs")

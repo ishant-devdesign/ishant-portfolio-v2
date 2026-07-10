@@ -6,17 +6,17 @@ import { slugify } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 
 const payloadSchema = z.object({
-  title: z.string().min(1),
-  summary: z.string().min(1),
-  sector: z.string().min(1),
-  yearLabel: z.string().min(1),
-  role: z.string().min(1),
+  title: z.string(),
+  summary: z.string(),
+  sector: z.string(),
+  yearLabel: z.string(),
+  role: z.string(),
   stack: z.array(z.string()).default([]),
   tags: z.array(z.string()).default([]),
   featured: z.boolean().default(false),
   status: z.enum(["draft", "published"]).default("draft"),
   heroImage: z.string().default(""),
-  publishedLabel: z.string().min(1),
+  publishedLabel: z.string(),
   contentBlocks: z.array(z.any()).default([]),
 });
 
@@ -116,6 +116,8 @@ export async function PATCH(
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
+  const data = parsed.data;
+
   const { data: existing, error: existingError } = await adminCheck.adminSupabase
     .from("projects")
     .select("id, hero_image_url, content_blocks")
@@ -127,14 +129,37 @@ export async function PATCH(
   }
 
   const previousPaths = collectUploadedAssetPaths([existing.hero_image_url, existing.content_blocks], "project-media");
-  const nextPaths = collectUploadedAssetPaths([parsed.data.heroImage, parsed.data.contentBlocks], "project-media");
+  const nextPaths = collectUploadedAssetPaths([data.heroImage, data.contentBlocks], "project-media");
   const removedPaths = [...previousPaths].filter((path) => !nextPaths.has(path));
 
-  const nextSlug = slugify(parsed.data.title);
-  const publishedAt =
-    parsed.data.status === "published"
-      ? new Date(parsed.data.publishedLabel).toISOString()
-      : null;
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+  const nextSlug = slugify(data.title);
+
+  // Parse "DD Mon YYYY" format (e.g., "15 Jan 2025")
+  function parsePublishedAt(label: string): string | null {
+    if (data.status !== "published" || !label) return null;
+
+    const parts = label.trim().split(/\s+/);
+    if (parts.length !== 3) return null;
+
+    const day = parseInt(parts[0], 10);
+    const monthName = parts[1];
+    const year = parseInt(parts[2], 10);
+
+    if (isNaN(day) || isNaN(year)) return null;
+
+    const monthIndex = months.indexOf(monthName);
+    if (monthIndex === -1) return null;
+
+    // Create date at noon UTC to avoid timezone issues
+    const date = new Date(Date.UTC(year, monthIndex, day, 12, 0, 0));
+    if (isNaN(date.getTime())) return null;
+
+    return date.toISOString();
+  }
+
+  const publishedAt = parsePublishedAt(data.publishedLabel);
 
   const { error } = await adminCheck.adminSupabase
     .from("projects")
