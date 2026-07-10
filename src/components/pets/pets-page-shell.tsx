@@ -761,7 +761,7 @@ function PetArticle({
                       <img
                         src={image.url}
                         alt={image.caption || draft.name}
-                        className="aspect-[4/5] w-full object-cover"
+                        className="h-auto w-full object-cover"
                       />
                     </div>
 

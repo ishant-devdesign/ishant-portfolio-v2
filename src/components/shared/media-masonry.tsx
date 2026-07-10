@@ -79,13 +79,13 @@ export function MediaMasonry({
                   <video
                     src={item.url}
                     muted
-                    className="aspect-[4/5] w-full object-cover"
+                    className="h-auto w-full object-cover"
                   />
                 ) : (
                   <img
                     src={item.url}
                     alt="Archive media"
-                    className="aspect-[4/5] w-full object-cover"
+                    className="h-auto w-full object-cover"
                   />
                 )}
               </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ImagePlus, Plus } from "lucide-react";
+import { ImagePlus, Plus, GripVertical, X } from "lucide-react";
 import { useAdminSession } from "@/components/admin/admin-session-provider";
 import { buttonClasses } from "@/components/ui/button";
 import { useConfirm } from "@/components/ui/confirm-dialog";
@@ -13,6 +13,7 @@ import { MediaMasonry } from "@/components/shared/media-masonry";
 import { MediaLightbox } from "@/components/shared/media-lightbox";
 import type { CreativeArchiveItem } from "@/lib/site-config";
 import { Shuffle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
@@ -426,6 +427,7 @@ export function ArchivePageShell({
         title: item.title,
         description: item.description,
         fileHash: item.fileHash,
+        block_id: (item as { block_id?: string }).block_id,
       },
     ]);
   }
@@ -465,14 +467,34 @@ export function ArchivePageShell({
     }
   }
 
-  const archiveSections = [
-    {
-      id: "gallery",
-      index: "00",
-      label: "Archive",
-      title: "Gallery",
-    },
-  ];
+  // Generate sections dynamically from blocks
+  const archiveSections = blocks.map((block, index) => ({
+    id: block.id,
+    index: String(index + 1).padStart(2, "0"),
+    label: block.title,
+    title: block.title,
+  }));
+
+  const [editingBlock, setEditingBlock] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState("");
+  const [editingDescription, setEditingDescription] = useState("");
+
+  async function updateBlock(blockId: string, title: string, description?: string) {
+    const { error } = await fetch(`/api/admin/archive-blocks/${blockId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, description }),
+    }).then((r) => r.json());
+
+    if (!error) {
+      setBlocks((current) =>
+        current.map((b) =>
+          b.id === blockId ? { ...b, title, description: description ?? null } : b,
+        ),
+      );
+    }
+    setEditingBlock(null);
+  }
 
   return (
     <>
@@ -581,17 +603,12 @@ export function ArchivePageShell({
                 );
 
                 return (
-                  <div key={block.id} className="space-y-6">
+                  <div key={block.id} id={block.id} className="space-y-6">
                     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/8 pb-4">
-                      <div className="space-y-2">
-                        <h2 className="text-2xl font-semibold text-white">
-                          {block.title}
-                        </h2>
-                        {block.description ? (
-                          <p className="text-sm text-white/52">
-                            {block.description}
-                          </p>
-                        ) : null}
+                      <div>
+                        <p className="text-[0.66rem] uppercase tracking-[0.34em] text-white/30">
+                          Gallery
+                        </p>
                       </div>
                       {adminMode ? (
                         <label
@@ -600,6 +617,7 @@ export function ArchivePageShell({
                             size: "sm",
                             className: "cursor-pointer",
                           })}
+                          data-cursor="pointer"
                         >
                           <ImagePlus className="size-4" />
                           Add media
@@ -615,6 +633,66 @@ export function ArchivePageShell({
                         </label>
                       ) : null}
                     </div>
+
+                    <div className="flex flex-col gap-2 border-b border-white/8 pb-4">
+                      {adminMode && editingBlock === block.id ? (
+                        <>
+                          <input
+                            value={editingTitle}
+                            onChange={(e) => setEditingTitle(e.target.value)}
+                            onBlur={() =>
+                              updateBlock(block.id, editingTitle, editingDescription)
+                            }
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter")
+                                updateBlock(block.id, editingTitle, editingDescription);
+                              if (e.key === "Escape") setEditingBlock(null);
+                            }}
+                            className="w-full bg-transparent text-2xl font-semibold text-white outline-none"
+                            autoFocus
+                          />
+                          <textarea
+                            value={editingDescription}
+                            onChange={(e) => setEditingDescription(e.target.value)}
+                            onBlur={() =>
+                              updateBlock(block.id, editingTitle, editingDescription)
+                            }
+                            className="w-full bg-transparent text-sm leading-6 text-white/54 outline-none"
+                            rows={2}
+                          />
+                        </>
+                      ) : adminMode ? (
+                        <>
+                          <h2
+                            className="text-2xl font-semibold text-white"
+                            onClick={() => {
+                              setEditingBlock(block.id);
+                              setEditingTitle(block.title);
+                              setEditingDescription(block.description ?? "");
+                            }}
+                          >
+                            {block.title}
+                          </h2>
+                          {block.description ? (
+                            <p className="text-sm leading-6 text-white/54">
+                              {block.description}
+                            </p>
+                          ) : null}
+                        </>
+                      ) : (
+                        <>
+                          <h2 className="text-2xl font-semibold text-white">
+                            {block.title}
+                          </h2>
+                          {block.description ? (
+                            <p className="text-sm leading-6 text-white/54">
+                              {block.description}
+                            </p>
+                          ) : null}
+                        </>
+                      )}
+                    </div>
+
                     {blockItems.length > 0 ? (
                       <MediaMasonry
                         items={blockItems}
@@ -648,7 +726,7 @@ export function ArchivePageShell({
                         }
                       />
                     ) : adminMode ? (
-                      <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.02] p-8 text-center">
+                      <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.02] p-4 text-center">
                         <p className="text-sm text-white/44">No items in this block yet. Use the "Add media" button above to upload.</p>
                       </div>
                     ) : null}

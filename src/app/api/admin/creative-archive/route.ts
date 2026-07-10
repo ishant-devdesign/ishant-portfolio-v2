@@ -59,6 +59,7 @@ export async function POST(request: NextRequest) {
       url: inserted.media_url,
       type: inserted.media_type,
       filename: inserted.filename,
+      block_id: blockId,
     },
   });
 }
