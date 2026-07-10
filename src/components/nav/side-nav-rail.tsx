@@ -10,7 +10,7 @@ type SideNavRailProps = {
 };
 
 const ITEM_HEIGHT = 52;
-const TOOLTIP_DELAY = 1500;
+const TOOLTIP_DELAY = 300;
 
 function TruncatedSideNavLabel({
   label,

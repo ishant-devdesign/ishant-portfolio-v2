@@ -627,6 +627,7 @@ export function HomePage({
                         heroHeading: value,
                       }))
                     }
+                    placeholder="Hero heading"
                     className="font-heading min-h-[1lh] w-full resize-none overflow-hidden bg-transparent text-[3rem] leading-[0.92] text-white outline-none sm:text-[5.2rem] xl:text-[6.2rem]"
                     style={{
                       fontVariationSettings:
@@ -671,6 +672,7 @@ export function HomePage({
                         heroSubheading: value,
                       }))
                     }
+                    placeholder="Hero subheading"
                     className="min-h-[1lh] w-full resize-none overflow-hidden bg-transparent text-balance text-2xl leading-8 text-white/62 outline-none"
                   />
                 ) : (
@@ -702,6 +704,7 @@ export function HomePage({
                     onChange={(value) =>
                       setDraft((current) => ({ ...current, heroIntro: value }))
                     }
+                    placeholder="Hero intro"
                     className="min-h-[1lh] w-full resize-none overflow-hidden bg-transparent text-balance text-base leading-7 text-white/48 outline-none sm:text-lg"
                   />
                 ) : (
@@ -809,6 +812,7 @@ export function HomePage({
                               roleLabel: event.target.value,
                             }))
                           }
+                          placeholder="Your role or title"
                           className="mt-2 w-full bg-transparent text-sm leading-6 text-white/72 outline-none"
                         />
                       ) : (
@@ -833,6 +837,7 @@ export function HomePage({
                               location: event.target.value,
                             }))
                           }
+                          placeholder="Location"
                           className="mt-2 w-full bg-transparent text-sm leading-6 text-white/72 outline-none"
                         />
                       ) : (
@@ -857,6 +862,7 @@ export function HomePage({
                               howText: value,
                             }))
                           }
+                          placeholder="How I work"
                           className="mt-2 min-h-[1lh] w-full resize-none overflow-hidden bg-transparent text-sm leading-6 text-white/72 outline-none"
                         />
                       ) : (
@@ -881,6 +887,7 @@ export function HomePage({
                               availability: event.target.value,
                             }))
                           }
+                          placeholder="Availability"
                           className="mt-2 w-full bg-transparent text-sm leading-6 text-white/72 outline-none"
                         />
                       ) : (
@@ -925,6 +932,7 @@ export function HomePage({
                           spotifyEmbedUrl: value,
                         }))
                       }
+                      placeholder="Spotify embed URL"
                       className="mb-3 min-h-[1lh] w-full resize-none overflow-hidden rounded-[1.2rem] border border-white/8 bg-white/[0.02] px-4 py-3 text-sm leading-6 text-white/72 outline-none"
                     />
                   ) : null}
@@ -1289,6 +1297,7 @@ export function HomePage({
                                   ),
                                 )
                               }
+                              placeholder="Role title"
                               className="mt-2 min-h-[1lh] w-full resize-none overflow-hidden bg-transparent text-lg text-white outline-none"
                             />
                           </div>
@@ -1307,6 +1316,7 @@ export function HomePage({
                                   ),
                                 )
                               }
+                              placeholder="Company name"
                               className="mt-2 min-h-[1lh] w-full resize-none overflow-hidden bg-transparent text-sm text-white/72 outline-none"
                             />
                           </div>
@@ -1325,6 +1335,7 @@ export function HomePage({
                                   ),
                                 )
                               }
+                              placeholder="Month YYYY — Month YYYY"
                               className="mt-2 min-h-[1lh] w-full resize-none overflow-hidden bg-transparent text-sm text-white/68 outline-none"
                             />
                           </div>
@@ -1343,6 +1354,7 @@ export function HomePage({
                                   ),
                                 )
                               }
+                              placeholder="Description of your work"
                               className="mt-2 min-h-[1lh] w-full resize-none overflow-hidden bg-transparent text-sm leading-6 text-white/62 outline-none"
                             />
                           </div>
@@ -1418,6 +1430,7 @@ export function HomePage({
                                   ),
                                 )
                               }
+                              placeholder="Degree title"
                               className="mt-2 min-h-[1lh] w-full resize-none overflow-hidden bg-transparent text-lg text-white outline-none"
                             />
                           </div>
@@ -1436,6 +1449,7 @@ export function HomePage({
                                   ),
                                 )
                               }
+                              placeholder="Institution name"
                               className="mt-2 min-h-[1lh] w-full resize-none overflow-hidden bg-transparent text-sm text-white/72 outline-none"
                             />
                           </div>
@@ -1454,6 +1468,7 @@ export function HomePage({
                                   ),
                                 )
                               }
+                              placeholder="Year — Year"
                               className="mt-2 min-h-[1lh] w-full resize-none overflow-hidden bg-transparent text-sm text-white/68 outline-none"
                             />
                           </div>
@@ -1472,6 +1487,7 @@ export function HomePage({
                                   ),
                                 )
                               }
+                              placeholder="Description of education context"
                               className="mt-2 min-h-[1lh] w-full resize-none overflow-hidden bg-transparent text-sm leading-6 text-white/62 outline-none"
                             />
                           </div>
@@ -1701,6 +1717,7 @@ export function HomePage({
                               ),
                             )
                           }
+                          placeholder="Category name (e.g., Frontend)"
                           className="mt-2 min-h-[1lh] w-full resize-none overflow-hidden bg-transparent text-white outline-none"
                         />
                       </div>
@@ -1719,6 +1736,7 @@ export function HomePage({
                               ),
                             )
                           }
+                          placeholder="Tools, technologies, or description"
                           className="mt-2 min-h-[1lh] w-full resize-none overflow-hidden bg-transparent text-sm leading-7 text-white/70 outline-none"
                         />
                       </div>
@@ -1956,6 +1974,7 @@ export function HomePage({
                   onChange={(value) =>
                     setContactDraft((current) => ({ ...current, cta: value }))
                   }
+                  placeholder="Contact call-to-action text"
                   className="min-h-[1lh] max-w-2xl w-full resize-none overflow-hidden bg-transparent text-balance text-lg leading-8 text-white/58 outline-none"
                 />
               ) : (

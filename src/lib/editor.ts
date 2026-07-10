@@ -71,24 +71,19 @@ const months = [
 ];
 
 export function createEmptyProject(): Project {
-  const now = new Date();
-  const day = String(now.getDate());
-  const month = months[now.getMonth()];
-  const year = String(now.getFullYear());
-
   return {
     slug: "new-project",
     title: "Untitled Project",
     summary: "Short project summary.",
     sector: "Project",
-    yearLabel: year,
+    yearLabel: "",
     role: "Role",
     stack: [],
     tags: [],
     featured: false,
     status: "draft",
     heroImage: "",
-    publishedLabel: `${day} ${month} ${year}`,
+    publishedLabel: "",
     metrics: [],
     challenge: "",
     approach: "",
@@ -98,18 +93,12 @@ export function createEmptyProject(): Project {
 }
 
 export function createEmptyBlog(): Blog {
-  const now = new Date();
-  const day = String(now.getDate());
-  const month = months[now.getMonth()];
-  const year = String(now.getFullYear());
-  const publishedAtDefault = `${day} ${month} ${year}`;
-
   return {
     slug: "new-post",
     title: "Untitled Blog",
     excerpt: "Short post excerpt.",
-    publishedAt: publishedAtDefault,
-    publishedLabel: publishedAtDefault,
+    publishedAt: "",
+    publishedLabel: "",
     readingTime: "5 min",
     tags: [],
     featured: false,

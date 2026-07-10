@@ -4,6 +4,7 @@ import { AccordionBlock } from "@/components/content/accordion-block";
 import { CalloutBlock } from "@/components/content/callout-block";
 import { QuoteBlock } from "@/components/content/quote-block";
 import { CodeBlock } from "@/components/content/code-block";
+import { CustomVideoPlayer } from "@/components/ui/custom-video-player";
 import { Maximize2, X, ArrowLeft, ArrowRight } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
@@ -258,14 +259,10 @@ function VideoBlock({ block }: { block: ContentBlock }) {
           />
         </div>
       ) : (
-        <div className="rounded-[1.8rem] border border-white/10 bg-black/50 overflow-hidden">
-          <video
-            src={url}
-            controls
-            className="w-full aspect-video"
-            style={{ backgroundColor: "#000" }}
-          />
-        </div>
+        <CustomVideoPlayer
+          src={url}
+          className="rounded-[1.8rem] border border-white/10 bg-black/50 overflow-hidden"
+        />
       )}
       {caption ? (
         <figcaption className="text-sm text-white/44">{caption}</figcaption>

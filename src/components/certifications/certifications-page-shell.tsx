@@ -288,6 +288,7 @@ export function CertificationsPageShell({
                           onChange={(value) =>
                             setDraft((current) => ({ ...current, title: value }))
                           }
+                          placeholder="Certification title"
                           className="mt-2 min-h-[1lh] w-full resize-none overflow-hidden rounded-[1.2rem] border border-white/10 bg-white/[0.02] px-4 py-3 text-white outline-none"
                         />
                       </div>
@@ -300,6 +301,7 @@ export function CertificationsPageShell({
                           onChange={(value) =>
                             setDraft((current) => ({ ...current, issuer: value }))
                           }
+                          placeholder="Issuing organization"
                           className="mt-2 min-h-[1lh] w-full resize-none overflow-hidden rounded-[1.2rem] border border-white/10 bg-white/[0.02] px-4 py-3 text-white outline-none"
                         />
                       </div>
@@ -481,6 +483,7 @@ function SortableCertificationCard({
                   onChange={(value) =>
                     onEditDraftChange({ ...editDraft, title: value })
                   }
+                  placeholder="Certification title"
                   className="min-h-[1lh] w-full resize-none overflow-hidden bg-transparent text-2xl leading-tight tracking-[-0.04em] text-white outline-none"
                 />
                 <AutoGrowTextarea
@@ -488,6 +491,7 @@ function SortableCertificationCard({
                   onChange={(value) =>
                     onEditDraftChange({ ...editDraft, issuer: value })
                   }
+                  placeholder="Issuing organization"
                   className="min-h-[1lh] w-full resize-none overflow-hidden bg-transparent text-sm text-white/42 outline-none"
                 />
                 <input

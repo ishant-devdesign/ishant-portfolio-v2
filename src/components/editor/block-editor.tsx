@@ -275,6 +275,7 @@ function BlockEditorContent({
                 data: { ...current.data, text: value },
               }))
             }
+            placeholder="Heading text"
             className="min-h-[1lh] w-full resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
           />
         </div>
@@ -295,6 +296,7 @@ function BlockEditorContent({
               },
             }))
           }
+          placeholder="Paragraph text"
           className="min-h-[1lh] w-full resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-3 text-sm text-white outline-none"
         />
       ) : null}
@@ -383,6 +385,7 @@ function BlockEditorContent({
                     data: { ...current.data, items },
                   }));
                 }}
+                placeholder={`Item ${itemIndex + 1}`}
                 className="min-h-[1lh] flex-1 resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
               />
               <button
@@ -434,6 +437,7 @@ function BlockEditorContent({
                 data: { ...current.data, text: value },
               }))
             }
+            placeholder="Quote text"
             className="min-h-[1lh] w-full resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-3 text-sm text-white outline-none"
           />
           <input
@@ -495,6 +499,7 @@ function BlockEditorContent({
                 data: { ...current.data, text: value },
               }))
             }
+            placeholder="Callout text"
             className="min-h-[1lh] w-full resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-3 text-sm text-white outline-none"
           />
         </div>
@@ -525,6 +530,7 @@ function BlockEditorContent({
                                 data: { ...current.data, headers },
                               }));
                             }}
+                            placeholder={`Column ${headerIndex + 1}`}
                             className="w-full bg-transparent outline-none"
                           />
                           <button
@@ -583,6 +589,7 @@ function BlockEditorContent({
                               data: { ...current.data, rows },
                             }));
                           }}
+                          placeholder={`Row ${rowIndex + 1}, Col ${cellIndex + 1}`}
                           className="w-full bg-transparent outline-none"
                         />
                       </td>
@@ -698,6 +705,7 @@ function BlockEditorContent({
                           data: { ...current.data, items },
                         }));
                       }}
+                      placeholder={`Accordion title ${itemIndex + 1}`}
                       className="w-full bg-transparent text-sm text-white outline-none"
                     />
                     <button
@@ -740,6 +748,7 @@ function BlockEditorContent({
                         data: { ...current.data, items },
                       }));
                     }}
+                    placeholder="Accordion content"
                     className="mt-3 min-h-[1lh] w-full resize-none overflow-hidden bg-transparent text-sm leading-6 text-white/68 outline-none"
                   />
                 </div>

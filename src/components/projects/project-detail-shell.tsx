@@ -222,6 +222,7 @@ export function ProjectDetailShell({
                         yearLabel: event.target.value,
                       }))
                     }
+                    placeholder="Month YYYY — Month YYYY"
                     className="w-full bg-transparent text-[0.66rem] uppercase tracking-[0.36em] text-white/30 outline-none"
                   />
                   <AutoGrowTextarea
@@ -233,6 +234,7 @@ export function ProjectDetailShell({
                         slug: slugify(value) || current.slug,
                       }))
                     }
+                    placeholder="Project title"
                     className="font-heading min-h-[1lh] w-full resize-none overflow-hidden bg-transparent text-5xl leading-none text-white outline-none sm:text-7xl"
                   />
                   <AutoGrowTextarea
@@ -240,6 +242,7 @@ export function ProjectDetailShell({
                     onChange={(value) =>
                       setProject((current) => ({ ...current, summary: value }))
                     }
+                    placeholder="Project summary"
                     className="min-h-[1lh] w-full resize-none overflow-hidden bg-transparent text-lg leading-8 text-white/58 outline-none"
                   />
                 </div>
@@ -280,6 +283,7 @@ export function ProjectDetailShell({
                         onChange={(value) =>
                           setProject((c) => ({ ...c, role: value }))
                         }
+                        placeholder="Your role"
                         className="mt-2 min-h-[1lh] w-full resize-none overflow-hidden bg-transparent text-sm leading-6 text-white/72 outline-none"
                       />
                     ) : (
@@ -301,6 +305,7 @@ export function ProjectDetailShell({
                         onChange={(value) =>
                           setProject((c) => ({ ...c, sector: value }))
                         }
+                        placeholder="Project sector"
                         className="mt-2 min-h-[1lh] w-full resize-none overflow-hidden bg-transparent text-sm leading-6 text-white/72 outline-none"
                       />
                     ) : (
@@ -384,6 +389,7 @@ export function ProjectDetailShell({
                             .filter(Boolean),
                         }))
                       }
+                      placeholder="Tech stack (comma separated)"
                       className="min-h-[1lh] w-full resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-3 text-sm text-white/72 outline-none"
                     />
                     <label className="inline-flex items-center gap-3 text-white/78">

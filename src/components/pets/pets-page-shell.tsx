@@ -605,6 +605,7 @@ function PetArticle({
                   onChange={(value) =>
                     setDraft((current) => ({ ...current, name: value }))
                   }
+                  placeholder="Pet name"
                   className="mt-4 min-h-[1lh] w-full resize-none overflow-hidden bg-transparent text-4xl tracking-[-0.05em] text-white outline-none"
                 />
                 <input
@@ -615,6 +616,7 @@ function PetArticle({
                       species: event.target.value,
                     }))
                   }
+                  placeholder="Species (e.g., Dog, Cat)"
                   className="mt-2 w-full bg-transparent text-sm uppercase tracking-[0.26em] text-white/32 outline-none"
                 />
               </>
@@ -636,6 +638,7 @@ function PetArticle({
               onChange={(value) =>
                 setDraft((current) => ({ ...current, description: value }))
               }
+              placeholder="Short description"
               className="min-h-[1lh] max-w-2xl resize-none overflow-hidden bg-transparent text-base leading-7 text-white/58 outline-none sm:text-right sm:text-lg"
             />
           ) : (
@@ -652,6 +655,7 @@ function PetArticle({
               onChange={(value) =>
                 setDraft((current) => ({ ...current, story: value }))
               }
+              placeholder="Full story or history"
               className="min-h-[1lh] w-full resize-none overflow-hidden bg-transparent text-base leading-8 text-white/62 outline-none"
             />
           ) : (

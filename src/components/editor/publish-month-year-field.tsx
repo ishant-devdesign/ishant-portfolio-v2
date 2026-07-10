@@ -39,18 +39,21 @@ export function PublishMonthYearField({
         options={days.map((d) => ({ label: d, value: d }))}
         onChange={(nextDay) => onChange(`${nextDay} ${month} ${year}`)}
         className="w-[70px]"
+        placeholder="Day"
       />
       <DropdownSelect
         value={month}
         options={months.map((m) => ({ label: m, value: m }))}
         onChange={(nextMonth) => onChange(`${day} ${nextMonth} ${year}`)}
         className="w-[100px]"
+        placeholder="Month"
       />
       <DropdownSelect
         value={year}
         options={years.map((y) => ({ label: y, value: y }))}
         onChange={(nextYear) => onChange(`${day} ${month} ${nextYear}`)}
         className="w-[80px]"
+        placeholder="Year"
       />
     </div>
   );

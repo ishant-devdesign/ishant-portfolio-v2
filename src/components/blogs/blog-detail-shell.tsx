@@ -215,6 +215,7 @@ export function BlogDetailShell({
                       slug: slugify(value) || c.slug,
                     }))
                   }
+                  placeholder="Blog title"
                   className="font-heading min-h-[1lh] w-full resize-none overflow-hidden bg-transparent text-5xl leading-none text-white outline-none sm:text-7xl"
                 />
                 <AutoGrowTextarea
@@ -222,6 +223,7 @@ export function BlogDetailShell({
                   onChange={(value) =>
                     setBlog((c) => ({ ...c, excerpt: value }))
                   }
+                  placeholder="Blog excerpt"
                   className="min-h-[1lh] w-full resize-none overflow-hidden bg-transparent text-lg leading-8 text-white/58 outline-none"
                 />
               </div>
@@ -279,6 +281,7 @@ export function BlogDetailShell({
                       onChange={(value) =>
                         setBlog((c) => ({ ...c, readingTime: value }))
                       }
+                      placeholder="Reading time (e.g., 5 min read)"
                       className="mt-2 min-h-[1lh] w-full resize-none overflow-hidden bg-transparent text-sm leading-6 text-white/72 outline-none"
                     />
                   ) : (
