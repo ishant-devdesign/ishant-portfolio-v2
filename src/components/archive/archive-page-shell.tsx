@@ -15,6 +15,8 @@ import type { ArchiveBlock, CreativeArchiveItem } from "@/lib/site-config";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
+const DEFAULT_INITIAL_COLUMN_COUNT = 3;
+
 function getErrorMessage(error: unknown) {
   if (typeof error === "string") return error;
 
@@ -76,6 +78,25 @@ function replaceSubsetOrder<T>(
   });
 }
 
+function buildArchiveLayoutPayload(items: CreativeArchiveItem[]) {
+  const counters = new Map<string, number>();
+
+  return items.map((item) => {
+    const blockKey = item.block_id ?? "__ungrouped__";
+    const columnKey = item.column_index ?? 0;
+    const key = `${blockKey}::${columnKey}`;
+    const nextSortOrder = counters.get(key) ?? 0;
+    counters.set(key, nextSortOrder + 1);
+
+    return {
+      id: item.id,
+      blockId: item.block_id ?? null,
+      columnIndex: item.column_index ?? 0,
+      sortOrder: nextSortOrder,
+    };
+  });
+}
+
 export function ArchivePageShell({
   initialItems,
   initialBlocks,
@@ -86,7 +107,7 @@ export function ArchivePageShell({
   const { isAllowedAdmin, viewMode } = useAdminSession();
   const adminMode = isAllowedAdmin && viewMode === "admin";
 
-  const [items, setItems] = useState(initialItems);
+  const [items, setItems] = useState<CreativeArchiveItem[]>(initialItems);
   const [blocks, setBlocks] = useState<ArchiveBlock[]>(initialBlocks ?? []);
   const [showBlockForm, setShowBlockForm] = useState(false);
   const [newBlockTitle, setNewBlockTitle] = useState("");
@@ -135,6 +156,7 @@ export function ArchivePageShell({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             ids: items.map((item) => item.id),
+            layout: buildArchiveLayoutPayload(items),
           }),
         });
 
@@ -435,21 +457,29 @@ export function ArchivePageShell({
       throw new Error("Upload succeeded but no item returned");
     }
 
-    setItems((current) => [
-      ...current,
-      {
-        id: item.id,
-        url: item.url,
-        type: item.type,
-        title: item.title,
-        description: item.description,
-        fileHash: item.fileHash,
-        filename: item.filename,
-        block_id: item.block_id,
-        block_title: item.block_title,
-        block_description: item.block_description,
-      },
-    ]);
+    setItems((current) => {
+      const existingInBlock = current.filter(
+        (entry) => entry.block_id === blockId,
+      ).length;
+
+      return [
+        ...current,
+        {
+          id: item.id,
+          url: item.url,
+          type: item.type,
+          title: item.title,
+          description: item.description,
+          fileHash: item.fileHash,
+          filename: item.filename,
+          block_id: item.block_id,
+          block_title: item.block_title,
+          block_description: item.block_description,
+          column_index:
+            item.column_index ?? existingInBlock % DEFAULT_INITIAL_COLUMN_COUNT,
+        },
+      ];
+    });
   }
 
   async function deleteItem(index: number) {
@@ -566,7 +596,7 @@ export function ArchivePageShell({
                 <div>
                   <p className="text-white/82">Creative Archive editor</p>
                   <p className="mt-1 text-white/44">
-                    Create blocks, upload media, and reorder with live drag.
+                    Create blocks, upload media, and manually arrange columns.
                   </p>
                 </div>
 
@@ -792,11 +822,9 @@ export function ArchivePageShell({
                     {blockItems.length > 0 ? (
                       <MediaMasonry
                         items={blockItems}
-                        onItemClick={(index) =>
+                        onItemClick={(itemId) =>
                           setActiveIndex(
-                            items.findIndex(
-                              (item) => item.id === blockItems[index].id,
-                            ),
+                            items.findIndex((item) => item.id === itemId),
                           )
                         }
                         adminMode={adminMode}

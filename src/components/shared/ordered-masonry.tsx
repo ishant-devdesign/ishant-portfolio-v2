@@ -6,7 +6,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
@@ -25,7 +24,6 @@ import {
 import { cn } from "@/lib/utils";
 
 type DragHandleProps = {
-  ref?: (node: HTMLElement | null) => void;
   attributes: Record<string, any>;
   listeners: Record<string, any>;
 };
@@ -33,6 +31,8 @@ type DragHandleProps = {
 type OrderedMasonryProps<T> = {
   items: T[];
   getItemId: (item: T) => string;
+  getItemColumn: (item: T) => number | null | undefined;
+  setItemColumn: (item: T, columnIndex: number) => T;
   renderItem: (args: {
     item: T;
     index: number;
@@ -44,31 +44,9 @@ type OrderedMasonryProps<T> = {
   gap?: number;
   className?: string;
   itemClassName?: string;
-  estimatedHeight?: number;
-  transitionMs?: number;
   getColumnCount?: (viewportWidth: number) => number;
   sortable?: boolean;
   onReorder?: (nextItems: T[]) => void;
-};
-
-type MasonryPosition = {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-};
-
-type ColumnEntry = {
-  id: string;
-  y: number;
-  height: number;
-  index: number;
-};
-
-type ComputedLayout = {
-  positions: Map<string, MasonryPosition>;
-  containerHeight: number;
-  columns: ColumnEntry[][];
 };
 
 type ClientPoint = {
@@ -102,214 +80,167 @@ function composeRefs<T>(
   };
 }
 
-function arrayMove<T>(array: T[], from: number, to: number) {
-  if (from === to) return array;
-
-  const next = [...array];
-  const [moved] = next.splice(from, 1);
-  next.splice(to, 0, moved);
-  return next;
-}
-
 function getClientPointFromEvent(
   event: Event | null | undefined,
 ): ClientPoint | null {
   if (!event) return null;
 
-  if ("clientX" in event && "clientY" in event) {
+  const mouseEvent = event as MouseEvent;
+  if (
+    typeof mouseEvent.clientX === "number" &&
+    typeof mouseEvent.clientY === "number"
+  ) {
     return {
-      x: Number(event.clientX),
-      y: Number(event.clientY),
+      x: mouseEvent.clientX,
+      y: mouseEvent.clientY,
     };
   }
 
-  if ("touches" in event && event.touches?.[0]) {
-    return {
-      x: event.touches[0].clientX,
-      y: event.touches[0].clientY,
-    };
-  }
+  const touchEvent = event as TouchEvent;
+  const touch = touchEvent.touches?.[0] ?? touchEvent.changedTouches?.[0];
 
-  if ("changedTouches" in event && event.changedTouches?.[0]) {
+  if (touch) {
     return {
-      x: event.changedTouches[0].clientX,
-      y: event.changedTouches[0].clientY,
+      x: touch.clientX,
+      y: touch.clientY,
     };
   }
 
   return null;
 }
 
-function computeOrderedLayout<T>({
+function groupItemsIntoColumns<T>({
   items,
-  getItemId,
   columnCount,
-  columnWidth,
-  gap,
-  measuredHeights,
-  estimatedHeight,
+  getItemColumn,
 }: {
   items: T[];
-  getItemId: (item: T) => string;
   columnCount: number;
-  columnWidth: number;
-  gap: number;
-  measuredHeights: Record<string, number>;
-  estimatedHeight?: number;
-}): ComputedLayout {
-  const columnHeights = Array.from({ length: columnCount }, () => 0);
-  const positions = new Map<string, MasonryPosition>();
-  const columns: ColumnEntry[][] = Array.from(
-    { length: columnCount },
-    () => [],
-  );
-
-  const fallbackHeight =
-    estimatedHeight ?? Math.max(180, Math.round(columnWidth * 0.72));
+  getItemColumn: (item: T) => number | null | undefined;
+}) {
+  const columns = Array.from({ length: columnCount }, () => [] as T[]);
 
   items.forEach((item, index) => {
-    const id = getItemId(item);
-    const columnIndex = index % columnCount;
-    const x = columnIndex * (columnWidth + gap);
-    const y = columnHeights[columnIndex];
-    const height = measuredHeights[id] ?? fallbackHeight;
+    const rawColumn = getItemColumn(item);
+    const fallbackColumn = index % columnCount;
 
-    positions.set(id, {
-      x,
-      y,
-      width: columnWidth,
-      height,
-    });
+    const resolvedColumn =
+      typeof rawColumn === "number" &&
+      Number.isInteger(rawColumn) &&
+      rawColumn >= 0 &&
+      rawColumn < columnCount
+        ? rawColumn
+        : fallbackColumn;
 
-    columns[columnIndex].push({
-      id,
-      y,
-      height,
-      index,
-    });
-
-    columnHeights[columnIndex] = y + height + gap;
+    columns[resolvedColumn].push(item);
   });
 
-  return {
-    positions,
-    columns,
-    containerHeight: items.length > 0 ? Math.max(...columnHeights) - gap : 0,
-  };
+  return columns;
 }
 
-function findNearestColumn({
+function flattenColumns<T>({
+  columns,
+  setItemColumn,
+}: {
+  columns: T[][];
+  setItemColumn: (item: T, columnIndex: number) => T;
+}) {
+  return columns.flatMap((columnItems, columnIndex) =>
+    columnItems.map((item) => setItemColumn(item, columnIndex)),
+  );
+}
+
+function findTargetColumn({
   pointerX,
+  containerWidth,
   columnCount,
-  columnWidth,
   gap,
 }: {
   pointerX: number;
+  containerWidth: number;
   columnCount: number;
-  columnWidth: number;
   gap: number;
 }) {
+  const columnWidth = (containerWidth - gap * (columnCount - 1)) / columnCount;
   const trackWidth = columnCount * columnWidth + (columnCount - 1) * gap;
   const clampedX = Math.max(0, Math.min(trackWidth - 1, pointerX));
 
   let bestColumn = 0;
   let bestDistance = Number.POSITIVE_INFINITY;
 
-  for (let column = 0; column < columnCount; column += 1) {
-    const centerX = column * (columnWidth + gap) + columnWidth / 2;
+  for (let columnIndex = 0; columnIndex < columnCount; columnIndex += 1) {
+    const centerX = columnIndex * (columnWidth + gap) + columnWidth / 2;
     const distance = Math.abs(clampedX - centerX);
 
     if (distance < bestDistance) {
       bestDistance = distance;
-      bestColumn = column;
+      bestColumn = columnIndex;
     }
   }
 
   return bestColumn;
 }
 
-function projectInsertIndex<T>({
-  pointerX,
-  pointerY,
-  itemsWithoutActive,
-  layoutWithoutActive,
-  columnCount,
-  columnWidth,
-  gap,
+function getInsertIndexInColumn<T>({
+  pointerYViewport,
+  columnItems,
+  getItemId,
+  itemNodesRef,
 }: {
-  pointerX: number;
-  pointerY: number;
-  itemsWithoutActive: T[];
-  layoutWithoutActive: ComputedLayout;
-  columnCount: number;
-  columnWidth: number;
-  gap: number;
+  pointerYViewport: number;
+  columnItems: T[];
+  getItemId: (item: T) => string;
+  itemNodesRef: React.MutableRefObject<Map<string, HTMLDivElement>>;
 }) {
-  if (itemsWithoutActive.length === 0) {
+  if (columnItems.length === 0) {
     return 0;
   }
 
-  const targetColumn = findNearestColumn({
-    pointerX,
-    columnCount,
-    columnWidth,
-    gap,
-  });
+  for (let index = 0; index < columnItems.length; index += 1) {
+    const item = columnItems[index];
+    const id = getItemId(item);
+    const node = itemNodesRef.current.get(id);
 
-  const entries = layoutWithoutActive.columns[targetColumn] ?? [];
+    if (!node) continue;
 
-  let slot = 0;
-  while (
-    slot < entries.length &&
-    pointerY > entries[slot].y + entries[slot].height / 2
-  ) {
-    slot += 1;
+    const rect = node.getBoundingClientRect();
+    const midpoint = rect.top + rect.height / 2;
+
+    if (pointerYViewport < midpoint) {
+      return index;
+    }
   }
 
-  const rawIndex = slot * columnCount + targetColumn;
-  return Math.max(0, Math.min(itemsWithoutActive.length, rawIndex));
+  return columnItems.length;
 }
 
-function StaticMasonryItem<T>({
+function StaticColumnItem<T>({
   id,
   item,
   index,
-  position,
-  transitionMs,
-  measureRef,
+  width,
   itemClassName,
+  measureRef,
   renderItem,
 }: {
   id: string;
   item: T;
   index: number;
-  position: MasonryPosition;
-  transitionMs: number;
-  measureRef: (node: HTMLDivElement | null) => void;
+  width: number;
   itemClassName?: string;
+  measureRef: (node: HTMLDivElement | null) => void;
   renderItem: OrderedMasonryProps<T>["renderItem"];
 }) {
-  const style: CSSProperties = {
-    position: "absolute",
-    top: position.y,
-    left: position.x,
-    width: position.width,
-    transitionProperty: "top, left, width, opacity",
-    transitionDuration: `${transitionMs}ms`,
-    transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)",
-  };
-
   return (
     <div
       ref={measureRef}
       className={cn("w-full", itemClassName)}
-      style={style}
       data-masonry-id={id}
     >
       {renderItem({
         item,
         index,
-        width: position.width,
+        width,
         isDragging: false,
         isDragOverlay: false,
       })}
@@ -317,40 +248,26 @@ function StaticMasonryItem<T>({
   );
 }
 
-function DraggableMasonryItem<T>({
+function DraggableColumnItem<T>({
   id,
   item,
   index,
-  position,
-  transitionMs,
-  measureRef,
+  width,
   itemClassName,
+  measureRef,
   renderItem,
 }: {
   id: string;
   item: T;
   index: number;
-  position: MasonryPosition;
-  transitionMs: number;
-  measureRef: (node: HTMLDivElement | null) => void;
+  width: number;
   itemClassName?: string;
+  measureRef: (node: HTMLDivElement | null) => void;
   renderItem: OrderedMasonryProps<T>["renderItem"];
 }) {
   const { setNodeRef, attributes, listeners, isDragging } = useDraggable({
     id,
   });
-
-  const style: CSSProperties = {
-    position: "absolute",
-    top: position.y,
-    left: position.x,
-    width: position.width,
-    transitionProperty: "top, left, width, opacity",
-    transitionDuration: `${transitionMs}ms`,
-    transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)",
-    opacity: isDragging ? 0 : 1,
-    pointerEvents: isDragging ? "none" : undefined,
-  };
 
   const dragHandleProps: DragHandleProps = {
     attributes: attributes as Record<string, any>,
@@ -360,14 +277,17 @@ function DraggableMasonryItem<T>({
   return (
     <div
       ref={composeRefs<HTMLDivElement>(setNodeRef, measureRef)}
-      className={cn("w-full", itemClassName)}
-      style={style}
+      className={cn(
+        "w-full transition-opacity duration-200",
+        isDragging ? "pointer-events-none opacity-0" : "opacity-100",
+        itemClassName,
+      )}
       data-masonry-id={id}
     >
       {renderItem({
         item,
         index,
-        width: position.width,
+        width,
         isDragging,
         isDragOverlay: false,
         dragHandleProps,
@@ -379,18 +299,17 @@ function DraggableMasonryItem<T>({
 export function OrderedMasonry<T>({
   items,
   getItemId,
+  getItemColumn,
+  setItemColumn,
   renderItem,
   gap = 16,
   className,
   itemClassName,
-  estimatedHeight,
-  transitionMs = 280,
   getColumnCount = defaultGetColumnCount,
   sortable = false,
   onReorder,
 }: OrderedMasonryProps<T>) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const itemObserverRef = useRef<ResizeObserver | null>(null);
   const itemNodesRef = useRef(new Map<string, HTMLDivElement>());
   const syncPendingRef = useRef(false);
   const draftItemsRef = useRef(items);
@@ -399,9 +318,6 @@ export function OrderedMasonry<T>({
 
   const [containerWidth, setContainerWidth] = useState(0);
   const [viewportWidth, setViewportWidth] = useState(0);
-  const [measuredHeights, setMeasuredHeights] = useState<
-    Record<string, number>
-  >({});
   const [activeId, setActiveId] = useState<string | null>(null);
   const [draftItems, setDraftItems] = useState(items);
   const [overlayWidth, setOverlayWidth] = useState<number | null>(null);
@@ -444,9 +360,9 @@ export function OrderedMasonry<T>({
     if (!node) return;
 
     const measure = () => {
-      const nextWidth = Math.ceil(node.getBoundingClientRect().width);
-      if (nextWidth > 0) {
-        setContainerWidth(nextWidth);
+      const width = Math.ceil(node.getBoundingClientRect().width);
+      if (width > 0) {
+        setContainerWidth(width);
       }
     };
 
@@ -467,84 +383,18 @@ export function OrderedMasonry<T>({
     };
   }, []);
 
-  useEffect(() => {
-    const observer = new ResizeObserver((entries) => {
-      setMeasuredHeights((current) => {
-        let changed = false;
-        const next = { ...current };
-
-        for (const entry of entries) {
-          const target = entry.target as HTMLDivElement;
-          const id = target.dataset.masonryId;
-          if (!id) continue;
-
-          const nextHeight = Math.ceil(entry.contentRect.height);
-          if (next[id] !== nextHeight) {
-            next[id] = nextHeight;
-            changed = true;
-          }
-        }
-
-        return changed ? next : current;
-      });
-    });
-
-    itemObserverRef.current = observer;
-
-    for (const [id, node] of itemNodesRef.current.entries()) {
-      node.dataset.masonryId = id;
-      observer.observe(node);
-    }
-
-    return () => {
-      observer.disconnect();
-      itemObserverRef.current = null;
-    };
-  }, []);
-
-  useEffect(() => {
-    const validIds = new Set(items.map(getItemId));
-
-    setMeasuredHeights((current) => {
-      let changed = false;
-      const next: Record<string, number> = {};
-
-      for (const [id, height] of Object.entries(current)) {
-        if (validIds.has(id)) {
-          next[id] = height;
-        } else {
-          changed = true;
-        }
-      }
-
-      return changed ? next : current;
-    });
-  }, [getItemId, items]);
-
   const registerItemNode = useCallback(
     (id: string) => (node: HTMLDivElement | null) => {
-      const previous = itemNodesRef.current.get(id);
-
-      if (previous && itemObserverRef.current) {
-        itemObserverRef.current.unobserve(previous);
-      }
-
       if (!node) {
         itemNodesRef.current.delete(id);
         return;
       }
 
-      node.dataset.masonryId = id;
       itemNodesRef.current.set(id, node);
-
-      if (itemObserverRef.current) {
-        itemObserverRef.current.observe(node);
-      }
     },
     [],
   );
 
-  const hasMeasuredContainer = containerWidth > 0;
   const resolvedViewportWidth =
     viewportWidth > 0
       ? viewportWidth
@@ -555,45 +405,20 @@ export function OrderedMasonry<T>({
   const columnCount = Math.max(1, getColumnCount(resolvedViewportWidth || 0));
 
   const columnWidth =
-    hasMeasuredContainer && columnCount > 0
+    containerWidth > 0
       ? (containerWidth - gap * (columnCount - 1)) / columnCount
       : 0;
 
   const displayItems = sortable ? draftItems : items;
 
-  const layout = useMemo(() => {
-    if (!hasMeasuredContainer || columnWidth <= 0) {
-      return {
-        positions: new Map<string, MasonryPosition>(),
-        containerHeight: 0,
-        columns: Array.from({ length: Math.max(1, columnCount) }, () => []),
-      } as ComputedLayout;
-    }
-
-    return computeOrderedLayout({
-      items: displayItems,
-      getItemId,
-      columnCount,
-      columnWidth,
-      gap,
-      measuredHeights,
-      estimatedHeight,
-    });
-  }, [
-    columnCount,
-    columnWidth,
-    displayItems,
-    estimatedHeight,
-    gap,
-    getItemId,
-    hasMeasuredContainer,
-    measuredHeights,
-  ]);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 8 },
-    }),
+  const columns = useMemo(
+    () =>
+      groupItemsIntoColumns({
+        items: displayItems,
+        columnCount,
+        getItemColumn,
+      }),
+    [columnCount, displayItems, getItemColumn],
   );
 
   const activeItem =
@@ -608,6 +433,12 @@ export function OrderedMasonry<T>({
       ? draftItems.findIndex((item) => getItemId(item) === activeId)
       : -1;
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+  );
+
   function handleDragStart(event: DragStartEvent) {
     const nextActiveId = String(event.active.id);
 
@@ -621,17 +452,16 @@ export function OrderedMasonry<T>({
       event.activatorEvent as Event | undefined,
     );
 
-    const nextOverlayWidth =
-      event.active.rect.current.initial?.width ??
-      event.active.rect.current.translated?.width ??
-      columnWidth;
-
-    setOverlayWidth(nextOverlayWidth || columnWidth);
+    const activeNode = itemNodesRef.current.get(nextActiveId);
+    setOverlayWidth(
+      activeNode
+        ? Math.ceil(activeNode.getBoundingClientRect().width)
+        : Math.ceil(columnWidth || 0),
+    );
   }
 
   function handleDragMove(event: DragMoveEvent) {
-    if (!containerRef.current) return;
-    if (!activeId) return;
+    if (!containerRef.current || !activeId || containerWidth <= 0) return;
 
     const startPointer = dragStartPointerRef.current;
     if (!startPointer) return;
@@ -640,49 +470,62 @@ export function OrderedMasonry<T>({
     const pointerYViewport = startPointer.y + event.delta.y;
 
     const containerRect = containerRef.current.getBoundingClientRect();
-    const pointerX = pointerXViewport - containerRect.left;
-    const pointerY = pointerYViewport - containerRect.top;
+    const pointerXLocal = pointerXViewport - containerRect.left;
 
     setDraftItems((current) => {
-      const currentActiveIndex = current.findIndex(
-        (item) => getItemId(item) === activeId,
-      );
-      if (currentActiveIndex === -1) return current;
-
-      const activeItemInCurrent = current[currentActiveIndex];
-      const itemsWithoutActive = current.filter(
-        (item) => getItemId(item) !== activeId,
-      );
-
-      const layoutWithoutActive = computeOrderedLayout({
-        items: itemsWithoutActive,
-        getItemId,
+      const currentColumns = groupItemsIntoColumns({
+        items: current,
         columnCount,
-        columnWidth,
-        gap,
-        measuredHeights,
-        estimatedHeight,
+        getItemColumn,
       });
 
-      const targetIndex = projectInsertIndex({
-        pointerX,
-        pointerY,
-        itemsWithoutActive,
-        layoutWithoutActive,
-        columnCount,
-        columnWidth,
-        gap,
-      });
+      let activeItemLocal: T | null = null;
 
-      const next = [...itemsWithoutActive];
-      next.splice(targetIndex, 0, activeItemInCurrent);
+      const columnsWithoutActive = currentColumns.map((columnItems) =>
+        columnItems.filter((item) => {
+          const isActive = getItemId(item) === activeId;
+          if (isActive) {
+            activeItemLocal = item;
+          }
+          return !isActive;
+        }),
+      );
 
-      if (sameOrder(current, next, getItemId)) {
+      if (!activeItemLocal) {
         return current;
       }
 
-      draftItemsRef.current = next;
-      return next;
+      const targetColumn = findTargetColumn({
+        pointerX: pointerXLocal,
+        containerWidth,
+        columnCount,
+        gap,
+      });
+
+      const insertIndex = getInsertIndexInColumn({
+        pointerYViewport,
+        columnItems: columnsWithoutActive[targetColumn],
+        getItemId,
+        itemNodesRef,
+      });
+
+      const nextColumns = columnsWithoutActive.map((columnItems) => [
+        ...columnItems,
+      ]);
+
+      nextColumns[targetColumn].splice(insertIndex, 0, activeItemLocal);
+
+      const nextItems = flattenColumns({
+        columns: nextColumns,
+        setItemColumn,
+      });
+
+      if (sameOrder(current, nextItems, getItemId)) {
+        return current;
+      }
+
+      draftItemsRef.current = nextItems;
+      return nextItems;
     });
   }
 
@@ -717,77 +560,59 @@ export function OrderedMasonry<T>({
     onReorder?.(finalItems);
   }
 
-  if (!hasMeasuredContainer) {
-    return (
-      <div ref={containerRef} className={cn("relative w-full", className)}>
-        <div className="space-y-4">
-          {displayItems.map((item, index) => {
-            const id = getItemId(item);
-
-            return (
-              <div
-                key={id}
-                ref={registerItemNode(id)}
-                className={cn("w-full", itemClassName)}
-                data-masonry-id={id}
-              >
-                {renderItem({
-                  item,
-                  index,
-                  width: 0,
-                  isDragging: false,
-                  isDragOverlay: false,
-                })}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
-
   const content = (
     <div
       ref={containerRef}
-      className={cn("relative w-full", className)}
-      style={{ height: layout.containerHeight }}
+      className={cn("w-full", className)}
+      style={{
+        display: "grid",
+        gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
+        columnGap: `${gap}px`,
+        alignItems: "start",
+      }}
     >
-      {displayItems.map((item, index) => {
-        const id = getItemId(item);
-        const position = layout.positions.get(id);
+      {columns.map((columnItems, columnIndex) => (
+        <div
+          key={`column-${columnIndex}`}
+          className="flex min-w-0 flex-col"
+          style={{ rowGap: `${gap}px` }}
+        >
+          {columnItems.map((item) => {
+            const id = getItemId(item);
+            const index = displayItems.findIndex(
+              (entry) => getItemId(entry) === id,
+            );
 
-        if (!position) return null;
+            if (sortable) {
+              return (
+                <DraggableColumnItem
+                  key={id}
+                  id={id}
+                  item={item}
+                  index={index}
+                  width={columnWidth}
+                  itemClassName={itemClassName}
+                  measureRef={registerItemNode(id)}
+                  renderItem={renderItem}
+                />
+              );
+            }
 
-        if (sortable) {
-          return (
-            <DraggableMasonryItem
-              key={id}
-              id={id}
-              item={item}
-              index={index}
-              position={position}
-              transitionMs={transitionMs}
-              measureRef={registerItemNode(id)}
-              itemClassName={itemClassName}
-              renderItem={renderItem}
-            />
-          );
-        }
-
-        return (
-          <StaticMasonryItem
-            key={id}
-            id={id}
-            item={item}
-            index={index}
-            position={position}
-            transitionMs={transitionMs}
-            measureRef={registerItemNode(id)}
-            itemClassName={itemClassName}
-            renderItem={renderItem}
-          />
-        );
-      })}
+            return (
+              <StaticColumnItem
+                key={id}
+                id={id}
+                item={item}
+                index={index}
+                width={columnWidth}
+                itemClassName={itemClassName}
+                measureRef={registerItemNode(id)}
+                renderItem={renderItem}
+              />
+            );
+          })}
+        </div>
+      ))}
     </div>
   );
 

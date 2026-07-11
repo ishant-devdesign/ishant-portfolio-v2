@@ -1,6 +1,5 @@
 "use client";
 
-import type { Ref } from "react";
 import { Eye, GripVertical, Play, Trash2 } from "lucide-react";
 import { OrderedMasonry } from "@/components/shared/ordered-masonry";
 import type { CreativeArchiveItem } from "@/lib/site-config";
@@ -8,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 type MediaMasonryProps = {
   items: CreativeArchiveItem[];
-  onItemClick?: (index: number) => void;
+  onItemClick?: (itemId: string) => void;
   adminMode?: boolean;
   onDeleteItem?: (itemId: string) => void;
   onReorder?: (nextItems: CreativeArchiveItem[]) => void;
@@ -95,18 +94,13 @@ export function MediaMasonry({
       sortable={adminMode}
       onReorder={onReorder}
       getItemId={(item) => item.id}
-      renderItem={({
-        item,
-        index,
-        dragHandleProps,
-        isDragOverlay,
-        isDragging,
-      }) => {
+      getItemColumn={(item) => item.column_index ?? null}
+      setItemColumn={(item, columnIndex) => ({
+        ...item,
+        column_index: columnIndex,
+      })}
+      renderItem={({ item, dragHandleProps, isDragOverlay, isDragging }) => {
         if (adminMode) {
-          const dragHandleRef = dragHandleProps?.ref as
-            | Ref<HTMLButtonElement>
-            | undefined;
-
           return (
             <div
               className={cn(
@@ -119,18 +113,17 @@ export function MediaMasonry({
               <div
                 role="button"
                 tabIndex={0}
-                onClick={() => onItemClick?.(index)}
+                onClick={() => onItemClick?.(item.id)}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
-                    onItemClick?.(index);
+                    onItemClick?.(item.id);
                   }
                 }}
                 className="relative block w-full overflow-hidden rounded-[1.6rem] border border-white/10 bg-black/20 text-left outline-none"
               >
                 <button
                   type="button"
-                  ref={dragHandleRef}
                   {...(dragHandleProps?.attributes ?? {})}
                   {...(dragHandleProps?.listeners ?? {})}
                   onClick={(event) => event.stopPropagation()}
@@ -150,7 +143,7 @@ export function MediaMasonry({
                 >
                   <button
                     type="button"
-                    onClick={() => onItemClick?.(index)}
+                    onClick={() => onItemClick?.(item.id)}
                     className={floatingIconButtonClass}
                     aria-label="Preview item"
                     title="Preview"
@@ -178,7 +171,7 @@ export function MediaMasonry({
         return (
           <button
             type="button"
-            onClick={() => onItemClick?.(index)}
+            onClick={() => onItemClick?.(item.id)}
             className="group block w-full overflow-hidden rounded-[1.6rem] border border-white/10 bg-black/20 text-left"
           >
             <MediaPreview item={item} interactive />

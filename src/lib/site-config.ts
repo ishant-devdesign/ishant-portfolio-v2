@@ -105,6 +105,7 @@ export type PetImage = {
   url: string;
   caption: string;
   featuredOnHome: boolean;
+  columnIndex?: number | null;
 };
 
 export type Pet = {
@@ -122,13 +123,14 @@ export type CreativeArchiveItem = {
   id: string;
   url: string;
   type: "image" | "video";
-  filename?: string; // Optional for static assets
+  filename?: string;
   title?: string | null;
   description?: string | null;
   fileHash?: string | null;
   block_id?: string | null;
   block_title?: string | null;
   block_description?: string | null;
+  column_index?: number | null;
 };
 
 export type ArchiveBlock = {
@@ -138,50 +140,55 @@ export type ArchiveBlock = {
   sort_order: number;
 };
 
-// Static archive assets that can be used for home page preview
-// These showcase design/creative work when no dynamic items are uploaded
 export const staticArchiveAssets: CreativeArchiveItem[] = [
   {
     id: "static-1",
     url: "/previews/blog-designing-for-calm-complexity.svg",
     type: "image",
     filename: "designing-for-calm-complexity",
+    column_index: 0,
   },
   {
     id: "static-2",
     url: "/previews/blog-what-makes-a-portfolio-feel-authored.svg",
     type: "image",
     filename: "portfolio-branding",
+    column_index: 1,
   },
   {
     id: "static-3",
     url: "/previews/project-atlas-client-portal.svg",
     type: "image",
     filename: "atlas-dashboard",
+    column_index: 2,
   },
   {
     id: "static-4",
     url: "/previews/project-estate-clarity-workbench.svg",
     type: "image",
     filename: "estate-ui",
+    column_index: 0,
   },
   {
     id: "static-5",
     url: "/previews/project-pulse-design-language.svg",
     type: "image",
     filename: "pulse-design-system",
+    column_index: 1,
   },
   {
     id: "static-6",
     url: "/previews/project-sentinel-command-center.svg",
     type: "image",
     filename: "sentinel-monitoring",
+    column_index: 2,
   },
   {
     id: "static-7",
     url: "/previews/blog-when-frontend-becomes-product-design.svg",
     type: "image",
     filename: "frontend-product-design",
+    column_index: 0,
   },
 ];
 

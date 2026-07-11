@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type Ref } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   ArrowLeft,
@@ -30,6 +30,8 @@ import type { HomeSectionItem, Pet } from "@/lib/site-config";
 type SaveState = "idle" | "saving" | "saved" | "error";
 type PetImageDraft = Pet["images"][number];
 
+const DEFAULT_INITIAL_COLUMN_COUNT = 3;
+
 function buildPetPayload(pet: Pet) {
   return {
     name: pet.name,
@@ -40,6 +42,7 @@ function buildPetPayload(pet: Pet) {
       url: image.url,
       caption: image.caption,
       featuredOnHome: image.featuredOnHome,
+      columnIndex: image.columnIndex ?? 0,
     })),
   };
 }
@@ -245,7 +248,7 @@ function PetArticle({
   const { isAllowedAdmin, viewMode } = useAdminSession();
   const adminMode = isAllowedAdmin && viewMode === "admin";
 
-  const [draft, setDraft] = useState(pet);
+  const [draft, setDraft] = useState<Pet>(pet);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [uploadState, setUploadState] = useState("");
   const [deleteState, setDeleteState] = useState<SaveState>("idle");
@@ -298,9 +301,9 @@ function PetArticle({
           );
         }
 
-        savedPetRef.current = data.pet;
+        savedPetRef.current = data.pet as Pet;
         lastSavedPayloadRef.current = serialized;
-        onSaved(data.pet);
+        onSaved(data.pet as Pet);
         setSaveState("saved");
 
         if (clearSavedRef.current) {
@@ -354,6 +357,7 @@ function PetArticle({
             url: data.publicUrl,
             caption: file.name.replace(/\.[^.]+$/, ""),
             featuredOnHome: current.images.length === 0,
+            columnIndex: current.images.length % DEFAULT_INITIAL_COLUMN_COUNT,
           },
         ]),
       }));
@@ -408,7 +412,7 @@ function PetArticle({
               <p>Editing pet profile: {pet.name}</p>
               <p className="mt-1 text-xs text-white/42">
                 Autosave is active for content, captions, home image, uploads,
-                and live reorder.
+                and manual column arrangement.
               </p>
             </div>
 
@@ -600,18 +604,22 @@ function PetArticle({
                   }))
                 }
                 getItemId={(image) => image.id}
+                getItemColumn={(image) => image.columnIndex ?? null}
+                setItemColumn={(image, columnIndex) => ({
+                  ...image,
+                  columnIndex,
+                })}
                 renderItem={({
                   item: image,
-                  index: imageIndex,
                   dragHandleProps,
                   isDragOverlay,
                   isDragging,
                 }) => {
-                  if (adminMode) {
-                    const dragHandleRef = dragHandleProps?.ref as
-                      | Ref<HTMLButtonElement>
-                      | undefined;
+                  const activeImageGlobalIndex = draft.images.findIndex(
+                    (entry) => entry.id === image.id,
+                  );
 
+                  if (adminMode) {
                     return (
                       <div
                         className={cn(
@@ -630,7 +638,6 @@ function PetArticle({
                         >
                           <button
                             type="button"
-                            ref={dragHandleRef}
                             {...(dragHandleProps?.attributes ?? {})}
                             {...(dragHandleProps?.listeners ?? {})}
                             onClick={(event) => event.stopPropagation()}
@@ -643,7 +650,9 @@ function PetArticle({
 
                           <button
                             type="button"
-                            onClick={() => setActiveImageIndex(imageIndex)}
+                            onClick={() =>
+                              setActiveImageIndex(activeImageGlobalIndex)
+                            }
                             className="block w-full text-left"
                           >
                             <img
@@ -695,7 +704,9 @@ function PetArticle({
 
                             <button
                               type="button"
-                              onClick={() => setActiveImageIndex(imageIndex)}
+                              onClick={() =>
+                                setActiveImageIndex(activeImageGlobalIndex)
+                              }
                               className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-black/55 text-white/78 shadow-[0_8px_28px_rgba(0,0,0,0.35)] backdrop-blur-xl transition-colors hover:bg-black/72 hover:text-white"
                               aria-label="Preview image"
                               title="Preview"
@@ -747,7 +758,9 @@ function PetArticle({
                     <div>
                       <button
                         type="button"
-                        onClick={() => setActiveImageIndex(imageIndex)}
+                        onClick={() =>
+                          setActiveImageIndex(activeImageGlobalIndex)
+                        }
                         className={cn(
                           "group block w-full overflow-hidden rounded-[1.6rem] border bg-black/20 text-left",
                           image.featuredOnHome
@@ -800,7 +813,7 @@ export function PetsPageShell({ initialPets }: { initialPets: Pet[] }) {
   const { isAllowedAdmin, viewMode } = useAdminSession();
   const adminMode = isAllowedAdmin && viewMode === "admin";
 
-  const [pets, setPets] = useState(initialPets);
+  const [pets, setPets] = useState<Pet[]>(initialPets);
   const [createState, setCreateState] = useState<SaveState>("idle");
 
   async function createPet() {
@@ -818,13 +831,13 @@ export function PetsPageShell({ initialPets }: { initialPets: Pet[] }) {
         throw new Error(getErrorMessage(data.error ?? "create-failed"));
       }
 
-      setPets((current) => [...current, data.pet]);
+      setPets((current) => [...current, data.pet as Pet]);
       setCreateState("saved");
       window.setTimeout(() => setCreateState("idle"), 1200);
 
       window.setTimeout(() => {
         document
-          .getElementById(data.pet.slug)
+          .getElementById((data.pet as Pet).slug)
           ?.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 120);
     } catch (error) {
@@ -886,8 +899,8 @@ export function PetsPageShell({ initialPets }: { initialPets: Pet[] }) {
               <div>
                 <p className="text-white/82">Pets editor</p>
                 <p className="mt-1 text-white/44">
-                  Create new pets, edit profiles, manage captions, reorder
-                  images live, and choose the home photo.
+                  Create new pets, edit profiles, manage captions, arrange
+                  images into columns, and choose the home photo.
                 </p>
               </div>
 

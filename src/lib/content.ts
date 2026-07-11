@@ -25,6 +25,11 @@ type EducationItem = {
   note: string;
 };
 
+type LegacyColumnRow = {
+  sort_order?: number | null;
+  column_index?: number | null;
+};
+
 const EMPTY_PROJECT: Project = {
   slug: "",
   title: "",
@@ -42,6 +47,8 @@ const EMPTY_PROJECT: Project = {
   publishedAtIso: "",
   contentBlocks: [],
 };
+
+const DEFAULT_INITIAL_COLUMN_COUNT = 3;
 
 function logFetch(scope: string, message: string, payload?: unknown) {
   console.info(`[supabase:${scope}] ${message}`, payload ?? "");
@@ -65,6 +72,7 @@ function stripHtml(html: string) {
 function parseMarkdownLink(input: string) {
   const match = input.trim().match(/^\[([^\]]+)\]\(([^)]+)\)$/);
   if (!match) return null;
+
   return {
     label: match[1].trim(),
     href: match[2].trim(),
@@ -92,6 +100,7 @@ function normalizeEmailValue(
 
   const trimmed = value.trim();
   const markdown = parseMarkdownLink(trimmed);
+
   const candidates = [markdown?.label, markdown?.href, trimmed]
     .filter(Boolean)
     .map((item) =>
@@ -136,16 +145,17 @@ function mapBlogBlocksToSections(blocks: unknown): Blog["sections"] {
 
 function parseSupabaseDate(value: string | null): Date | null {
   if (!value) return null;
-  // Handle Supabase format: "2026-07-10 00:00:00+00" (space instead of T) and "+00" timezone without colon
-  // Use regex to only replace "+00" at the end of the string (timezone)
+
   const normalized = value.replace(" ", "T").replace(/\+00$/, "+00:00");
   const date = new Date(normalized);
-  return isNaN(date.getTime()) ? null : date;
+
+  return Number.isNaN(date.getTime()) ? null : date;
 }
 
 function normalizePublishedAt(value: string | null) {
   const date = parseSupabaseDate(value);
   if (!date) return "Draft";
+
   return date.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
@@ -159,19 +169,36 @@ function normalizePublishedAtIso(value: string | null) {
   return date.toISOString();
 }
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
 
 function normalizeMonthYear(value: string | null) {
   const date = parseSupabaseDate(value);
   if (!date) return "Unset";
+
   const day = date.getUTCDate();
   const month = MONTHS[date.getUTCMonth()];
   const year = date.getUTCFullYear();
+
   return `${day} ${month} ${year}`;
 }
 
 function normalizeProjectBlocks(row: { content_blocks?: unknown }) {
-  return Array.isArray(row.content_blocks) ? (row.content_blocks as Project["contentBlocks"]) : [];
+  return Array.isArray(row.content_blocks)
+    ? (row.content_blocks as Project["contentBlocks"])
+    : [];
 }
 
 function getContentClient(scope: string) {
@@ -185,6 +212,43 @@ function getContentClient(scope: string) {
     );
     return null;
   }
+}
+
+function isLegacySingleColumnLayout(rows: LegacyColumnRow[]) {
+  if (rows.length === 0) return false;
+
+  const allInColumnZero = rows.every((row) => (row.column_index ?? 0) === 0);
+
+  if (!allInColumnZero) return false;
+
+  const sortOrders = rows
+    .map((row) => row.sort_order ?? 0)
+    .slice()
+    .sort((a, b) => a - b);
+
+  const isOneBasedSequential = sortOrders.every(
+    (value, index) => value === index + 1,
+  );
+
+  return isOneBasedSequential;
+}
+
+function spreadLegacyColumns<T extends LegacyColumnRow>(
+  rows: T[],
+  columnCount = DEFAULT_INITIAL_COLUMN_COUNT,
+): T[] {
+  const sorted = rows
+    .slice()
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+
+  if (!isLegacySingleColumnLayout(sorted)) {
+    return sorted;
+  }
+
+  return sorted.map((row, index) => ({
+    ...row,
+    column_index: index % columnCount,
+  }));
 }
 
 export async function getLiveSiteSettings(): Promise<SiteSettings> {
@@ -401,14 +465,6 @@ export async function getLiveProjectBySlug(
     return null;
   }
 
-  // Debug logging - can be removed after debugging
-  console.log("[content] Project data:", {
-    slug: data.slug,
-    published_at: data.published_at,
-    publishedLabel: normalizeMonthYear(data.published_at),
-    year_label: data.year_label
-  });
-
   return {
     ...EMPTY_PROJECT,
     slug: data.slug,
@@ -456,10 +512,6 @@ export async function getLiveBlogs(): Promise<Blog[]> {
   }
 
   const rows = data ?? [];
-  // Debug logging for first 3 blogs
-  rows.slice(0, 3).forEach((row) => {
-    console.log("[content] Blog list item:", { slug: row.slug, published_at: row.published_at, publishedLabel: normalizeMonthYear(row.published_at) });
-  });
   logFetch("blogs", `Fetched ${rows.length} rows.`);
 
   return rows.map((row) => ({
@@ -507,9 +559,6 @@ export async function getLiveBlogBySlug(slug: string): Promise<Blog | null> {
     logFetch("blogs", `No row found for slug ${slug}.`);
     return null;
   }
-
-  // Debug logging
-  console.log("[content] Blog data:", { slug: data.slug, published_at: data.published_at, publishedLabel: normalizeMonthYear(data.published_at) });
 
   return {
     slug: data.slug,
@@ -576,19 +625,23 @@ export async function getLivePets(): Promise<Pet[]> {
 
   let { data, error } = await supabase
     .from("pets")
-    .select("*, pet_images(id, image_url, caption, sort_order, home_featured)")
+    .select(
+      "*, pet_images(id, image_url, caption, sort_order, home_featured, column_index)",
+    )
     .order("sort_order", { ascending: true });
 
   if (error) {
     logFetch(
       "pets",
-      "Primary query failed, retrying without home_featured.",
+      "Primary query failed, retrying without column_index.",
       error.message,
     );
 
     const fallback = await supabase
       .from("pets")
-      .select("*, pet_images(id, image_url, caption, sort_order)")
+      .select(
+        "*, pet_images(id, image_url, caption, sort_order, home_featured)",
+      )
       .order("sort_order", { ascending: true });
 
     data = fallback.data;
@@ -604,34 +657,36 @@ export async function getLivePets(): Promise<Pet[]> {
   logFetch("pets", `Fetched ${rows.length} rows.`);
 
   return rows.map((row) => {
-    const images =
-      row.pet_images
-        ?.sort(
-          (a: { sort_order?: number }, b: { sort_order?: number }) =>
-            (a.sort_order ?? 0) - (b.sort_order ?? 0),
-        )
-        .map(
-          (entry: {
-            id?: string;
-            image_url?: string;
-            caption?: string;
-            home_featured?: boolean;
-          }) => ({
-            id: entry.id ?? crypto.randomUUID(),
-            url: entry.image_url ?? "",
-            caption: entry.caption ?? "",
-            featuredOnHome: entry.home_featured ?? false,
-          }),
-        )
-        .filter((entry: { url: string }) => Boolean(entry.url)) ?? [];
+    const distributedRows = spreadLegacyColumns(
+      (
+        (row.pet_images ?? []) as Array<{
+          id?: string;
+          image_url?: string;
+          caption?: string | null;
+          home_featured?: boolean;
+          column_index?: number | null;
+          sort_order?: number | null;
+        }>
+      ).slice(),
+    );
+
+    const images = distributedRows
+      .sort(
+        (a, b) =>
+          (a.column_index ?? 0) - (b.column_index ?? 0) ||
+          (a.sort_order ?? 0) - (b.sort_order ?? 0),
+      )
+      .map((entry) => ({
+        id: entry.id ?? crypto.randomUUID(),
+        url: entry.image_url ?? "",
+        caption: entry.caption ?? "",
+        featuredOnHome: entry.home_featured ?? false,
+        columnIndex: entry.column_index ?? 0,
+      }))
+      .filter((entry) => Boolean(entry.url));
 
     const homeImage =
-      images.find(
-        (image: { featuredOnHome: boolean; url: string }) =>
-          image.featuredOnHome,
-      )?.url ??
-      images[0]?.url ??
-      "";
+      images.find((image) => image.featuredOnHome)?.url ?? images[0]?.url ?? "";
 
     return {
       slug: row.slug,
@@ -724,6 +779,7 @@ export async function getLiveTagSuggestions(): Promise<string[]> {
 
   const rows = data ?? [];
   logFetch("tags", `Fetched ${rows.length} rows.`);
+
   return rows.map((row) => row.slug || row.name).filter(Boolean);
 }
 
@@ -733,10 +789,10 @@ export async function getLiveCreativeArchive(): Promise<CreativeArchiveItem[]> {
     return [];
   }
 
-  // Fetch from archive_items with block information
   const { data, error } = await supabase
     .from("archive_items")
-    .select(`
+    .select(
+      `
       id,
       media_url,
       media_type,
@@ -744,34 +800,67 @@ export async function getLiveCreativeArchive(): Promise<CreativeArchiveItem[]> {
       filename,
       file_hash,
       block_id,
+      column_index,
       archive_blocks!inner (
         title,
         description
       )
-    `)
+    `,
+    )
+    .order("block_id", { ascending: true })
+    .order("column_index", { ascending: true })
     .order("sort_order", { ascending: true });
 
   if (error) {
-    logFetch("archive_items", "Query error, returning empty array.", error.message);
+    logFetch(
+      "archive_items",
+      "Query error, returning empty array.",
+      error.message,
+    );
     return [];
   }
 
-  const rows = data ?? [];
+  const rows = (data ?? []) as Array<{
+    id: string;
+    media_url: string;
+    media_type: "image" | "video";
+    sort_order?: number | null;
+    filename?: string | null;
+    file_hash?: string | null;
+    block_id?: string | null;
+    column_index?: number | null;
+    archive_blocks?: { title?: string; description?: string } | null;
+  }>;
+
   logFetch("archive_items", `Fetched ${rows.length} rows.`);
 
-  return rows.map((row) => ({
+  const grouped = new Map<string, typeof rows>();
+
+  rows.forEach((row) => {
+    const key = row.block_id ?? "__ungrouped__";
+    const current = grouped.get(key) ?? [];
+    current.push(row);
+    grouped.set(key, current);
+  });
+
+  const normalizedRows = Array.from(grouped.values()).flatMap((groupRows) =>
+    spreadLegacyColumns(groupRows),
+  );
+
+  return normalizedRows.map((row) => ({
     id: row.id,
     url: row.media_url,
-    type: (row.media_type as "image" | "video") ?? "image",
-    filename: row.filename,
-    fileHash: row.file_hash,
-    block_id: row.block_id,
-    block_title: (row.archive_blocks as { title?: string })?.title ?? null,
-    block_description: (row.archive_blocks as { description?: string })?.description ?? null,
+    type: row.media_type ?? "image",
+    filename: row.filename ?? undefined,
+    fileHash: row.file_hash ?? undefined,
+    block_id: row.block_id ?? null,
+    block_title: row.archive_blocks?.title ?? null,
+    block_description: row.archive_blocks?.description ?? null,
+    column_index: row.column_index ?? 0,
   }));
 }
 
-export async function getLiveArchiveBlocks(){
+export async function getLiveArchiveBlocks() {
   const supabase = getContentClient("archive_blocks");
   if (!supabase) {
     return [];
@@ -783,7 +872,11 @@ export async function getLiveArchiveBlocks(){
     .order("sort_order", { ascending: true });
 
   if (error) {
-    logFetch("archive_blocks", "Query error, returning empty array.", error.message);
+    logFetch(
+      "archive_blocks",
+      "Query error, returning empty array.",
+      error.message,
+    );
     return [];
   }
 
