@@ -329,16 +329,23 @@ export function OrderedMasonry<T>({
   useEffect(() => {
     if (activeId !== null) return;
 
+    const sameIdOrder = sameOrder(items, draftItemsRef.current, getItemId);
+
     if (syncPendingRef.current) {
-      if (sameOrder(items, draftItemsRef.current, getItemId)) {
+      if (sameIdOrder) {
         syncPendingRef.current = false;
+
+        if (draftItemsRef.current !== items) {
+          draftItemsRef.current = items;
+          setDraftItems(items);
+        }
       }
       return;
     }
 
-    if (!sameOrder(items, draftItemsRef.current, getItemId)) {
-      setDraftItems(items);
+    if (draftItemsRef.current !== items) {
       draftItemsRef.current = items;
+      setDraftItems(items);
     }
   }, [activeId, getItemId, items]);
 
