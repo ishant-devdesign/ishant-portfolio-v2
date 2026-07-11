@@ -648,19 +648,26 @@ function PetArticle({
                             <GripVertical className="size-4" />
                           </button>
 
-                          <button
-                            type="button"
+                          <div
+                            role="button"
+                            tabIndex={0}
                             onClick={() =>
                               setActiveImageIndex(activeImageGlobalIndex)
                             }
-                            className="block w-full text-left"
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                setActiveImageIndex(activeImageGlobalIndex);
+                              }
+                            }}
+                            className="block w-full text-left outline-none"
                           >
                             <img
                               src={image.url}
                               alt={image.caption || draft.name}
                               className="h-auto w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
                             />
-                          </button>
+                          </div>
 
                           <div
                             className="absolute bottom-3 right-3 z-10 inline-flex items-center gap-1 rounded-full border border-white/10 bg-black/55 p-1.5 shadow-[0_8px_28px_rgba(0,0,0,0.35)] backdrop-blur-xl"
