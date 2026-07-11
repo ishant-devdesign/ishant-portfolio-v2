@@ -38,6 +38,16 @@ export function StructuredData({
     : type === "person"
     ? {
         "@context": "https://schema.org",
+        "@type": "Person",
+        "name": authorName,
+        "url": fullUrl,
+        "description": description,
+        ...(image && { "image": image }),
+        "sameAs": [],
+      }
+    : type === "blogPosting"
+    ? {
+        "@context": "https://schema.org",
         "@type": "BlogPosting",
         "mainEntityOfPage": {
           "@type": "WebPage",

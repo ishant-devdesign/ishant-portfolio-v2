@@ -20,7 +20,7 @@ import { BlockRenderer } from "@/components/content/block-renderer";
 import { BlockEditor } from "@/components/editor/block-editor";
 import { MediaAssetField } from "@/components/editor/media-asset-field";
 import { TagSelector } from "@/components/editor/tag-selector";
-import { PublishMonthYearField } from "@/components/editor/publish-month-year-field";
+import { PublishedDatePicker } from "@/components/editor/published-date-picker";
 import { AutoGrowTextarea } from "@/components/admin/auto-grow-textarea";
 import { useAdminSession } from "@/components/admin/admin-session-provider";
 import { buttonClasses } from "@/components/ui/button";
@@ -323,7 +323,7 @@ export function ProjectDetailShell({
                     </div>
                     {isEditing ? (
                       <div className="mt-2">
-                        <PublishMonthYearField
+                        <PublishedDatePicker
                           value={project.publishedLabel}
                           onChange={(value) =>
                             setProject((c) => ({ ...c, publishedLabel: value }))

@@ -64,6 +64,7 @@ export type Project = {
   heroImage: string;
   publishedLabel: string;
   publishedAt: string;
+  publishedAtIso: string;
   contentBlocks: ContentBlock[];
   createdAt?: Date;
   updatedAt?: Date;
@@ -74,6 +75,7 @@ export type Blog = {
   title: string;
   excerpt: string;
   publishedAt: string;
+  publishedAtIso: string;
   publishedLabel: string;
   readingTime: string;
   tags: string[];

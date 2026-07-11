@@ -65,12 +65,13 @@ export const PROJECT_BLOCK_TYPES = [
 
 export const BLOG_BLOCK_TYPES = PROJECT_BLOCK_TYPES;
 
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
 function getCurrentDateFormatted(): string {
   const now = new Date();
-  const day = String(now.getDate()).padStart(2, "0");
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  const month = months[now.getMonth()];
-  const year = now.getFullYear();
+  const day = now.getUTCDate();
+  const month = MONTHS[now.getUTCMonth()];
+  const year = now.getUTCFullYear();
   return `${day} ${month} ${year}`;
 }
 
@@ -89,6 +90,7 @@ export function createEmptyProject(): Project {
     heroImage: "",
     publishedLabel: getCurrentDateFormatted(),
     publishedAt: "",
+    publishedAtIso: "",
     contentBlocks: [],
   };
 }
@@ -99,6 +101,7 @@ export function createEmptyBlog(): Blog {
     title: "",
     excerpt: "",
     publishedAt: "",
+    publishedAtIso: "",
     publishedLabel: getCurrentDateFormatted(),
     readingTime: "5 min",
     tags: [],
@@ -107,5 +110,5 @@ export function createEmptyBlog(): Blog {
     heroImage: "",
     sections: [],
     contentBlocks: [],
-  } as Blog & { contentBlocks: ContentBlock[] };
+  };
 }

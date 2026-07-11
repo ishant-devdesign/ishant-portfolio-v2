@@ -134,11 +134,22 @@ export async function PATCH(
   const nextSlug = slugify(data.title);
   const readingMinutes = parseInt(data.readingTime, 10) || 5;
 
-  // Parse "DD Mon YYYY" format (e.g., "15 Jan 2025")
+  // Parse "DD Mon YYYY" format (e.g., "10 Jul 2026")
   function parsePublishedAt(label: string): string | null {
     if (data.status !== "published" || !label) return null;
 
     const parts = label.trim().split(/\s+/);
+
+    // Handle single-part format (e.g., just "10")
+    if (parts.length === 1) {
+      const day = parseInt(parts[0], 10);
+      if (!isNaN(day)) {
+        const today = new Date();
+        return new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), day, 12, 0, 0)).toISOString();
+      }
+      return null;
+    }
+
     if (parts.length !== 3) return null;
 
     const day = parseInt(parts[0], 10);

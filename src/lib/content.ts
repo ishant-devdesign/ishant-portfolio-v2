@@ -39,6 +39,7 @@ const EMPTY_PROJECT: Project = {
   heroImage: "",
   publishedLabel: "Unset",
   publishedAt: "Draft",
+  publishedAtIso: "",
   contentBlocks: [],
 };
 
@@ -135,8 +136,9 @@ function mapBlogBlocksToSections(blocks: unknown): Blog["sections"] {
 
 function parseSupabaseDate(value: string | null): Date | null {
   if (!value) return null;
-  // Handle Supabase format: "2026-07-10 00:00:00+00" (space instead of T) and "+00" timezone
-  const normalized = value.replace(" ", "T").replace("+00", "+00:00");
+  // Handle Supabase format: "2026-07-10 00:00:00+00" (space instead of T) and "+00" timezone without colon
+  // Use regex to only replace "+00" at the end of the string (timezone)
+  const normalized = value.replace(" ", "T").replace(/\+00$/, "+00:00");
   const date = new Date(normalized);
   return isNaN(date.getTime()) ? null : date;
 }
@@ -149,6 +151,12 @@ function normalizePublishedAt(value: string | null) {
     day: "numeric",
     year: "numeric",
   });
+}
+
+function normalizePublishedAtIso(value: string | null) {
+  const date = parseSupabaseDate(value);
+  if (!date) return "";
+  return date.toISOString();
 }
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -362,6 +370,7 @@ export async function getLiveProjects(): Promise<Project[]> {
     heroImage: row.hero_image_url ?? "",
     publishedLabel: normalizeMonthYear(row.published_at),
     publishedAt: normalizePublishedAt(row.published_at),
+    publishedAtIso: normalizePublishedAtIso(row.published_at),
     contentBlocks: normalizeProjectBlocks(row),
     createdAt: row.created_at ? new Date(row.created_at) : undefined,
     updatedAt: row.updated_at ? new Date(row.updated_at) : undefined,
@@ -392,6 +401,14 @@ export async function getLiveProjectBySlug(
     return null;
   }
 
+  // Debug logging - can be removed after debugging
+  console.log("[content] Project data:", {
+    slug: data.slug,
+    published_at: data.published_at,
+    publishedLabel: normalizeMonthYear(data.published_at),
+    year_label: data.year_label
+  });
+
   return {
     ...EMPTY_PROJECT,
     slug: data.slug,
@@ -415,6 +432,7 @@ export async function getLiveProjectBySlug(
     heroImage: data.hero_image_url ?? "",
     publishedLabel: normalizeMonthYear(data.published_at),
     publishedAt: normalizePublishedAt(data.published_at),
+    publishedAtIso: normalizePublishedAtIso(data.published_at),
     contentBlocks: normalizeProjectBlocks(data),
     createdAt: data.created_at ? new Date(data.created_at) : undefined,
     updatedAt: data.updated_at ? new Date(data.updated_at) : undefined,
@@ -438,6 +456,10 @@ export async function getLiveBlogs(): Promise<Blog[]> {
   }
 
   const rows = data ?? [];
+  // Debug logging for first 3 blogs
+  rows.slice(0, 3).forEach((row) => {
+    console.log("[content] Blog list item:", { slug: row.slug, published_at: row.published_at, publishedLabel: normalizeMonthYear(row.published_at) });
+  });
   logFetch("blogs", `Fetched ${rows.length} rows.`);
 
   return rows.map((row) => ({
@@ -445,6 +467,7 @@ export async function getLiveBlogs(): Promise<Blog[]> {
     title: row.title,
     excerpt: row.excerpt,
     publishedAt: normalizePublishedAt(row.published_at),
+    publishedAtIso: normalizePublishedAtIso(row.published_at),
     publishedLabel: normalizeMonthYear(row.published_at),
     readingTime: row.reading_time_minutes
       ? `${row.reading_time_minutes} min`
@@ -485,11 +508,15 @@ export async function getLiveBlogBySlug(slug: string): Promise<Blog | null> {
     return null;
   }
 
+  // Debug logging
+  console.log("[content] Blog data:", { slug: data.slug, published_at: data.published_at, publishedLabel: normalizeMonthYear(data.published_at) });
+
   return {
     slug: data.slug,
     title: data.title,
     excerpt: data.excerpt,
     publishedAt: normalizePublishedAt(data.published_at),
+    publishedAtIso: normalizePublishedAtIso(data.published_at),
     publishedLabel: normalizeMonthYear(data.published_at),
     readingTime: data.reading_time_minutes
       ? `${data.reading_time_minutes} min`

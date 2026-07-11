@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import { SiteShell } from "@/components/layout/site-shell";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { BlogDetailShell } from "@/components/blogs/blog-detail-shell";
-import { StructuredData } from "@/components/seo/structured-data";
 import { getLiveBlogBySlug, getLiveBlogs, getLiveTagSuggestions } from "@/lib/content";
 import type { Metadata } from "next";
 
@@ -22,6 +21,36 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       : `${baseUrl}${blog.heroImage}`
     : `${baseUrl}/og-image.png`;
 
+  // Create JSON-LD structured data for head injection
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": `${baseUrl}/blogs/${slug}`,
+    },
+    "headline": blog.title,
+    "description": blog.excerpt,
+    "image": ogImage,
+    ...(blog.publishedAtIso && { "datePublished": blog.publishedAtIso }),
+    "author": {
+      "@type": "Person",
+      "name": "Ishant Kumar",
+      "url": baseUrl,
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Ishant Kumar",
+      "logo": {
+        "@type": "ImageObject",
+        "url": `${baseUrl}/og-image.png`,
+        "width": 1200,
+        "height": 630,
+      },
+    },
+    ...(blog.tags && blog.tags.length > 0 && { "keywords": blog.tags.join(", ") }),
+  };
+
   return {
     title: `${blog.title} — Ishant Kumar`,
     description: blog.excerpt,
@@ -30,13 +59,17 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       description: blog.excerpt,
       images: [{ url: ogImage }],
       type: "article",
-      publishedTime: blog.publishedAt,
+      ...(blog.publishedAtIso && { publishedTime: blog.publishedAtIso }),
     },
     twitter: {
       card: "summary_large_image",
       title: blog.title,
       description: blog.excerpt,
       images: [ogImage],
+    },
+    // Inject structured data into head as JSON-LD
+    other: {
+      "ld+json": JSON.stringify(structuredData),
     },
   };
 }
@@ -67,24 +100,8 @@ export default async function BlogDetailPage({
         }
       : null;
 
-  const ogImage = blog.heroImage
-    ? blog.heroImage.startsWith("http")
-      ? blog.heroImage
-      : `${baseUrl}${blog.heroImage}`
-    : `${baseUrl}/og-image.png`;
-
   return (
     <SiteShell>
-      <StructuredData
-        type="blogPosting"
-        title={blog.title}
-        description={blog.excerpt}
-        image={ogImage}
-        datePublished={blog.publishedAt}
-        dateModified={blog.updatedAt?.toISOString()}
-        tags={blog.tags}
-        url={`/blogs/${slug}`}
-      />
       <BlogDetailShell blog={blog} nextBlog={nextBlog} tagSuggestions={tagSuggestions} />
       <SiteFooter />
     </SiteShell>

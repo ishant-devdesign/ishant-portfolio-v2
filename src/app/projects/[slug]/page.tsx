@@ -79,7 +79,7 @@ export default async function ProjectDetailPage({
         title={project.title}
         description={project.summary}
         image={ogImage}
-        datePublished={project.publishedAt}
+        datePublished={project.publishedAtIso || undefined}
         dateModified={project.updatedAt?.toISOString()}
         tags={project.tags}
         url={`/projects/${slug}`}
