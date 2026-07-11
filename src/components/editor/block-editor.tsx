@@ -153,6 +153,7 @@ type InsertBlockMenuProps = {
   onClose: () => void;
   blockTypes: readonly string[];
   onInsert: (type: string, index: number) => void;
+  isRoot?: boolean;
 };
 
 // Block type preview configurations
@@ -322,6 +323,7 @@ function InsertBlockMenu({
   onClose,
   blockTypes,
   onInsert,
+  isRoot = true,
 }: InsertBlockMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -342,8 +344,10 @@ function InsertBlockMenu({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [open, onClose]);
 
-  // Filter out columns-2 from the insert menu (can't nest columns)
-  const availableBlockTypes = blockTypes.filter((type) => type !== "columns-2");
+  // Filter out columns-2 from the insert menu when inside columns (can't nest columns)
+  const availableBlockTypes = isRoot
+    ? blockTypes
+    : blockTypes.filter((type) => type !== "columns-2");
 
   return (
     <div className="flex justify-start transition-all" data-insert-menu>
@@ -414,6 +418,7 @@ function BlockEditorContent({
   setOpenHeadingMenu,
   openCodeLangMenu,
   setCodeLangMenu,
+  isRoot = true,
 }: {
   block: ContentBlock;
   blocks: ContentBlock[];
@@ -427,6 +432,7 @@ function BlockEditorContent({
   setOpenHeadingMenu: Dispatch<SetStateAction<string | null>>;
   openCodeLangMenu: string | null;
   setCodeLangMenu: Dispatch<SetStateAction<string | null>>;
+  isRoot?: boolean;
 }) {
   const updateBlockHandler = (
     id: string,
@@ -435,10 +441,18 @@ function BlockEditorContent({
     onChange(blocks.map((b) => (b.id === id ? updater(b) : b)));
   };
 
+  // When inside columns-2, filter out Large (h2) heading to prevent nested h2
+  const availableHeadingOptions = isRoot
+    ? headingOptions
+    : headingOptions.filter((option) => option.level !== 2);
+
+  // For nested editors inside columns-2, filter out columns-2 option
+  const nestedBlockTypes = blockTypes.filter((type) => type !== "columns-2");
+
   const headingLevel = Number(block.data?.level ?? 2);
   const headingLabel =
-    headingOptions.find((option) => option.level === headingLevel)?.label ??
-    "Large";
+    availableHeadingOptions.find((option) => option.level === headingLevel)?.label ??
+    "Medium";
   const [headingHighlightedIndex, setHeadingHighlightedIndex] = useState(0);
   const headingButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -455,7 +469,6 @@ function BlockEditorContent({
   const [showAdminCodePanel, setShowAdminCodePanel] = useState(true);
   const [codeLangHighlightedIndex, setCodeLangHighlightedIndex] = useState(0);
   const codeLangButtonRef = useRef<HTMLButtonElement>(null);
-  const nestedBlockTypes = blockTypes.filter((type) => type !== "columns-2");
 
   const headingTypeAheadTimeoutRef = useRef<number | null>(null);
   const codeLangTypeAheadTimeoutRef = useRef<number | null>(null);
@@ -483,17 +496,17 @@ function BlockEditorContent({
       } else if (event.key === "ArrowDown") {
         event.preventDefault();
         setHeadingHighlightedIndex((current) =>
-          current < headingOptions.length - 1 ? current + 1 : 0,
+          current < availableHeadingOptions.length - 1 ? current + 1 : 0,
         );
       } else if (event.key === "ArrowUp") {
         event.preventDefault();
         setHeadingHighlightedIndex((current) =>
-          current > 0 ? current - 1 : headingOptions.length - 1,
+          current > 0 ? current - 1 : availableHeadingOptions.length - 1,
         );
       } else if (event.key === "Enter") {
         event.preventDefault();
-        if (headingOptions[headingHighlightedIndex]) {
-          const option = headingOptions[headingHighlightedIndex];
+        if (availableHeadingOptions[headingHighlightedIndex]) {
+          const option = availableHeadingOptions[headingHighlightedIndex];
           setOpenHeadingMenu(null);
           updateBlockHandler(block.id, (current) => ({
             ...current,
@@ -514,7 +527,7 @@ function BlockEditorContent({
           clearTimeout(headingTypeAheadTimeoutRef.current);
         }
 
-        const nextMatch = headingOptions.findIndex((opt, idx) => {
+        const nextMatch = availableHeadingOptions.findIndex((opt, idx) => {
           if (idx > headingHighlightedIndex) {
             return opt.label.toLowerCase().startsWith(char);
           }
@@ -523,7 +536,7 @@ function BlockEditorContent({
 
         const firstMatch =
           nextMatch === -1
-            ? headingOptions.findIndex((opt) =>
+            ? availableHeadingOptions.findIndex((opt) =>
                 opt.label.toLowerCase().startsWith(char),
               )
             : nextMatch;
@@ -543,7 +556,7 @@ function BlockEditorContent({
       return () =>
         document.removeEventListener("keydown", handleHeadingKeyDown);
     }
-  }, [openHeadingMenu, block.id, headingHighlightedIndex, headingOptions]);
+  }, [openHeadingMenu, block.id, headingHighlightedIndex, availableHeadingOptions, isRoot]);
 
   // Keyboard handling for code language dropdown
   useEffect(() => {
@@ -700,7 +713,7 @@ function BlockEditorContent({
                   transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
                   className="absolute left-0 top-[calc(100%+0.5rem)] z-20 w-full rounded-[1rem] border border-white/10 bg-[#0c0c0c]/96 p-2 backdrop-blur-xl"
                 >
-                  {headingOptions.map((option, index) => (
+                  {availableHeadingOptions.map((option, index) => (
                     <button
                       key={option.level}
                       type="button"
@@ -1981,6 +1994,7 @@ function SortableBlock({
   setOpenHeadingMenu,
   openCodeLangMenu,
   setCodeLangMenu,
+  isRoot = true,
 }: {
   block: ContentBlock;
   blocks: ContentBlock[];
@@ -1993,6 +2007,7 @@ function SortableBlock({
   setOpenHeadingMenu: Dispatch<SetStateAction<string | null>>;
   openCodeLangMenu: string | null;
   setCodeLangMenu: Dispatch<SetStateAction<string | null>>;
+  isRoot?: boolean;
 }) {
   const {
     attributes,
@@ -2019,6 +2034,7 @@ function SortableBlock({
         duplicateBlock={duplicateBlock}
         mediaBucket={mediaBucket}
         blockTypes={blockTypes}
+        isRoot={isRoot}
         dragHandle={
           <button
             type="button"
@@ -2054,6 +2070,9 @@ export function BlockEditor({
   const [openHeadingMenu, setOpenHeadingMenu] = useState<string | null>(null);
   const [openCodeLangMenu, setCodeLangMenu] = useState<string | null>(null);
   const [openInsertMenu, setOpenInsertMenu] = useState<number | null>(null);
+
+  // Filter out columns-2 for nested editors
+  const nestedBlockTypes = blockTypes.filter((type) => type !== "columns-2");
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -2100,6 +2119,17 @@ export function BlockEditor({
     return (
       <div className="space-y-4">
         <div className="space-y-4">
+          {/* Insert button at the beginning */}
+          <InsertBlockMenu
+            index={0}
+            open={openInsertMenu === 0}
+            onOpen={() => setOpenInsertMenu(0)}
+            onClose={() => setOpenInsertMenu(null)}
+            blockTypes={blockTypes}
+            onInsert={insertBlock}
+            isRoot={false}
+          />
+
           {blocks.map((block, index) => (
             <div key={block.id}>
               <SortableBlock
@@ -2109,12 +2139,14 @@ export function BlockEditor({
                 removeBlock={removeBlock}
                 duplicateBlock={duplicateBlockHandler}
                 mediaBucket={mediaBucket}
-                blockTypes={blockTypes}
+                blockTypes={nestedBlockTypes}
+                isRoot={false}
                 openHeadingMenu={openHeadingMenu}
                 setOpenHeadingMenu={setOpenHeadingMenu}
                 openCodeLangMenu={openCodeLangMenu}
                 setCodeLangMenu={setCodeLangMenu}
               />
+              {/* Insert button between blocks */}
               <InsertBlockMenu
                 index={index + 1}
                 open={openInsertMenu === index + 1}
@@ -2122,6 +2154,7 @@ export function BlockEditor({
                 onClose={() => setOpenInsertMenu(null)}
                 blockTypes={blockTypes}
                 onInsert={insertBlock}
+                isRoot={false}
               />
             </div>
           ))}
@@ -2151,6 +2184,7 @@ export function BlockEditor({
               onClose={() => setOpenInsertMenu(null)}
               blockTypes={blockTypes}
               onInsert={insertBlock}
+              isRoot={true}
             />
 
             {blocks.map((block, index) => (
@@ -2176,6 +2210,7 @@ export function BlockEditor({
                   onClose={() => setOpenInsertMenu(null)}
                   blockTypes={blockTypes}
                   onInsert={insertBlock}
+                  isRoot={true}
                 />
               </div>
             ))}
