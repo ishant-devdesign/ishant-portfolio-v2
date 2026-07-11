@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type Ref } from "react";
 import { createPortal } from "react-dom";
 import {
   ArrowLeft,
   ArrowRight,
-  ChevronLeft,
-  ChevronRight,
+  Eye,
   GripVertical,
   ImagePlus,
   PawPrint,
@@ -15,19 +14,18 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 import { AutoGrowTextarea } from "@/components/admin/auto-grow-textarea";
 import { useAdminSession } from "@/components/admin/admin-session-provider";
-import { buttonClasses } from "@/components/ui/button";
-import { useConfirm } from "@/components/ui/confirm-dialog";
 import { RevealInView } from "@/components/motion/reveal-in-view";
 import { MobileSectionNav } from "@/components/nav/mobile-section-nav";
 import { SideNavRail } from "@/components/nav/side-nav-rail";
-import { PageHero } from "@/components/ui/page-hero";
+import { OrderedMasonry } from "@/components/shared/ordered-masonry";
+import { buttonClasses } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { MockMedia } from "@/components/ui/mock-media";
+import { PageHero } from "@/components/ui/page-hero";
 import { cn } from "@/lib/utils";
 import type { HomeSectionItem, Pet } from "@/lib/site-config";
-import Link from "next/link";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 type PetImageDraft = Pet["images"][number];
@@ -61,6 +59,7 @@ function getErrorMessage(error: unknown) {
     const fieldMessages = Object.values(maybeError.fieldErrors ?? {})
       .flat()
       .filter(Boolean);
+
     const formMessages = maybeError.formErrors?.filter(Boolean) ?? [];
     const combined = [...fieldMessages, ...formMessages];
 
@@ -90,147 +89,6 @@ function normalizeFeaturedImages(images: PetImageDraft[]) {
     ...image,
     featuredOnHome: index === firstFeaturedIndex,
   }));
-}
-
-function moveImage(
-  images: PetImageDraft[],
-  fromIndex: number,
-  toIndex: number,
-) {
-  if (fromIndex === toIndex) return images;
-
-  const next = [...images];
-  const [moved] = next.splice(fromIndex, 1);
-  next.splice(toIndex, 0, moved);
-  return next;
-}
-
-function PetImageCarousel({
-  images,
-  petName,
-  onImageClick,
-}: {
-  images: Pet["images"];
-  petName: string;
-  onImageClick: (index: number) => void;
-}) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [touchStartX, setTouchStartX] = useState(0);
-  const [touchEndX, setTouchEndX] = useState(0);
-
-  const minSwipeDistance = 50;
-
-  const onTouchStart = (event: React.TouchEvent) => {
-    setTouchStartX(event.touches[0].clientX);
-  };
-
-  const onTouchMove = (event: React.TouchEvent) => {
-    setTouchEndX(event.touches[0].clientX);
-  };
-
-  const onTouchEnd = () => {
-    const distance = touchStartX - touchEndX;
-    const isSwipe = Math.abs(distance) >= minSwipeDistance;
-
-    if (isSwipe && images.length > 1) {
-      if (distance > 0 && currentIndex < images.length - 1) {
-        setCurrentIndex((i) => i + 1);
-      } else if (distance < 0 && currentIndex > 0) {
-        setCurrentIndex((i) => i - 1);
-      }
-    }
-  };
-
-  if (images.length === 0) {
-    return null;
-  }
-
-  const goToPrevious = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex((i) => i - 1);
-    }
-  };
-
-  const goToNext = () => {
-    if (currentIndex < images.length - 1) {
-      setCurrentIndex((i) => i + 1);
-    }
-  };
-
-  const progressPercent = ((currentIndex + 1) / images.length) * 100;
-
-  return (
-    <div className="mt-6">
-      <div className="relative overflow-hidden rounded-[1.8rem]">
-        <div
-          className="flex transition-transform duration-300 ease-out"
-          style={{ transform: `translateX(-${currentIndex * 100}%)` }}
-          onTouchStart={onTouchStart}
-          onTouchMove={onTouchMove}
-          onTouchEnd={onTouchEnd}
-        >
-          {images.map((image) => (
-            <div key={image.id} className="w-full flex-shrink-0">
-              <button
-                type="button"
-                onClick={() => onImageClick(images.indexOf(image))}
-                className="group block w-full text-left"
-              >
-                <img
-                  src={image.url}
-                  alt={image.caption || petName}
-                  className="h-auto w-full object-cover"
-                />
-              </button>
-            </div>
-          ))}
-        </div>
-
-        {images.length > 1 && (
-          <>
-            <button
-              type="button"
-              onClick={goToPrevious}
-              disabled={currentIndex === 0}
-              className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full border border-white/20 bg-black/40 p-2.5 text-white/80 backdrop-blur disabled:opacity-30"
-              aria-label="Previous image"
-            >
-              <ChevronLeft className="size-4" />
-            </button>
-            <button
-              type="button"
-              onClick={goToNext}
-              disabled={currentIndex === images.length - 1}
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full border border-white/20 bg-black/40 p-2.5 text-white/80 backdrop-blur disabled:opacity-30"
-              aria-label="Next image"
-            >
-              <ChevronRight className="size-4" />
-            </button>
-          </>
-        )}
-      </div>
-
-      {images.length > 1 && (
-        <div className="mt-3 flex items-center justify-center gap-2">
-          <div className="h-1 flex-1 overflow-hidden rounded-full bg-white/10">
-            <div
-              className="h-full bg-white/60 transition-all duration-300"
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
-          <span className="text-xs text-white/40">
-            {currentIndex + 1} / {images.length}
-          </span>
-        </div>
-      )}
-
-      {images[currentIndex]?.caption && (
-        <p className="mt-2 px-1 text-center text-sm leading-6 text-white/54">
-          {images[currentIndex].caption}
-        </p>
-      )}
-    </div>
-  );
 }
 
 function PetLightbox({
@@ -300,12 +158,14 @@ function PetLightbox({
             {activeIndex + 1} / {images.length}
           </p>
         </div>
+
         <button
           type="button"
           onClick={onClose}
           className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white/78 hover:bg-white/[0.08]"
         >
-          <X className="size-4" /> Close
+          <X className="size-4" />
+          Close
         </button>
       </div>
 
@@ -339,6 +199,7 @@ function PetLightbox({
             alt={image.caption || petName}
             className="max-h-[82vh] w-auto max-w-full object-contain"
           />
+
           {image.caption ? (
             <div className="mx-auto mt-4 max-w-3xl rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-center text-sm text-white/62 backdrop-blur">
               {image.caption}
@@ -383,14 +244,13 @@ function PetArticle({
 }) {
   const { isAllowedAdmin, viewMode } = useAdminSession();
   const adminMode = isAllowedAdmin && viewMode === "admin";
+
   const [draft, setDraft] = useState(pet);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [uploadState, setUploadState] = useState("");
   const [deleteState, setDeleteState] = useState<SaveState>("idle");
   const [activeImageIndex, setActiveImageIndex] = useState<number | null>(null);
-  const [draggingImageIndex, setDraggingImageIndex] = useState<number | null>(
-    null,
-  );
+
   const confirm = useConfirm();
   const autosaveTimeoutRef = useRef<number | null>(null);
   const clearSavedRef = useRef<number | null>(null);
@@ -431,6 +291,7 @@ function PetArticle({
         });
 
         const data = await response.json();
+
         if (!response.ok) {
           throw new Error(
             getErrorMessage(data.error ?? data.details ?? "save-failed"),
@@ -445,6 +306,7 @@ function PetArticle({
         if (clearSavedRef.current) {
           window.clearTimeout(clearSavedRef.current);
         }
+
         clearSavedRef.current = window.setTimeout(
           () => setSaveState("idle"),
           1200,
@@ -464,6 +326,7 @@ function PetArticle({
 
   async function uploadImage(file: File | null) {
     if (!file) return;
+
     setUploadState("Uploading…");
 
     try {
@@ -475,9 +338,12 @@ function PetArticle({
         method: "POST",
         body: formData,
       });
+
       const data = await response.json();
-      if (!response.ok)
+
+      if (!response.ok) {
         throw new Error(getErrorMessage(data.error ?? "upload-failed"));
+      }
 
       setDraft((current) => ({
         ...current,
@@ -491,6 +357,7 @@ function PetArticle({
           },
         ]),
       }));
+
       setUploadState("Uploaded");
       window.setTimeout(() => setUploadState(""), 1200);
     } catch (error) {
@@ -505,6 +372,7 @@ function PetArticle({
       message: "This will remove the pet and all gallery images.",
       confirmLabel: "Delete",
     });
+
     if (!confirmed) return;
 
     setDeleteState("saving");
@@ -513,9 +381,13 @@ function PetArticle({
       const response = await fetch(`/api/admin/pets/${pet.slug}`, {
         method: "DELETE",
       });
+
       const data = await response.json();
-      if (!response.ok)
+
+      if (!response.ok) {
         throw new Error(getErrorMessage(data.error ?? "delete-failed"));
+      }
+
       onDeleted(pet.slug);
       setDeleteState("saved");
     } catch (error) {
@@ -536,9 +408,10 @@ function PetArticle({
               <p>Editing pet profile: {pet.name}</p>
               <p className="mt-1 text-xs text-white/42">
                 Autosave is active for content, captions, home image, uploads,
-                and reorder.
+                and live reorder.
               </p>
             </div>
+
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-white/44">
                 {deleteState === "saving"
@@ -553,6 +426,7 @@ function PetArticle({
                           ? "Save error"
                           : uploadState || "Ready"}
               </span>
+
               <button
                 type="button"
                 onClick={onMoveUp}
@@ -561,6 +435,7 @@ function PetArticle({
               >
                 Move up
               </button>
+
               <button
                 type="button"
                 onClick={onMoveDown}
@@ -569,6 +444,7 @@ function PetArticle({
               >
                 Move down
               </button>
+
               <button
                 type="button"
                 onClick={() => {
@@ -579,12 +455,14 @@ function PetArticle({
               >
                 Reset
               </button>
+
               <button
                 type="button"
                 onClick={() => void deletePet()}
                 className={buttonClasses({ tone: "danger", size: "sm" })}
               >
-                <Trash2 className="size-4" /> Delete
+                <Trash2 className="size-4" />
+                Delete
               </button>
             </div>
           </div>
@@ -598,6 +476,7 @@ function PetArticle({
                 Pet profile
               </p>
             </div>
+
             {adminMode ? (
               <>
                 <AutoGrowTextarea
@@ -608,6 +487,7 @@ function PetArticle({
                   placeholder="Pet name"
                   className="mt-4 min-h-[1lh] w-full resize-none overflow-hidden bg-transparent text-4xl tracking-[-0.05em] text-white outline-none"
                 />
+
                 <input
                   value={draft.species}
                   onChange={(event) =>
@@ -659,15 +539,7 @@ function PetArticle({
               className="min-h-[1lh] w-full resize-none overflow-hidden bg-transparent text-base leading-8 text-white/62 outline-none"
             />
           ) : (
-            <div
-              className="
-    w-full
-    whitespace-pre-wrap
-    text-base
-    leading-8
-    text-white/62
-  "
-            >
+            <div className="w-full whitespace-pre-wrap text-base leading-8 text-white/62">
               {draft.story}
             </div>
           )}
@@ -691,6 +563,7 @@ function PetArticle({
                 Gallery
               </p>
             </div>
+
             {adminMode ? (
               <label
                 className={buttonClasses({
@@ -715,147 +588,190 @@ function PetArticle({
           </div>
 
           {draft.images.length > 0 ? (
-            adminMode ? (
-              <div className="mt-6 columns-1 gap-4 sm:columns-2 xl:columns-3">
-                {draft.images.map((image, imageIndex) => (
-                  <div
-                    key={image.id}
-                    draggable
-                    onDragStart={() => setDraggingImageIndex(imageIndex)}
-                    onDragOver={(event) => event.preventDefault()}
-                    onDrop={() => {
-                      if (draggingImageIndex === null) return;
-                      setDraft((current) => ({
-                        ...current,
-                        images: normalizeFeaturedImages(
-                          moveImage(
-                            current.images,
-                            draggingImageIndex,
-                            imageIndex,
-                          ),
-                        ),
-                      }));
-                      setDraggingImageIndex(null);
-                    }}
-                    onDragEnd={() => setDraggingImageIndex(null)}
-                    className={cn(
-                      "rounded-[1.6rem] border bg-white/[0.02] p-3 mb-4 break-inside-avoid",
-                      image.featuredOnHome
-                        ? "border-amber-300/28"
-                        : "border-white/10",
-                      draggingImageIndex === imageIndex
-                        ? "opacity-55"
-                        : "opacity-100",
-                    )}
-                  >
-                    <div className="mb-3 flex items-center justify-between gap-3 text-xs text-white/46">
-                      <span className="inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1">
-                        <GripVertical className="size-3.5" /> Drag to reorder
-                      </span>
+            <div className="mt-6">
+              <OrderedMasonry
+                items={draft.images}
+                gap={16}
+                sortable={adminMode}
+                onReorder={(nextImages) =>
+                  setDraft((current) => ({
+                    ...current,
+                    images: normalizeFeaturedImages(nextImages),
+                  }))
+                }
+                getItemId={(image) => image.id}
+                renderItem={({
+                  item: image,
+                  index: imageIndex,
+                  dragHandleProps,
+                  isDragOverlay,
+                  isDragging,
+                }) => {
+                  if (adminMode) {
+                    const dragHandleRef = dragHandleProps?.ref as
+                      | Ref<HTMLButtonElement>
+                      | undefined;
+
+                    return (
+                      <div
+                        className={cn(
+                          isDragOverlay &&
+                            "rotate-[1.2deg] scale-[1.01] shadow-[0_18px_50px_rgba(0,0,0,0.34)]",
+                          isDragging && "opacity-0",
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            "group relative overflow-hidden rounded-[1.6rem] border bg-black/20",
+                            image.featuredOnHome
+                              ? "border-amber-300/24"
+                              : "border-white/10",
+                          )}
+                        >
+                          <button
+                            type="button"
+                            ref={dragHandleRef}
+                            {...(dragHandleProps?.attributes ?? {})}
+                            {...(dragHandleProps?.listeners ?? {})}
+                            onClick={(event) => event.stopPropagation()}
+                            className="absolute left-3 top-3 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-black/55 text-white/78 shadow-[0_8px_28px_rgba(0,0,0,0.35)] backdrop-blur-xl transition-colors hover:bg-black/72 hover:text-white cursor-grab active:cursor-grabbing"
+                            aria-label="Drag to reorder"
+                            title="Drag to reorder"
+                          >
+                            <GripVertical className="size-4" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setActiveImageIndex(imageIndex)}
+                            className="block w-full text-left"
+                          >
+                            <img
+                              src={image.url}
+                              alt={image.caption || draft.name}
+                              className="h-auto w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                            />
+                          </button>
+
+                          <div
+                            className="absolute bottom-3 right-3 z-10 inline-flex items-center gap-1 rounded-full border border-white/10 bg-black/55 p-1.5 shadow-[0_8px_28px_rgba(0,0,0,0.35)] backdrop-blur-xl"
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setDraft((current) => ({
+                                  ...current,
+                                  images: current.images.map((entry) => ({
+                                    ...entry,
+                                    featuredOnHome: entry.id === image.id,
+                                  })),
+                                }))
+                              }
+                              className={cn(
+                                "inline-flex h-9 w-9 items-center justify-center rounded-full border shadow-[0_8px_28px_rgba(0,0,0,0.35)] backdrop-blur-xl transition-colors",
+                                image.featuredOnHome
+                                  ? "border-amber-300/40 bg-amber-300/14 text-amber-100"
+                                  : "border-white/10 bg-black/55 text-white/78 hover:bg-black/72 hover:text-white",
+                              )}
+                              aria-label={
+                                image.featuredOnHome
+                                  ? "Home image selected"
+                                  : "Set as home image"
+                              }
+                              title={
+                                image.featuredOnHome
+                                  ? "Home image"
+                                  : "Set for home"
+                              }
+                            >
+                              <Star
+                                className={cn(
+                                  "size-4",
+                                  image.featuredOnHome ? "fill-current" : "",
+                                )}
+                              />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => setActiveImageIndex(imageIndex)}
+                              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-black/55 text-white/78 shadow-[0_8px_28px_rgba(0,0,0,0.35)] backdrop-blur-xl transition-colors hover:bg-black/72 hover:text-white"
+                              aria-label="Preview image"
+                              title="Preview"
+                            >
+                              <Eye className="size-4" />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setDraft((current) => ({
+                                  ...current,
+                                  images: normalizeFeaturedImages(
+                                    current.images.filter(
+                                      (entry) => entry.id !== image.id,
+                                    ),
+                                  ),
+                                }))
+                              }
+                              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-black/55 text-white/78 shadow-[0_8px_28px_rgba(0,0,0,0.35)] backdrop-blur-xl transition-colors hover:bg-black/72 hover:text-white"
+                              aria-label="Remove image"
+                              title="Remove"
+                            >
+                              <Trash2 className="size-4" />
+                            </button>
+                          </div>
+                        </div>
+
+                        <AutoGrowTextarea
+                          value={image.caption}
+                          onChange={(value) =>
+                            setDraft((current) => ({
+                              ...current,
+                              images: current.images.map((entry) =>
+                                entry.id === image.id
+                                  ? { ...entry, caption: value }
+                                  : entry,
+                              ),
+                            }))
+                          }
+                          className="mt-3 min-h-[1lh] w-full resize-none overflow-hidden rounded-[1rem] border border-white/10 bg-white/[0.02] px-3 py-3 text-sm leading-6 text-white/72 outline-none"
+                          placeholder="Write a caption for this photo"
+                        />
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div>
                       <button
                         type="button"
                         onClick={() => setActiveImageIndex(imageIndex)}
-                        className={buttonClasses({ tone: "muted", size: "xs" })}
-                      >
-                        Preview
-                      </button>
-                    </div>
-
-                    <div className="overflow-hidden rounded-[1.2rem] border border-white/10 bg-black/20">
-                      <img
-                        src={image.url}
-                        alt={image.caption || draft.name}
-                        className="h-auto w-full object-cover"
-                      />
-                    </div>
-
-                    <div className="mt-3 flex items-center justify-between gap-2">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setDraft((current) => ({
-                            ...current,
-                            images: current.images.map((entry, entryIndex) => ({
-                              ...entry,
-                              featuredOnHome: entryIndex === imageIndex,
-                            })),
-                          }))
-                        }
                         className={cn(
-                          "inline-flex items-center gap-2 rounded-full border px-4 py-2.5 text-sm",
+                          "group block w-full overflow-hidden rounded-[1.6rem] border bg-black/20 text-left",
                           image.featuredOnHome
-                            ? "border-amber-300/40 bg-amber-300/14 text-amber-100"
-                            : "border-white/10 text-white/68 hover:bg-white/[0.04]",
+                            ? "border-amber-300/24"
+                            : "border-white/10",
                         )}
                       >
-                        <Star
-                          className={cn(
-                            "size-3.5",
-                            image.featuredOnHome ? "fill-current" : "",
-                          )}
+                        <img
+                          src={image.url}
+                          alt={image.caption || draft.name}
+                          className="h-auto w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
                         />
-                        {image.featuredOnHome ? "Home image" : "Set for home"}
                       </button>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setDraft((current) => ({
-                            ...current,
-                            images: normalizeFeaturedImages(
-                              current.images.filter(
-                                (_, entryIndex) => entryIndex !== imageIndex,
-                              ),
-                            ),
-                          }))
-                        }
-                        className={buttonClasses({ tone: "muted", size: "sm" })}
-                      >
-                        <X className="size-3.5" /> Remove
-                      </button>
-                    </div>
 
-                    <AutoGrowTextarea
-                      value={image.caption}
-                      onChange={(value) =>
-                        setDraft((current) => ({
-                          ...current,
-                          images: current.images.map((entry, entryIndex) =>
-                            entryIndex === imageIndex
-                              ? { ...entry, caption: value }
-                              : entry,
-                          ),
-                        }))
-                      }
-                      className="mt-3 min-h-[1lh] w-full resize-none overflow-hidden rounded-[1rem] border border-white/10 bg-white/[0.02] px-3 py-3 text-sm leading-6 text-white/72 outline-none"
-                      placeholder="Write a caption for this photo"
-                    />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="mt-6 columns-1 gap-4 sm:columns-2 xl:columns-3">
-                {draft.images.map((image, imageIndex) => (
-                  <div key={image.id} className="mb-4 break-inside-avoid">
-                    <button
-                      type="button"
-                      onClick={() => setActiveImageIndex(imageIndex)}
-                      className={`group block w-full overflow-hidden rounded-[1.6rem] border ${image.featuredOnHome ? "border-amber-300/24" : "border-white/10"} bg-black/20 text-left`}
-                    >
-                      <img
-                        src={image.url}
-                        alt={image.caption || draft.name}
-                        className="h-auto w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
-                      />
-                    </button>
-                    {image.caption ? (
-                      <p className="mt-3 px-1 text-sm leading-6 text-white/54">
-                        {image.caption}
-                      </p>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            )
+                      {image.caption ? (
+                        <p className="mt-3 px-1 text-sm leading-6 text-white/54">
+                          {image.caption}
+                        </p>
+                      ) : null}
+                    </div>
+                  );
+                }}
+              />
+            </div>
           ) : (
             <div className="mt-6">
               <MockMedia
@@ -883,6 +799,7 @@ function PetArticle({
 export function PetsPageShell({ initialPets }: { initialPets: Pet[] }) {
   const { isAllowedAdmin, viewMode } = useAdminSession();
   const adminMode = isAllowedAdmin && viewMode === "admin";
+
   const [pets, setPets] = useState(initialPets);
   const [createState, setCreateState] = useState<SaveState>("idle");
 
@@ -894,13 +811,17 @@ export function PetsPageShell({ initialPets }: { initialPets: Pet[] }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
+
       const data = await response.json();
-      if (!response.ok)
+
+      if (!response.ok) {
         throw new Error(getErrorMessage(data.error ?? "create-failed"));
+      }
 
       setPets((current) => [...current, data.pet]);
       setCreateState("saved");
       window.setTimeout(() => setCreateState("idle"), 1200);
+
       window.setTimeout(() => {
         document
           .getElementById(data.pet.slug)
@@ -919,11 +840,16 @@ export function PetsPageShell({ initialPets }: { initialPets: Pet[] }) {
       const response = await fetch("/api/admin/pets/reorder", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slugs: nextPets.map((pet) => pet.slug) }),
+        body: JSON.stringify({
+          slugs: nextPets.map((pet) => pet.slug),
+        }),
       });
+
       const data = await response.json();
-      if (!response.ok)
+
+      if (!response.ok) {
         throw new Error(getErrorMessage(data.error ?? data.details));
+      }
     } catch (error) {
       console.error("[pet-profile] reorder failed", error);
       setCreateState("error");
@@ -944,6 +870,7 @@ export function PetsPageShell({ initialPets }: { initialPets: Pet[] }) {
   return (
     <>
       <SideNavRail sections={petSections} />
+
       <main className="mx-auto w-full max-w-[1300px] px-5 pb-24 sm:px-8 lg:px-10 xl:pr-32 2xl:pr-40">
         <MobileSectionNav sections={petSections} />
 
@@ -954,15 +881,16 @@ export function PetsPageShell({ initialPets }: { initialPets: Pet[] }) {
         />
 
         {adminMode ? (
-          <section className="pb-2 sm:pb-4 mt-4">
+          <section className="mt-4 pb-2 sm:pb-4">
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-[1.6rem] border border-white/10 bg-white/[0.03] px-4 py-4 text-sm text-white/72">
               <div>
                 <p className="text-white/82">Pets editor</p>
                 <p className="mt-1 text-white/44">
                   Create new pets, edit profiles, manage captions, reorder
-                  images, and choose the home photo.
+                  images live, and choose the home photo.
                 </p>
               </div>
+
               <div className="flex items-center gap-3">
                 <span className="text-xs text-white/44">
                   {createState === "saving"
@@ -973,12 +901,14 @@ export function PetsPageShell({ initialPets }: { initialPets: Pet[] }) {
                         ? "Create error"
                         : "Ready"}
                 </span>
+
                 <button
                   type="button"
                   onClick={() => void createPet()}
                   className={buttonClasses({ tone: "ghost", size: "sm" })}
                 >
-                  <Plus className="size-4" /> Add pet
+                  <Plus className="size-4" />
+                  Add pet
                 </button>
               </div>
             </div>
@@ -995,6 +925,7 @@ export function PetsPageShell({ initialPets }: { initialPets: Pet[] }) {
               canMoveDown={index < pets.length - 1}
               onMoveUp={() => {
                 if (index === 0) return;
+
                 const nextPets = [...pets];
                 const [moved] = nextPets.splice(index, 1);
                 nextPets.splice(index - 1, 0, moved);
@@ -1002,6 +933,7 @@ export function PetsPageShell({ initialPets }: { initialPets: Pet[] }) {
               }}
               onMoveDown={() => {
                 if (index === pets.length - 1) return;
+
                 const nextPets = [...pets];
                 const [moved] = nextPets.splice(index, 1);
                 nextPets.splice(index + 1, 0, moved);
