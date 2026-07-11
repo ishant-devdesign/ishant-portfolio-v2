@@ -38,6 +38,7 @@ import { CSS } from "@dnd-kit/utilities";
 
 import {
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type Dispatch,
@@ -2458,8 +2459,6 @@ function SortableBlock({
 
   isRoot = true,
 
-  // New props for the trailing insert menu
-
   insertIndex,
 
   openInsertMenu,
@@ -2467,6 +2466,8 @@ function SortableBlock({
   setOpenInsertMenu,
 
   onInsert,
+
+  isExiting,
 }: {
   block: ContentBlock;
 
@@ -2499,6 +2500,8 @@ function SortableBlock({
   setOpenInsertMenu: Dispatch<SetStateAction<number | null>>;
 
   onInsert: (type: string, index: number) => void;
+
+  isExiting?: boolean;
 }) {
   const {
     attributes,
@@ -2522,73 +2525,166 @@ function SortableBlock({
     opacity: isDragging ? 0.5 : 1,
   };
 
+  // Measure the content height when exit starts so we can animate
+
+  // from a known pixel value down to 0.
+
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  const [exitHeight, setExitHeight] = useState<number | null>(null);
+
+  useLayoutEffect(() => {
+    if (isExiting && contentRef.current && exitHeight === null) {
+      setExitHeight(contentRef.current.offsetHeight);
+    }
+
+    if (!isExiting && exitHeight !== null) {
+      setExitHeight(null);
+    }
+  }, [isExiting, exitHeight]);
+
   return (
-    <div ref={setNodeRef} style={style}>
-      {/*
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={isExiting ? "overflow-hidden" : ""}
+    >
+      {isExiting && exitHeight !== null ? (
+        /* ── Exit animation: blur-out + measured height → 0 ── */
 
-        ⬇️ ENTRY ANIMATION: wraps the inner content in a motion.div
+        <motion.div
+          key={`exit-${block.id}`}
+          initial={{
+            opacity: 1,
 
-        so newly added blocks blur-in smoothly from below.
+            filter: "blur(0px)",
 
-        `key={block.id}` ensures the animation resets when the block
+            y: 0,
 
-        is replaced (e.g. by a duplication at a different position).
+            scale: 1,
 
-      */}
+            height: exitHeight,
+          }}
+          animate={{
+            opacity: 0,
 
-      <motion.div
-        key={block.id}
-        initial={{ opacity: 0, filter: "blur(16px)", y: -12, scale: 0.97 }}
-        animate={{ opacity: 1, filter: "blur(0px)", y: 0, scale: 1 }}
-        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-      >
-        <BlockEditorContent
-          block={block}
-          blocks={blocks}
-          onChange={onChange}
-          removeBlock={removeBlock}
-          duplicateBlock={duplicateBlock}
-          mediaBucket={mediaBucket}
-          blockTypes={blockTypes}
-          isRoot={isRoot}
-          dragHandle={
-            <button
-              type="button"
-              className={buttonClasses({
-                tone: "muted",
+            filter: "blur(16px)",
 
-                iconOnly: true,
+            y: -12,
 
-                className: "shrink-0 cursor-grab active:cursor-grabbing",
-              })}
-              title="Drag block"
-              aria-label={`Drag ${block.type} block`}
-              {...attributes}
-              {...listeners}
-            >
-              <GripVertical className="size-4" />
-            </button>
-          }
-          openHeadingMenu={openHeadingMenu}
-          setOpenHeadingMenu={setOpenHeadingMenu}
-          openCodeLangMenu={openCodeLangMenu}
-          setCodeLangMenu={setCodeLangMenu}
-        />
+            scale: 0.96,
 
-        {/* ⬇️ THE FIX: InsertBlockMenu lives INSIDE the sortable wrapper
+            height: 0,
+          }}
+          transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+          className="overflow-hidden pointer-events-none"
+        >
+          <div ref={contentRef}>
+            <BlockEditorContent
+              block={block}
+              blocks={blocks}
+              onChange={onChange}
+              removeBlock={removeBlock}
+              duplicateBlock={duplicateBlock}
+              mediaBucket={mediaBucket}
+              blockTypes={blockTypes}
+              isRoot={isRoot}
+              dragHandle={
+                <button
+                  type="button"
+                  className={buttonClasses({
+                    tone: "muted",
 
-            so it moves with the block during drag, instead of staying behind. */}
+                    iconOnly: true,
 
-        <InsertBlockMenu
-          index={insertIndex}
-          open={openInsertMenu === insertIndex}
-          onOpen={() => setOpenInsertMenu(insertIndex)}
-          onClose={() => setOpenInsertMenu(null)}
-          blockTypes={blockTypes}
-          onInsert={onInsert}
-          isRoot={isRoot}
-        />
-      </motion.div>
+                    className: "shrink-0 cursor-grab active:cursor-grabbing",
+                  })}
+                  title="Drag block"
+                  aria-label={`Drag ${block.type} block`}
+                  {...attributes}
+                  {...listeners}
+                >
+                  <GripVertical className="size-4" />
+                </button>
+              }
+              openHeadingMenu={openHeadingMenu}
+              setOpenHeadingMenu={setOpenHeadingMenu}
+              openCodeLangMenu={openCodeLangMenu}
+              setCodeLangMenu={setCodeLangMenu}
+            />
+          </div>
+        </motion.div>
+      ) : (
+        /* ── Normal / entry animation ── */
+
+        <motion.div
+          key={block.id}
+          initial={{
+            opacity: 0,
+
+            filter: "blur(16px)",
+
+            y: -12,
+
+            scale: 0.97,
+          }}
+          animate={{
+            opacity: 1,
+
+            filter: "blur(0px)",
+
+            y: 0,
+
+            scale: 1,
+          }}
+          transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <div ref={contentRef}>
+            <BlockEditorContent
+              block={block}
+              blocks={blocks}
+              onChange={onChange}
+              removeBlock={removeBlock}
+              duplicateBlock={duplicateBlock}
+              mediaBucket={mediaBucket}
+              blockTypes={blockTypes}
+              isRoot={isRoot}
+              dragHandle={
+                <button
+                  type="button"
+                  className={buttonClasses({
+                    tone: "muted",
+
+                    iconOnly: true,
+
+                    className: "shrink-0 cursor-grab active:cursor-grabbing",
+                  })}
+                  title="Drag block"
+                  aria-label={`Drag ${block.type} block`}
+                  {...attributes}
+                  {...listeners}
+                >
+                  <GripVertical className="size-4" />
+                </button>
+              }
+              openHeadingMenu={openHeadingMenu}
+              setOpenHeadingMenu={setOpenHeadingMenu}
+              openCodeLangMenu={openCodeLangMenu}
+              setCodeLangMenu={setCodeLangMenu}
+            />
+
+            <InsertBlockMenu
+              index={insertIndex}
+              open={openInsertMenu === insertIndex}
+              onOpen={() => setOpenInsertMenu(insertIndex)}
+              onClose={() => setOpenInsertMenu(null)}
+              blockTypes={blockTypes}
+              onInsert={onInsert}
+              isRoot={isRoot}
+            />
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 }
@@ -2612,10 +2708,14 @@ export function BlockEditor({
 
   // ── Exit animation state ─────────────────────────────────────────────
 
-  // Ghost blocks that play a blur-out animation after deletion.
+  // Track which block IDs are playing their exit animation.
 
-  const [exitingBlocks, setExitingBlocks] = useState<Map<string, ContentBlock>>(
-    new Map(),
+  // The block stays in the `blocks` array during the animation so it
+
+  // remains in the correct DOM position, then gets removed afterwards.
+
+  const [exitingBlockIds, setExitingBlockIds] = useState<Set<string>>(
+    new Set(),
   );
 
   const blocksRef = useRef(blocks);
@@ -2623,41 +2723,27 @@ export function BlockEditor({
   blocksRef.current = blocks;
 
   const removeBlockWithAnimation = (id: string) => {
-    const block = blocksRef.current.find((b) => b.id === id);
+    if (exitingBlockIds.has(id)) return; // prevent double-click
 
-    if (!block) return;
+    // Mark the block as exiting — it stays in `blocks` for the animation
 
-    // Immediately remove from the live sortable data
+    setExitingBlockIds((prev) => new Set(prev).add(id));
 
-    onChange(blocksRef.current.filter((b) => b.id !== id));
-
-    // Keep a ghost for the exit animation
-
-    setExitingBlocks((prev) => new Map(prev).set(id, block));
-
-    // Clean up the ghost after the animation finishes
+    // After the animation completes, finally remove it from data
 
     setTimeout(() => {
-      setExitingBlocks((prev) => {
-        const next = new Map(prev);
+      setExitingBlockIds((prev) => {
+        const next = new Set(prev);
 
         next.delete(id);
 
         return next;
       });
-    }, 400);
-  };
 
-  // ── Shared animation config ──────────────────────────────────────────
+      // Remove from blocks — the sortable items list will update too
 
-  const exitAnimationProps = {
-    opacity: 0,
-
-    filter: "blur(16px)",
-
-    y: -12,
-
-    scale: 0.96,
+      onChange(blocksRef.current.filter((b) => b.id !== id));
+    }, 420); // slightly longer than the 350ms animation duration
   };
 
   // ── End exit animation state ─────────────────────────────────────────
@@ -2715,81 +2801,54 @@ export function BlockEditor({
   // ── Shared render function for both root and non-root editors ──
 
   const renderBlocks = (root: boolean) => (
-    <>
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragEnd={handleDragEnd}
+    >
+      <SortableContext
+        items={blocks.map((b) => b.id)}
+        strategy={verticalListSortingStrategy}
       >
-        <SortableContext
-          items={blocks.map((b) => b.id)}
-          strategy={verticalListSortingStrategy}
-        >
-          <div className="space-y-4 relative">
-            {/* Insert button at the very top — stays outside sortable (OK, nothing above it to overlap with) */}
+        <div className="space-y-4 relative">
+          {/* Insert button at the very top — stays outside sortable (OK, nothing above it to overlap with) */}
 
-            <InsertBlockMenu
-              index={0}
-              open={openInsertMenu === 0}
-              onOpen={() => setOpenInsertMenu(0)}
-              onClose={() => setOpenInsertMenu(null)}
-              blockTypes={blockTypes}
-              onInsert={insertBlock}
-              isRoot={root}
-            />
+          <InsertBlockMenu
+            index={0}
+            open={openInsertMenu === 0}
+            onOpen={() => setOpenInsertMenu(0)}
+            onClose={() => setOpenInsertMenu(null)}
+            blockTypes={blockTypes}
+            onInsert={insertBlock}
+            isRoot={root}
+          />
 
-            {blocks.map((block, index) => (
-              <div key={block.id}>
-                <SortableBlock
-                  block={block}
-                  blocks={blocks}
-                  onChange={onChange}
-                  removeBlock={removeBlock}
-                  duplicateBlock={duplicateBlockHandler}
-                  mediaBucket={mediaBucket}
-                  blockTypes={root ? blockTypes : nestedBlockTypes}
-                  isRoot={root}
-                  openHeadingMenu={openHeadingMenu}
-                  setOpenHeadingMenu={setOpenHeadingMenu}
-                  openCodeLangMenu={openCodeLangMenu}
-                  setCodeLangMenu={setCodeLangMenu}
-                  // Pass insert-menu state so it renders inside the sortable wrapper
-
-                  insertIndex={index + 1}
-                  openInsertMenu={openInsertMenu}
-                  setOpenInsertMenu={setOpenInsertMenu}
-                  onInsert={insertBlock}
-                />
-              </div>
-            ))}
-          </div>
-        </SortableContext>
-      </DndContext>
-
-      {/* ── Ghost exiting blocks (exit animation, outside sortable) ── */}
-
-      {Array.from(exitingBlocks.values()).map((block) => (
-        <motion.div
-          key={`ghost-${block.id}`}
-          initial={{ opacity: 1, filter: "blur(0px)", y: 0, scale: 1 }}
-          animate={exitAnimationProps}
-          transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-          className="pointer-events-none"
-        >
-          <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-4">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <div className="flex min-w-0 items-center gap-2">
-                <p className="truncate text-[0.62rem] uppercase tracking-[0.28em] text-white/34">
-                  {block.type}
-                </p>
-              </div>
+          {blocks.map((block, index) => (
+            <div key={block.id}>
+              <SortableBlock
+                block={block}
+                blocks={blocks}
+                onChange={onChange}
+                removeBlock={removeBlock}
+                duplicateBlock={duplicateBlockHandler}
+                mediaBucket={mediaBucket}
+                blockTypes={root ? blockTypes : nestedBlockTypes}
+                isRoot={root}
+                openHeadingMenu={openHeadingMenu}
+                setOpenHeadingMenu={setOpenHeadingMenu}
+                openCodeLangMenu={openCodeLangMenu}
+                setCodeLangMenu={setCodeLangMenu}
+                insertIndex={index + 1}
+                openInsertMenu={openInsertMenu}
+                setOpenInsertMenu={setOpenInsertMenu}
+                onInsert={insertBlock}
+                isExiting={exitingBlockIds.has(block.id)}
+              />
             </div>
-
-            <p className="text-sm text-white/34 italic">Removing block…</p>
-          </div>
-        </motion.div>
-      ))}
-    </>
+          ))}
+        </div>
+      </SortableContext>
+    </DndContext>
   );
 
   return <div className="space-y-4">{renderBlocks(isRoot)}</div>;
