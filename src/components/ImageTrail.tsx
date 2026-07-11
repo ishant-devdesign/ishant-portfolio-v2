@@ -496,7 +496,7 @@ class ImageTrailVariant4 {
 
     let dx = this.mousePos.x - this.cacheMousePos.x;
     let dy = this.mousePos.y - this.cacheMousePos.y;
-    let distance = Math.sqrt(dx * dx + dy * dy);
+    const distance = Math.sqrt(dx * dx + dy * dy);
     if (distance !== 0) {
       dx /= distance;
       dy /= distance;
@@ -647,7 +647,7 @@ class ImageTrailVariant5 {
     if (angle > 90 && angle <= 270) angle += 180;
     const isMovingClockwise = angle >= this.lastAngle;
     this.lastAngle = angle;
-    let startAngle = isMovingClockwise ? angle - 10 : angle + 10;
+    const startAngle = isMovingClockwise ? angle - 10 : angle + 10;
     const distance = Math.sqrt(dx * dx + dy * dy);
     if (distance !== 0) {
       dx /= distance;
@@ -1195,7 +1195,7 @@ export default function ImageTrail({ items = [], variant = 1 }: ImageTrailProps)
     if (!containerRef.current) return;
     const Cls = variantMap[variant] || variantMap[1];
     new Cls(containerRef.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [variant, items]);
 
   return (

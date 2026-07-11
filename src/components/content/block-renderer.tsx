@@ -307,7 +307,7 @@ export function BlockRenderer({ blocks }: { blocks: ContentBlock[] }) {
   });
 
   // Determine which image block maps to which lightbox index
-  let imageLightboxMap: number[] = [];
+  const imageLightboxMap: number[] = [];
   let currentLightboxIndex = 0;
   blocks.forEach((block) => {
     if (block.type === "image") {

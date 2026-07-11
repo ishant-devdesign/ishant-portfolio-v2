@@ -451,8 +451,8 @@ function BlockEditorContent({
 
   const headingLevel = Number(block.data?.level ?? 2);
   const headingLabel =
-    availableHeadingOptions.find((option) => option.level === headingLevel)?.label ??
-    "Medium";
+    availableHeadingOptions.find((option) => option.level === headingLevel)
+      ?.label ?? "Medium";
   const [headingHighlightedIndex, setHeadingHighlightedIndex] = useState(0);
   const headingButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -556,7 +556,13 @@ function BlockEditorContent({
       return () =>
         document.removeEventListener("keydown", handleHeadingKeyDown);
     }
-  }, [openHeadingMenu, block.id, headingHighlightedIndex, availableHeadingOptions, isRoot]);
+  }, [
+    openHeadingMenu,
+    block.id,
+    headingHighlightedIndex,
+    availableHeadingOptions,
+    isRoot,
+  ]);
 
   // Keyboard handling for code language dropdown
   useEffect(() => {
@@ -2114,51 +2120,62 @@ export function BlockEditor({
     onChange(duplicateBlock(blocks, id));
   };
 
-  // If this is a nested editor (inside columns), just render content without DndContext
+  // If this is a nested editor (inside columns), render with its own DndContext
   if (!isRoot) {
     return (
       <div className="space-y-4">
-        <div className="space-y-4">
-          {/* Insert button at the beginning */}
-          <InsertBlockMenu
-            index={0}
-            open={openInsertMenu === 0}
-            onOpen={() => setOpenInsertMenu(0)}
-            onClose={() => setOpenInsertMenu(null)}
-            blockTypes={blockTypes}
-            onInsert={insertBlock}
-            isRoot={false}
-          />
-
-          {blocks.map((block, index) => (
-            <div key={block.id}>
-              <SortableBlock
-                block={block}
-                blocks={blocks}
-                onChange={onChange}
-                removeBlock={removeBlock}
-                duplicateBlock={duplicateBlockHandler}
-                mediaBucket={mediaBucket}
-                blockTypes={nestedBlockTypes}
-                isRoot={false}
-                openHeadingMenu={openHeadingMenu}
-                setOpenHeadingMenu={setOpenHeadingMenu}
-                openCodeLangMenu={openCodeLangMenu}
-                setCodeLangMenu={setCodeLangMenu}
-              />
-              {/* Insert button between blocks */}
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={blocks.map((b) => b.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="space-y-4 relative">
+              {/* Insert button at the beginning */}
               <InsertBlockMenu
-                index={index + 1}
-                open={openInsertMenu === index + 1}
-                onOpen={() => setOpenInsertMenu(index + 1)}
+                index={0}
+                open={openInsertMenu === 0}
+                onOpen={() => setOpenInsertMenu(0)}
                 onClose={() => setOpenInsertMenu(null)}
                 blockTypes={blockTypes}
                 onInsert={insertBlock}
                 isRoot={false}
               />
+
+              {blocks.map((block, index) => (
+                <div key={block.id} className="relative">
+                  <SortableBlock
+                    block={block}
+                    blocks={blocks}
+                    onChange={onChange}
+                    removeBlock={removeBlock}
+                    duplicateBlock={duplicateBlockHandler}
+                    mediaBucket={mediaBucket}
+                    blockTypes={nestedBlockTypes}
+                    isRoot={false}
+                    openHeadingMenu={openHeadingMenu}
+                    setOpenHeadingMenu={setOpenHeadingMenu}
+                    openCodeLangMenu={openCodeLangMenu}
+                    setCodeLangMenu={setCodeLangMenu}
+                  />
+                  {/* Insert button between blocks */}
+                  <InsertBlockMenu
+                    index={index + 1}
+                    open={openInsertMenu === index + 1}
+                    onOpen={() => setOpenInsertMenu(index + 1)}
+                    onClose={() => setOpenInsertMenu(null)}
+                    blockTypes={blockTypes}
+                    onInsert={insertBlock}
+                    isRoot={false}
+                  />
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </SortableContext>
+        </DndContext>
       </div>
     );
   }
@@ -2175,7 +2192,7 @@ export function BlockEditor({
           items={blocks.map((b) => b.id)}
           strategy={verticalListSortingStrategy}
         >
-          <div className="space-y-4">
+          <div className="space-y-4 relative">
             {/* Insert button at the beginning */}
             <InsertBlockMenu
               index={0}
@@ -2188,7 +2205,7 @@ export function BlockEditor({
             />
 
             {blocks.map((block, index) => (
-              <div key={block.id}>
+              <div key={block.id} className="relative">
                 <SortableBlock
                   block={block}
                   blocks={blocks}
