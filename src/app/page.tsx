@@ -1,6 +1,7 @@
 import { HomePage } from "@/components/home/home-page";
 import { SiteShell } from "@/components/layout/site-shell";
 import { SiteFooter } from "@/components/layout/site-footer";
+import { StructuredData } from "@/components/seo/structured-data";
 import {
   getLiveBlogs,
   getLiveCertifications,
@@ -72,8 +73,16 @@ export default async function Page() {
     getLiveHomeToolsContent(),
   ]);
 
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://ishant-devdesign.vercel.app";
+
   return (
     <SiteShell>
+      <StructuredData
+        type="webSite"
+        title="Ishant Kumar — Frontend Engineer & UI Designer"
+        description="Frontend Engineer specializing in React, Next.js, TypeScript, and modern UI systems. Explore projects, case studies, blogs, certifications, and the design process behind every interface."
+        url={baseUrl}
+      />
       <HomePage
         siteSettings={siteSettings}
         projects={projects}

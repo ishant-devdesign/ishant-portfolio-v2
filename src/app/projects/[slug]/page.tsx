@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { SiteShell } from "@/components/layout/site-shell";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { ProjectDetailShell } from "@/components/projects/project-detail-shell";
+import { StructuredData } from "@/components/seo/structured-data";
 import { getLiveProjectBySlug, getLiveProjects, getLiveTagSuggestions } from "@/lib/content";
 import type { Metadata } from "next";
 
@@ -65,8 +66,24 @@ export default async function ProjectDetailPage({
         }
       : null;
 
+  const ogImage = project.heroImage
+    ? project.heroImage.startsWith("http")
+      ? project.heroImage
+      : `${baseUrl}${project.heroImage}`
+    : `${baseUrl}/og-image.png`;
+
   return (
     <SiteShell>
+      <StructuredData
+        type="creativeWork"
+        title={project.title}
+        description={project.summary}
+        image={ogImage}
+        datePublished={project.publishedAt}
+        dateModified={project.updatedAt?.toISOString()}
+        tags={project.tags}
+        url={`/projects/${slug}`}
+      />
       <ProjectDetailShell project={project} nextProject={nextProject} tagSuggestions={tagSuggestions} />
       <SiteFooter />
     </SiteShell>

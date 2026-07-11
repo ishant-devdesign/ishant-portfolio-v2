@@ -108,10 +108,6 @@ export async function POST(request: NextRequest) {
       featured: parsed.data.featured,
       status: parsed.data.status,
       content_blocks: parsed.data.contentBlocks,
-      challenge: null,
-      approach: null,
-      outcome: null,
-      metrics_json: [],
       sort_order: 999,
       published_at: publishedAt,
     })

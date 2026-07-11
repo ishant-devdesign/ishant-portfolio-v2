@@ -88,10 +88,7 @@ export function createEmptyProject(): Project {
     status: "draft",
     heroImage: "",
     publishedLabel: getCurrentDateFormatted(),
-    metrics: [],
-    challenge: "",
-    approach: "",
-    outcome: "",
+    publishedAt: "",
     contentBlocks: [],
   };
 }

@@ -63,10 +63,7 @@ export type Project = {
   status: "draft" | "published";
   heroImage: string;
   publishedLabel: string;
-  metrics: string[];
-  challenge: string;
-  approach: string;
-  outcome: string;
+  publishedAt: string;
   contentBlocks: ContentBlock[];
   createdAt?: Date;
   updatedAt?: Date;

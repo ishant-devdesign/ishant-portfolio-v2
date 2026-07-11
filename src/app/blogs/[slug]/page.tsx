@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { SiteShell } from "@/components/layout/site-shell";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { BlogDetailShell } from "@/components/blogs/blog-detail-shell";
+import { StructuredData } from "@/components/seo/structured-data";
 import { getLiveBlogBySlug, getLiveBlogs, getLiveTagSuggestions } from "@/lib/content";
 import type { Metadata } from "next";
 
@@ -66,8 +67,24 @@ export default async function BlogDetailPage({
         }
       : null;
 
+  const ogImage = blog.heroImage
+    ? blog.heroImage.startsWith("http")
+      ? blog.heroImage
+      : `${baseUrl}${blog.heroImage}`
+    : `${baseUrl}/og-image.png`;
+
   return (
     <SiteShell>
+      <StructuredData
+        type="blogPosting"
+        title={blog.title}
+        description={blog.excerpt}
+        image={ogImage}
+        datePublished={blog.publishedAt}
+        dateModified={blog.updatedAt?.toISOString()}
+        tags={blog.tags}
+        url={`/blogs/${slug}`}
+      />
       <BlogDetailShell blog={blog} nextBlog={nextBlog} tagSuggestions={tagSuggestions} />
       <SiteFooter />
     </SiteShell>

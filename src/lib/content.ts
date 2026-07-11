@@ -38,13 +38,8 @@ const EMPTY_PROJECT: Project = {
   status: "draft",
   heroImage: "",
   publishedLabel: "Unset",
-  metrics: [],
-  challenge: "",
-  approach: "",
-  outcome: "",
+  publishedAt: "Draft",
   contentBlocks: [],
-  createdAt: undefined,
-  updatedAt: undefined,
 };
 
 function logFetch(scope: string, message: string, payload?: unknown) {
@@ -138,93 +133,37 @@ function mapBlogBlocksToSections(blocks: unknown): Blog["sections"] {
   return sections;
 }
 
+function parseSupabaseDate(value: string | null): Date | null {
+  if (!value) return null;
+  // Handle Supabase format: "2026-07-10 00:00:00+00" (space instead of T) and "+00" timezone
+  const normalized = value.replace(" ", "T").replace("+00", "+00:00");
+  const date = new Date(normalized);
+  return isNaN(date.getTime()) ? null : date;
+}
+
 function normalizePublishedAt(value: string | null) {
-  if (!value) return "Draft";
-  return new Date(value).toLocaleDateString("en-US", {
+  const date = parseSupabaseDate(value);
+  if (!date) return "Draft";
+  return date.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
   });
 }
 
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
 function normalizeMonthYear(value: string | null) {
-  if (!value) return "Unset";
-  return new Date(value).toLocaleDateString("en-US", {
-    month: "short",
-    year: "numeric",
-  });
+  const date = parseSupabaseDate(value);
+  if (!date) return "Unset";
+  const day = date.getUTCDate();
+  const month = MONTHS[date.getUTCMonth()];
+  const year = date.getUTCFullYear();
+  return `${day} ${month} ${year}`;
 }
 
-function normalizeProjectBlocks(row: {
-  content_blocks?: unknown;
-  challenge?: string | null;
-  approach?: string | null;
-  outcome?: string | null;
-  metrics_json?: unknown;
-}) {
-  if (Array.isArray(row.content_blocks) && row.content_blocks.length > 0) {
-    return row.content_blocks as Project["contentBlocks"];
-  }
-
-  const blocks: Project["contentBlocks"] = [];
-
-  if (row.challenge) {
-    blocks.push(
-      {
-        id: "challenge-heading",
-        type: "heading",
-        data: { level: 2, text: "Challenge" },
-      },
-      {
-        id: "challenge-body",
-        type: "paragraph",
-        data: { html: `<p>${row.challenge}</p>` },
-      },
-    );
-  }
-
-  if (row.approach) {
-    blocks.push(
-      {
-        id: "approach-heading",
-        type: "heading",
-        data: { level: 2, text: "Approach" },
-      },
-      {
-        id: "approach-body",
-        type: "paragraph",
-        data: { html: `<p>${row.approach}</p>` },
-      },
-    );
-  }
-
-  if (row.outcome) {
-    blocks.push(
-      {
-        id: "outcome-heading",
-        type: "heading",
-        data: { level: 2, text: "Outcome" },
-      },
-      {
-        id: "outcome-body",
-        type: "paragraph",
-        data: { html: `<p>${row.outcome}</p>` },
-      },
-    );
-  }
-
-  if (Array.isArray(row.metrics_json) && row.metrics_json.length > 0) {
-    blocks.push({
-      id: "metrics-list",
-      type: "list",
-      data: {
-        style: "unordered",
-        items: row.metrics_json,
-      },
-    });
-  }
-
-  return blocks;
+function normalizeProjectBlocks(row: { content_blocks?: unknown }) {
+  return Array.isArray(row.content_blocks) ? (row.content_blocks as Project["contentBlocks"]) : [];
 }
 
 function getContentClient(scope: string) {
@@ -422,10 +361,7 @@ export async function getLiveProjects(): Promise<Project[]> {
     status: row.status,
     heroImage: row.hero_image_url ?? "",
     publishedLabel: normalizeMonthYear(row.published_at),
-    metrics: Array.isArray(row.metrics_json) ? row.metrics_json : [],
-    challenge: row.challenge ?? "",
-    approach: row.approach ?? "",
-    outcome: row.outcome ?? "",
+    publishedAt: normalizePublishedAt(row.published_at),
     contentBlocks: normalizeProjectBlocks(row),
     createdAt: row.created_at ? new Date(row.created_at) : undefined,
     updatedAt: row.updated_at ? new Date(row.updated_at) : undefined,
@@ -478,10 +414,7 @@ export async function getLiveProjectBySlug(
     status: data.status,
     heroImage: data.hero_image_url ?? "",
     publishedLabel: normalizeMonthYear(data.published_at),
-    metrics: Array.isArray(data.metrics_json) ? data.metrics_json : [],
-    challenge: data.challenge ?? "",
-    approach: data.approach ?? "",
-    outcome: data.outcome ?? "",
+    publishedAt: normalizePublishedAt(data.published_at),
     contentBlocks: normalizeProjectBlocks(data),
     createdAt: data.created_at ? new Date(data.created_at) : undefined,
     updatedAt: data.updated_at ? new Date(data.updated_at) : undefined,
