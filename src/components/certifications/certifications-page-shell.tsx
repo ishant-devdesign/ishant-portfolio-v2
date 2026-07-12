@@ -19,6 +19,35 @@ import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type D
 import { arrayMove, SortableContext, useSortable, rectSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
+// ─── Mobile drag fix: delay-based activation prevents page scroll ───────────
+
+function isTouchDevice() {
+  return typeof window !== "undefined" && "ontouchstart" in window;
+}
+
+function createPointerSensorConstraints() {
+  // On touch devices (mobile), use a delay to prevent scroll hijacking.
+  // The user must hold for 250ms before drag starts, giving them time
+  // to cancel with a scroll gesture instead.
+  // Tolerance of 5px allows slight finger movement without canceling.
+  if (isTouchDevice()) {
+    return {
+      activationConstraint: {
+        delay: 250,
+        tolerance: 5,
+      },
+    };
+  }
+
+  // On desktop, use distance-based activation (8px movement before drag).
+  // This prevents accidental drags when clicking UI controls.
+  return {
+    activationConstraint: {
+      distance: 8,
+    },
+  };
+}
+
 type CertificationDraft = {
   title: string;
   issuer: string;
@@ -85,7 +114,9 @@ export function CertificationsPageShell({
     [certifications],
   );
 
-  const sensors = useSensors(useSensor(PointerSensor));
+  const sensors = useSensors(
+    useSensor(PointerSensor, createPointerSensorConstraints()),
+  );
 
   // Auto-save with debounce
   const autoSave = useCallback(

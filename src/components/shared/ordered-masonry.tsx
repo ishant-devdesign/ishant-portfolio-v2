@@ -72,6 +72,35 @@ function sameOrder<T>(a: T[], b: T[], getItemId: (item: T) => string): boolean {
   return true;
 }
 
+// ─── Mobile drag fix: delay-based activation prevents page scroll ───────────
+
+function isTouchDevice() {
+  return typeof window !== "undefined" && "ontouchstart" in window;
+}
+
+function createPointerSensorConstraints() {
+  // On touch devices (mobile), use a delay to prevent scroll hijacking.
+  // The user must hold for 250ms before drag starts, giving them time
+  // to cancel with a scroll gesture instead.
+  // Tolerance of 5px allows slight finger movement without canceling.
+  if (isTouchDevice()) {
+    return {
+      activationConstraint: {
+        delay: 250,
+        tolerance: 5,
+      },
+    };
+  }
+
+  // On desktop, use distance-based activation (8px movement before drag).
+  // This prevents accidental drags when clicking UI controls.
+  return {
+    activationConstraint: {
+      distance: 8,
+    },
+  };
+}
+
 function composeRefs<T>(
   ...refs: Array<((node: T | null) => void) | undefined>
 ) {
@@ -441,9 +470,7 @@ export function OrderedMasonry<T>({
       : -1;
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 8 },
-    }),
+    useSensor(PointerSensor, createPointerSensorConstraints()),
   );
 
   function handleDragStart(event: DragStartEvent) {
