@@ -13,6 +13,7 @@ import {
   DndContext,
   DragOverlay,
   PointerSensor,
+  TouchSensor,
   useDraggable,
   useSensor,
   useSensors,
@@ -72,33 +73,11 @@ function sameOrder<T>(a: T[], b: T[], getItemId: (item: T) => string): boolean {
   return true;
 }
 
-// ─── Mobile drag fix: delay-based activation prevents page scroll ───────────
+// ─── Mobile drag fix: use TouchSensor for native touch handling ───────────
 
 function isTouchDevice() {
-  return typeof window !== "undefined" && "ontouchstart" in window;
-}
-
-function createPointerSensorConstraints() {
-  // On touch devices (mobile), use a delay to prevent scroll hijacking.
-  // The user must hold for 250ms before drag starts, giving them time
-  // to cancel with a scroll gesture instead.
-  // Tolerance of 5px allows slight finger movement without canceling.
-  if (isTouchDevice()) {
-    return {
-      activationConstraint: {
-        delay: 250,
-        tolerance: 5,
-      },
-    };
-  }
-
-  // On desktop, use distance-based activation (8px movement before drag).
-  // This prevents accidental drags when clicking UI controls.
-  return {
-    activationConstraint: {
-      distance: 8,
-    },
-  };
+  if (typeof window === "undefined") return false;
+  return "ontouchstart" in window || navigator.maxTouchPoints > 0;
 }
 
 function composeRefs<T>(
@@ -469,8 +448,17 @@ export function OrderedMasonry<T>({
       ? draftItems.findIndex((item) => getItemId(item) === activeId)
       : -1;
 
+  // Use both PointerSensor and TouchSensor for cross-platform support
   const sensors = useSensors(
-    useSensor(PointerSensor, createPointerSensorConstraints()),
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250,
+        tolerance: 5,
+      },
+    }),
   );
 
   function handleDragStart(event: DragStartEvent) {
@@ -603,6 +591,8 @@ export function OrderedMasonry<T>({
         gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
         columnGap: `${gap}px`,
         alignItems: "start",
+        // Prevent touch scrolling during active drag on mobile
+        touchAction: activeId ? "none" : undefined,
       }}
     >
       {columns.map((columnItems, columnIndex) => (

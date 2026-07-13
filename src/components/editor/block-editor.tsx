@@ -21,6 +21,7 @@ import {
   closestCenter,
   KeyboardSensor,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
@@ -48,33 +49,11 @@ import {
 
 import { cn } from "@/lib/utils";
 
-// ─── Mobile drag fix: delay-based activation prevents page scroll ───────────
+// ─── Mobile drag fix: use TouchSensor for native touch handling ───────────
 
 function isTouchDevice() {
-  return typeof window !== "undefined" && "ontouchstart" in window;
-}
-
-function createPointerSensorConstraints() {
-  // On touch devices (mobile), use a delay to prevent scroll hijacking.
-  // The user must hold for 250ms before drag starts, giving them time
-  // to cancel with a scroll gesture instead.
-  // Tolerance of 5px allows slight finger movement without canceling.
-  if (isTouchDevice()) {
-    return {
-      activationConstraint: {
-        delay: 250,
-        tolerance: 5,
-      },
-    };
-  }
-
-  // On desktop, use distance-based activation (8px movement before drag).
-  // This prevents accidental drags when clicking UI controls.
-  return {
-    activationConstraint: {
-      distance: 8,
-    },
-  };
+  if (typeof window === "undefined") return false;
+  return "ontouchstart" in window || navigator.maxTouchPoints > 0;
 }
 
 import type { ContentBlock } from "@/lib/site-config";
@@ -2781,8 +2760,19 @@ export function BlockEditor({
 
   const nestedBlockTypes = blockTypes.filter((type) => type !== "columns-2");
 
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  // Use both PointerSensor and TouchSensor for cross-platform support
   const sensors = useSensors(
-    useSensor(PointerSensor, createPointerSensorConstraints()),
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250,
+        tolerance: 5,
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     }),
@@ -2810,6 +2800,7 @@ export function BlockEditor({
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
+    setActiveId(null);
 
     if (!over || active.id === over.id) return;
 
@@ -2832,13 +2823,20 @@ export function BlockEditor({
     <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
+      onDragStart={() => setActiveId("dragging")}
+      onDragCancel={() => setActiveId(null)}
       onDragEnd={handleDragEnd}
     >
       <SortableContext
         items={blocks.map((b) => b.id)}
         strategy={verticalListSortingStrategy}
       >
-        <div className="space-y-4 relative">
+        <div
+            className="space-y-4 relative"
+            style={{
+              touchAction: activeId ? "none" : undefined,
+            }}
+          >
           {/* Insert button at the very top — stays outside sortable (OK, nothing above it to overlap with) */}
 
           <InsertBlockMenu
