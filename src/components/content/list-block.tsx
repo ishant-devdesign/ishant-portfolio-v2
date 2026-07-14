@@ -1,3 +1,5 @@
+import { InlineContentRenderer } from "./inline-content-renderer";
+
 type ListStyle = "ordered" | "unordered" | "numbered" | "bullet" | string;
 
 export function ListBlock({
@@ -24,7 +26,7 @@ export function ListBlock({
               {String(index + 1).padStart(2, "0")}
             </span>
             <p className="text-base leading-8 text-white/64 sm:text-lg">
-              {item}
+              <InlineContentRenderer text={item} />
             </p>
           </li>
         ))}
@@ -43,7 +45,9 @@ export function ListBlock({
             className="mt-[0.82rem] size-1.5 rounded-full bg-white/34"
             aria-hidden="true"
           />
-          <p className="text-base leading-8 text-white/64 sm:text-lg">{item}</p>
+          <p className="text-base leading-8 text-white/64 sm:text-lg">
+            <InlineContentRenderer text={item} />
+          </p>
         </li>
       ))}
     </ul>

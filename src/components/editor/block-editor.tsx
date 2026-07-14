@@ -984,6 +984,7 @@ function BlockEditorContent({
             }
             placeholder="Heading text"
             className="min-h-[1lh] w-full resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
+            enableFormatToolbar
           />
         </div>
       ) : null}
@@ -1008,6 +1009,7 @@ function BlockEditorContent({
           }
           placeholder="Paragraph text"
           className="min-h-[1lh] w-full resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-3 text-sm text-white outline-none"
+          enableFormatToolbar
         />
       ) : null}
 
@@ -1108,6 +1110,7 @@ function BlockEditorContent({
                 }}
                 placeholder={`Item ${itemIndex + 1}`}
                 className="min-h-[1lh] flex-1 resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
+                enableFormatToolbar
               />
 
               <button
@@ -1170,6 +1173,7 @@ function BlockEditorContent({
             }
             placeholder="Quote text"
             className="min-h-[1lh] w-full resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-3 text-sm text-white outline-none"
+            enableFormatToolbar
           />
 
           <input
@@ -1241,6 +1245,7 @@ function BlockEditorContent({
             }
             placeholder="Callout text"
             className="min-h-[1lh] w-full resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-3 text-sm text-white outline-none"
+            enableFormatToolbar
           />
         </div>
       ) : null}
@@ -1540,6 +1545,7 @@ function BlockEditorContent({
                     }}
                     placeholder="Accordion content"
                     className="mt-3 min-h-[1lh] w-full resize-none overflow-hidden bg-transparent text-sm leading-6 text-white/68 outline-none"
+                    enableFormatToolbar
                   />
                 </div>
               ))
@@ -1878,6 +1884,7 @@ function BlockEditorContent({
                         }}
                         placeholder="Step description"
                         className="min-h-[1lh] w-full resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
+                        enableFormatToolbar
                       />
                     </div>
 
@@ -2162,6 +2169,7 @@ function BlockEditorContent({
             }
             placeholder="Description"
             className="w-full resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
+            enableFormatToolbar
           />
         </div>
       ) : null}
@@ -2311,6 +2319,7 @@ function BlockEditorContent({
                       }}
                       placeholder="Description"
                       className="w-full resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
+                      enableFormatToolbar
                     />
                   </div>
 

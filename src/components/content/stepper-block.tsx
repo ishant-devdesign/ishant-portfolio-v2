@@ -1,3 +1,5 @@
+import { InlineContentRenderer } from "./inline-content-renderer";
+
 export function StepperBlock({
   steps,
 }: {
@@ -31,13 +33,13 @@ export function StepperBlock({
             <div className={isLast ? "pb-1" : "pb-8 sm:pb-10"}>
               {step.title ? (
                 <h3 className="font-heading text-2xl leading-tight tracking-[-0.04em] text-white/90 sm:text-3xl">
-                  {step.title}
+                  <InlineContentRenderer text={step.title} />
                 </h3>
               ) : null}
 
               {step.description ? (
                 <p className="mt-3 whitespace-pre-line text-base leading-8 text-white/58 sm:text-lg">
-                  {step.description}
+                  <InlineContentRenderer text={step.description} />
                 </p>
               ) : null}
             </div>

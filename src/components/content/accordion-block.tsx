@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Plus } from "lucide-react";
 import { useState } from "react";
+import { InlineContentRenderer } from "./inline-content-renderer";
 
 export function AccordionBlock({
   items,
@@ -81,7 +82,7 @@ export function AccordionBlock({
                     transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
                     className="border-t border-white/8 px-4 py-4 text-sm leading-7 text-white/58"
                   >
-                    {item.content ?? ""}
+                    <InlineContentRenderer text={item.content ?? ""} />
                   </motion.div>
                 </motion.div>
               ) : null}

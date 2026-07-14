@@ -36,6 +36,8 @@ const variantConfig: Record<CalloutVariant, VariantConfig> = {
   },
 };
 
+import { InlineContentRenderer } from "./inline-content-renderer";
+
 export function CalloutBlock({
   variant = "note",
   title,
@@ -86,7 +88,7 @@ export function CalloutBlock({
             config.text,
           )}
         >
-          {text}
+          <InlineContentRenderer text={text} />
         </p>
       ) : null}
     </aside>

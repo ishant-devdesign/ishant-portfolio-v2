@@ -11,6 +11,7 @@ import { createPortal } from "react-dom";
 import { ListBlock } from "./list-block";
 import { StepperBlock } from "./stepper-block";
 import { LinkBlock } from "./link-block";
+import { InlineContentRenderer } from "./inline-content-renderer";
 
 function decodeHtml(input: string) {
   return input
@@ -357,7 +358,7 @@ export function BlockRenderer({ blocks }: { blocks: ContentBlock[] }) {
                         : "font-heading text-lg text-white/92"
                 }
               >
-                {text}
+                <InlineContentRenderer text={text} />
               </Tag>
             );
           }
@@ -368,7 +369,7 @@ export function BlockRenderer({ blocks }: { blocks: ContentBlock[] }) {
                 key={block.id}
                 className="text-base leading-8 text-white/60 sm:text-lg"
               >
-                {text}
+                <InlineContentRenderer text={text} />
               </p>
             );
           }
@@ -514,11 +515,11 @@ export function BlockRenderer({ blocks }: { blocks: ContentBlock[] }) {
                     </div>
                     <div className="flex-1 border-l-2 border-white/8 pl-4">
                       <p className="text-sm font-medium text-white/90">
-                        {item.title}
+                        <InlineContentRenderer text={item.title ?? ""} />
                       </p>
                       {item.description ? (
                         <p className="mt-1 text-sm text-white/60">
-                          {item.description}
+                          <InlineContentRenderer text={item.description} />
                         </p>
                       ) : null}
                     </div>
