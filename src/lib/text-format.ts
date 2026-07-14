@@ -1,47 +1,67 @@
-export type FormatType = "bold" | "italic" | "code";
+export type FormatType =
+  | "bold"
+  | "italic"
+  | "code"
+  | "highlight"
+  | "pop"
+  | "wavy";
 
-// Markers for each format type
-const FORMAT_MARKERS: Record<FormatType, string> = {
+export type FormatConfig = {
+  open: string;
+  close: string;
+  label: string;
+};
+
+export const FORMAT_CONFIG: Record<FormatType, FormatConfig> = {
+  bold: { open: "**", close: "**", label: "Bold" },
+  italic: { open: "*", close: "*", label: "Italic" },
+  code: { open: "`", close: "`", label: "Code" },
+  highlight: { open: "==", close: "==", label: "Highlight" },
+  pop: { open: "@@", close: "@@", label: "Pop" },
+  wavy: { open: "__", close: "__", label: "Wavy" },
+};
+
+export const FORMAT_MARKERS: Record<FormatType, string> = {
   bold: "**",
   italic: "*",
   code: "`",
+  highlight: "==",
+  pop: "@@",
+  wavy: "__",
 };
 
-/**
- * Apply formatting to a text selection by wrapping with markers
- */
 export function applyFormat(
   value: string,
   selectionStart: number,
   selectionEnd: number,
   format: FormatType,
 ): { newValue: string; newSelectionStart: number; newSelectionEnd: number } {
-  const marker = FORMAT_MARKERS[format];
-  const selectedText = value.substring(selectionStart, selectionEnd);
+  const { open, close } = FORMAT_CONFIG[format];
+  const selected = value.substring(selectionStart, selectionEnd);
 
-  // Check if the selected text is already wrapped with this format
   if (
-    selectedText.startsWith(marker) &&
-    selectedText.endsWith(marker) &&
-    selectedText.length > marker.length * 2
+    selected.startsWith(open) &&
+    selected.endsWith(close) &&
+    selected.length > open.length + close.length
   ) {
-    // Remove the format
-    const unwrapped = selectedText.slice(marker.length, -marker.length);
-    const newValue =
-      value.substring(0, selectionStart) + unwrapped + value.substring(selectionEnd);
-    return { newValue, newSelectionStart: selectionStart, newSelectionEnd: newValue.length };
+    const unwrapped = selected.slice(open.length, -close.length);
+    return {
+      newValue:
+        value.substring(0, selectionStart) +
+        unwrapped +
+        value.substring(selectionEnd),
+      newSelectionStart: selectionStart,
+      newSelectionEnd: selectionStart + unwrapped.length,
+    };
   }
 
-  // Apply the format
-  const wrapped = `${marker}${selectedText}${marker}`;
-  const newValue =
-    value.substring(0, selectionStart) + wrapped + value.substring(selectionEnd);
-
-  // Move cursor to after the closing marker
-  const cursorPosition = selectionStart + wrapped.length;
+  const wrapped = `${open}${selected}${close}`;
   return {
-    newValue,
-    newSelectionStart: cursorPosition,
-    newSelectionEnd: cursorPosition,
+    newValue:
+      value.substring(0, selectionStart) +
+      wrapped +
+      value.substring(selectionEnd),
+    newSelectionStart: selectionStart,
+    newSelectionEnd: selectionStart + wrapped.length,
   };
 }

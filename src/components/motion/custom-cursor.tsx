@@ -53,10 +53,7 @@ function getFullscreenElement(): Element | null {
 const EASE_OUT = [0.16, 1, 0.3, 1] as const;
 const EASE_SOFT = [0.33, 1, 0.68, 1] as const;
 
-// Tiny intent delay so skimming doesn't flash the card
 const PREVIEW_ENTER_DELAY_MS = 40;
-// Hold just long enough for the exit fade to finish — keep this short
-// so leaving a card dismisses the preview promptly.
 const PREVIEW_EXIT_MS = 220;
 
 export function CustomCursor() {
@@ -77,7 +74,6 @@ export function CustomCursor() {
 
   const enterTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const exitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Ref so the hit-test loop can read "is the card open?" without stale state
   const previewShownRef = useRef(false);
   const pointerRef = useRef({ x: -100, y: -100 });
 
@@ -91,6 +87,7 @@ export function CustomCursor() {
     damping: 24,
     mass: 0.7,
   });
+
   const orbY = useSpring(orbTargetY, {
     stiffness: 170,
     damping: 24,
@@ -162,7 +159,6 @@ export function CustomCursor() {
 
     const clearState = (hide = false) => {
       const { x, y } = pointerRef.current;
-      // Always park the orb on the last known pointer — never (0,0)/top-left
       orbTargetX.set(x);
       orbTargetY.set(y);
       applySnapshot({
@@ -191,8 +187,6 @@ export function CustomCursor() {
         return;
       }
 
-      // Prefer an explicit preview host so nested buttons don't steal the hit
-      // and clear data-cursor-preview (which used to re-enable snap mid-hover).
       const previewHost = target.closest(
         "[data-cursor-preview]",
       ) as HTMLElement | null;
@@ -213,9 +207,6 @@ export function CustomCursor() {
         ),
       );
 
-      // Never snap while a preview card is live OR still exiting — snap was
-      // yanking the orb toward element centers (often near the top of large
-      // cards) and it only "caught up" again on the next pointer move.
       const previewLock = Boolean(nextPreviewKind) || previewShownRef.current;
 
       const shouldSnap =
@@ -240,7 +231,6 @@ export function CustomCursor() {
           Math.min(nextSnapWidth, nextSnapHeight) / 2,
         );
       } else {
-        // Strict pointer follow — including all preview enter/exit frames
         orbTargetX.set(clientX);
         orbTargetY.set(clientY);
       }
@@ -278,8 +268,6 @@ export function CustomCursor() {
     const tick = () => {
       const { x, y } = pointerRef.current;
       if (x >= 0 && y >= 0) {
-        // Re-assert pointer tracking every frame so springs never drift
-        // away during preview open/close when the mouse is still.
         syncFromPoint(x, y);
       }
       rafId = window.requestAnimationFrame(tick);
@@ -317,7 +305,6 @@ export function CustomCursor() {
 
   const previewLive = active && !!previewKind && !!previewTitle;
 
-  // Debounced open + held close
   useEffect(() => {
     if (enterTimer.current) {
       clearTimeout(enterTimer.current);
@@ -378,11 +365,9 @@ export function CustomCursor() {
     if (textMode) {
       return { width: 3, height: 24, radius: 999, kind: "text" as const };
     }
-
     if (previewLive || previewShown) {
       return { width: 12, height: 12, radius: 999, kind: "preview" as const };
     }
-
     if (active && snapWidth > 0 && snapHeight > 0) {
       return {
         width: snapWidth,
@@ -391,11 +376,9 @@ export function CustomCursor() {
         kind: "snap" as const,
       };
     }
-
     if (active) {
       return { width: 16, height: 16, radius: 999, kind: "active" as const };
     }
-
     return { width: 34, height: 34, radius: 999, kind: "idle" as const };
   }, [
     active,
@@ -415,9 +398,9 @@ export function CustomCursor() {
 
   const cursorTree = (
     <>
-      {/* ── Center dot (instant pointer) ─────────────────────────── */}
+      {/* ── Center dot (instant pointer) z=9999 ── */}
       <motion.div
-        className="pointer-events-none fixed left-0 top-0 z-[360] hidden md:block"
+        className="pointer-events-none fixed left-0 top-0 z-[9999] hidden md:block"
         style={{ x: dotX, y: dotY }}
         animate={{ opacity: visible ? 1 : 0 }}
         transition={{ duration: 0.12, ease: EASE_OUT }}
@@ -441,18 +424,13 @@ export function CustomCursor() {
         />
       </motion.div>
 
-      {/* ── Outer orb (spring-follow; NEVER scaled on the positioner) ─ */}
+      {/* ── Outer orb / ring z=9998 ── */}
       <motion.div
-        className="pointer-events-none fixed left-0 top-0 z-[359] hidden md:block"
+        className="pointer-events-none fixed left-0 top-0 z-[9998] hidden md:block"
         style={{ x: orbX, y: orbY }}
         animate={{ opacity: visible ? 1 : 0 }}
         transition={{ duration: 0.2, ease: EASE_OUT }}
       >
-        {/*
-          Visual is centered with CSS translate(-50%, -50%) so Framer scale
-          on this node (if any) isn't needed — size is animated via width/height
-          only. This avoids transform-origin fights that yanked the ring upward.
-        */}
         <motion.div
           className="box-border"
           style={{
@@ -471,11 +449,7 @@ export function CustomCursor() {
               : isSnap
                 ? "rgba(0,0,0,0.35)"
                 : "rgba(0,0,0,0.28)",
-            backgroundColor: isText
-              ? "rgba(255,255,255,0.01)"
-              : isSnap
-                ? "rgba(255,255,255,0.01)"
-                : "rgba(255,255,255,0.01)",
+            backgroundColor: "rgba(255,255,255,0.01)",
             boxShadow: isText
               ? "0 0 0 1px rgba(255,255,255,0.55), 0 1px 4px rgba(0,0,0,0.2)"
               : "0 0 0 1px rgba(255,255,255,0.45), 0 2px 10px rgba(0,0,0,0.12)",
@@ -495,17 +469,11 @@ export function CustomCursor() {
         />
       </motion.div>
 
-      {/* ── Preview card (sibling of orb; same spring anchor) ─────── */}
+      {/* ── Preview card z=9998 (under dot, over toolbar) ── */}
       <motion.div
-        className="pointer-events-none fixed left-0 top-0 z-[362] hidden md:block"
+        className="pointer-events-none fixed left-0 top-0 z-[9998] hidden md:block"
         style={{ x: orbX, y: orbY }}
       >
-        {/*
-          Static CSS offset only — do NOT animate `y`/`filter` on a node that
-          shares the pointer transform chain. Nested fixed + filter was making
-          the card (and perceived ring) drift toward the top of the viewport
-          until the next mousemove re-synced springs.
-        */}
         <div
           className="pointer-events-none"
           style={{
@@ -517,14 +485,16 @@ export function CustomCursor() {
             {cardOpen && previewData ? (
               <motion.div
                 key="preview-card"
-                initial={{ opacity: 0, scale: 0.94 }}
-                animate={{ opacity: 1, scale: 1 }}
+                initial={{ opacity: 0, scale: 0.94, filter: "blur(12px)" }}
+                animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
                 exit={{
                   opacity: 0,
                   scale: 0.96,
+                  filter: "blur(12px)",
                   transition: {
                     opacity: { duration: 0.18, ease: EASE_SOFT },
                     scale: { duration: 0.18, ease: EASE_SOFT },
+                    filter: { duration: 0.2 },
                   },
                 }}
                 transition={{
@@ -535,6 +505,7 @@ export function CustomCursor() {
                     damping: 30,
                     mass: 0.7,
                   },
+                  filter: { duration: 0.25 },
                 }}
                 style={{ transformOrigin: "bottom left" }}
               >
@@ -547,10 +518,19 @@ export function CustomCursor() {
                           src={previewData.image}
                           alt=""
                           className="absolute inset-0 h-full w-full object-cover"
-                          initial={{ opacity: 0, scale: 1.04 }}
-                          animate={{ opacity: 1, scale: 1 }}
+                          initial={{
+                            opacity: 0,
+                            scale: 1.04,
+                            filter: "blur(12px)",
+                          }}
+                          animate={{
+                            opacity: 1,
+                            scale: 1,
+                            filter: "blur(0px)",
+                          }}
                           exit={{
                             opacity: 0,
+                            filter: "blur(8px)",
                             transition: { duration: 0.22, ease: EASE_SOFT },
                           }}
                           transition={{ duration: 0.4, ease: EASE_OUT }}
@@ -565,11 +545,12 @@ export function CustomCursor() {
                       <AnimatePresence mode="wait" initial={false}>
                         <motion.div
                           key={`${previewData.kind}-${previewData.title}`}
-                          initial={{ opacity: 0, y: 6 }}
-                          animate={{ opacity: 1, y: 0 }}
+                          initial={{ opacity: 0, y: 6, filter: "blur(8px)" }}
+                          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                           exit={{
                             opacity: 0,
                             y: -3,
+                            filter: "blur(6px)",
                             transition: { duration: 0.16, ease: EASE_SOFT },
                           }}
                           transition={{
