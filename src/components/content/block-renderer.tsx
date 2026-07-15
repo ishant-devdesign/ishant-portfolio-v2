@@ -1,3 +1,5 @@
+"use client";
+
 import type { ContentBlock } from "@/lib/site-config";
 import type { CalloutVariant } from "@/components/content/callout-block";
 import { AccordionBlock } from "@/components/content/accordion-block";
@@ -5,13 +7,14 @@ import { CalloutBlock } from "@/components/content/callout-block";
 import { QuoteBlock } from "@/components/content/quote-block";
 import { CodeBlock } from "@/components/content/code-block";
 import { CustomVideoPlayer } from "@/components/ui/custom-video-player";
-import { Maximize2, X, ArrowLeft, ArrowRight } from "lucide-react";
+import { X, ArrowLeft, ArrowRight } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { ListBlock } from "./list-block";
 import { StepperBlock } from "./stepper-block";
 import { LinkBlock } from "./link-block";
 import { InlineContentRenderer } from "./inline-content-renderer";
+import { ArticleAITools } from "./article-ai-bar";
 
 function decodeHtml(input: string) {
   return input
@@ -29,39 +32,25 @@ function getParagraphText(block: ContentBlock) {
   return html.replace(/<[^>]+>/g, "").trim();
 }
 
-// Extract YouTube video ID from various URL formats
 function getYouTubeVideoId(url: string): string | null {
   if (!url) return null;
-
-  // Handle youtu.be short URLs
   const shortMatch = url.match(/youtu\.be\/([^?&]+)/);
   if (shortMatch) return shortMatch[1];
-
-  // Handle youtube.com regular URLs
   const regularMatch = url.match(/youtube\.com\/watch\?v=([^?&]+)/);
   if (regularMatch) return regularMatch[1];
-
-  // Handle youtube.com embed URLs
   const embedMatch = url.match(/youtube\.com\/embed\/([^?&]+)/);
   if (embedMatch) return embedMatch[1];
-
-  // Handle youtube.com shorts URLs
   const shortsMatch = url.match(/youtube\.com\/shorts\/([^?&]+)/);
   if (shortsMatch) return shortsMatch[1];
-
-  // Handle m.youtube.com mobile URLs
   const mobileMatch = url.match(/m\.youtube\.com\/watch\?v=([^?&]+)/);
   if (mobileMatch) return mobileMatch[1];
-
   return null;
 }
 
-// Check if URL is a YouTube URL
 function isYouTubeUrl(url: string): boolean {
   return /youtube\.com|youtu\.be/.test(url);
 }
 
-// Lightbox component using createPortal like the pets page
 function ImageLightbox({
   images,
   activeIndex,
@@ -77,33 +66,25 @@ function ImageLightbox({
 
   useEffect(() => {
     if (activeIndex === null) return;
-
     previousOverflow.current = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         onClose();
         return;
       }
-
       if (images.length <= 1) return;
-
       if (activeIndex === null) return;
-
       if (event.key === "ArrowLeft") {
         event.preventDefault();
         onChangeIndex((activeIndex - 1 + images.length) % images.length);
       }
-
       if (event.key === "ArrowRight") {
         event.preventDefault();
         onChangeIndex((activeIndex + 1) % images.length);
       }
     }
-
     window.addEventListener("keydown", handleKeyDown);
-
     return () => {
       document.body.style.overflow = previousOverflow.current;
       window.removeEventListener("keydown", handleKeyDown);
@@ -124,13 +105,11 @@ function ImageLightbox({
       onChangeIndex(activeIndex - 1);
     }
   };
-
   const goToNext = () => {
     if (activeIndex < images.length - 1) {
       onChangeIndex(activeIndex + 1);
     }
   };
-
   const image = images[activeIndex];
 
   return createPortal(
@@ -202,7 +181,6 @@ function ImageLightbox({
   );
 }
 
-// ImageBlock component with lightbox support
 function ImageBlock({
   block,
   onLightboxOpen,
@@ -238,7 +216,6 @@ function ImageBlock({
   );
 }
 
-// VideoBlock component with YouTube support
 function VideoBlock({ block }: { block: ContentBlock }) {
   const url = String(block.data?.url ?? "");
   const caption = String(block.data?.caption ?? "");
@@ -272,10 +249,15 @@ function VideoBlock({ block }: { block: ContentBlock }) {
   );
 }
 
-export function BlockRenderer({ blocks }: { blocks: ContentBlock[] }) {
+export function BlockRenderer({
+  blocks,
+  isRoot = true,
+}: {
+  blocks: ContentBlock[];
+  isRoot?: boolean;
+}) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
-  // Collect all images from image blocks and gallery blocks
   const allImages = blocks.flatMap((block) => {
     if (block.type === "image") {
       const url = String(block.data?.url ?? "");
@@ -307,7 +289,6 @@ export function BlockRenderer({ blocks }: { blocks: ContentBlock[] }) {
     return [];
   });
 
-  // Determine which image block maps to which lightbox index
   const imageLightboxMap: number[] = [];
   let currentLightboxIndex = 0;
   blocks.forEach((block) => {
@@ -322,16 +303,22 @@ export function BlockRenderer({ blocks }: { blocks: ContentBlock[] }) {
         ? (block.data.images as Array<{ url?: string }>)
         : [];
       const count = images.filter((img) => img.url).length;
-      imageLightboxMap.push(-1); // gallery doesn't trigger lightbox individually in this implementation
+      imageLightboxMap.push(-1);
       currentLightboxIndex += count;
     }
   });
 
-  // Track image block index for lightbox
   let imageBlockIndex = -1;
+
+  // Extract title from first heading for AI bar
+  const firstHeading = blocks.find((b) => b.type === "heading");
+  const title = firstHeading
+    ? String(firstHeading.data?.text ?? "")
+    : undefined;
 
   return (
     <div className="space-y-10">
+      {isRoot ? <ArticleAITools blocks={blocks} title={title} /> : null}
       {blocks.map((block) => {
         switch (block.type) {
           case "heading": {
@@ -377,9 +364,7 @@ export function BlockRenderer({ blocks }: { blocks: ContentBlock[] }) {
             const items = Array.isArray(block.data?.items)
               ? (block.data.items as unknown[]).map((item) => String(item))
               : [];
-
             const style = String(block.data?.style ?? "unordered");
-
             return <ListBlock key={block.id} items={items} style={style} />;
           }
           case "stepper": {
@@ -389,7 +374,6 @@ export function BlockRenderer({ blocks }: { blocks: ContentBlock[] }) {
                   description?: string;
                 }>)
               : [];
-
             return <StepperBlock key={block.id} steps={steps} />;
           }
           case "image": {
@@ -467,7 +451,6 @@ export function BlockRenderer({ blocks }: { blocks: ContentBlock[] }) {
             const url = String(block.data?.url ?? "");
             const title = String(block.data?.title ?? "");
             const description = String(block.data?.description ?? "");
-
             return (
               <LinkBlock
                 key={block.id}
@@ -542,10 +525,10 @@ export function BlockRenderer({ blocks }: { blocks: ContentBlock[] }) {
                 data-columns-container
               >
                 <div className="space-y-10">
-                  <BlockRenderer blocks={leftBlocks} />
+                  <BlockRenderer blocks={leftBlocks} isRoot={false} />
                 </div>
                 <div className="space-y-10">
-                  <BlockRenderer blocks={rightBlocks} />
+                  <BlockRenderer blocks={rightBlocks} isRoot={false} />
                 </div>
               </div>
             );
@@ -585,7 +568,7 @@ export function BlockRenderer({ blocks }: { blocks: ContentBlock[] }) {
                           key={`${block.id}-${header}`}
                           className="border-b border-white/10 px-4 py-3 text-white/82"
                         >
-                          {header}
+                          <InlineContentRenderer text={header} />
                         </th>
                       ))}
                     </tr>
@@ -598,7 +581,7 @@ export function BlockRenderer({ blocks }: { blocks: ContentBlock[] }) {
                             key={`${block.id}-cell-${rowIndex}-${cellIndex}`}
                             className="border-t border-white/8 px-4 py-3"
                           >
-                            {cell}
+                            <InlineContentRenderer text={cell} />
                           </td>
                         ))}
                       </tr>

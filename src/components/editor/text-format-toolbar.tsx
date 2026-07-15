@@ -76,23 +76,43 @@ export function TextFormatToolbar({
       setCoords(null);
       return;
     }
+
     const compute = () => {
       const el = toolbarRef.current;
       if (!el) return;
       const tbRect = el.getBoundingClientRect();
       const pad = 8;
       const gapBelow = 14;
+
       let top = selectionRect.top + gapBelow;
       let left = selectionRect.left - tbRect.width / 2;
-      left = Math.max(
-        pad,
-        Math.min(left, window.innerWidth - tbRect.width - pad),
-      );
+
+      // Edge detection for horizontal positioning
+      const minLeft = pad;
+      const maxLeft = window.innerWidth - tbRect.width - pad;
+
+      // If pill would overflow right edge, align to right
+      if (left > maxLeft) {
+        left = maxLeft;
+      }
+      // If pill would overflow left edge, align to left
+      else if (left < minLeft) {
+        left = minLeft;
+      }
+
+      // If pill is wider than viewport, pin to left edge
+      if (tbRect.width > window.innerWidth - pad * 2) {
+        left = minLeft;
+      }
+
+      left = Math.max(minLeft, Math.min(left, maxLeft));
+
       const maxTop = window.innerHeight - tbRect.height - pad;
       top = Math.min(top, maxTop);
       top = Math.max(pad, top);
       setCoords({ top, left });
     };
+
     compute();
     const raf1 = requestAnimationFrame(compute);
     const raf2 = requestAnimationFrame(compute);

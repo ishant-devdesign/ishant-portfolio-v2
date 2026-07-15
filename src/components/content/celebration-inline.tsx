@@ -15,17 +15,47 @@ function extractText(nodes: React.ReactNode): string {
 }
 
 type Props = { children: React.ReactNode };
+type Dot = {
+  id: number;
+  leftPercent: number;
+  x: number;
+  y: number;
+  size: number;
+  delay: number;
+  bg: string;
+  shadow: string;
+};
 
-const DOT_COLORS = [
-  "bg-white",
-  "bg-amber-300",
-  "bg-yellow-200",
-  "bg-amber-200",
+const DOT_STYLES = [
+  {
+    bg: "radial-gradient(circle at 32% 28%, #fef08a 0%, #facc15 38%, #eab308 100%)",
+    shadow: "0 0 10px rgba(250,204,21,0.6)",
+  },
+  {
+    bg: "radial-gradient(circle at 32% 28%, #fed7aa 0%, #fb923c 42%, #ea580c 100%)",
+    shadow: "0 0 10px rgba(251,146,60,0.6)",
+  },
+  {
+    bg: "radial-gradient(circle at 32% 28%, #fbcfe8 0%, #ec4899 45%, #be185d 100%)",
+    shadow: "0 0 10px rgba(236,72,153,0.6)",
+  },
+  {
+    bg: "radial-gradient(circle at 32% 28%, #a5f3fc 0%, #06b6d4 45%, #0891b2 100%)",
+    shadow: "0 0 10px rgba(6,182,214,0.55)",
+  },
+  {
+    bg: "radial-gradient(circle at 32% 28%, #c4b5fd 0%, #a855f7 48%, #7e22ce 100%)",
+    shadow: "0 0 10px rgba(168,85,247,0.55)",
+  },
+  {
+    bg: "radial-gradient(circle at 32% 28%, #bbf7d0 0%, #4ade80 45%, #16a34a 100%)",
+    shadow: "0 0 10px rgba(74,222,128,0.5)",
+  },
 ];
-const GRADIENT =
-  "linear-gradient(90deg, #fef3c7 0%, #fde68a 25%, #fbbf24 55%, #f59e0b 85%, #d97706 100%)";
 
-// POP - single gradient across whole text, dots follow each jumping letter
+const GRADIENT =
+  "linear-gradient(90deg, #06b6d4 0%, #facc15 22%, #fb923c 42%, #f43f5e 68%, #a855f7 88%, #ec4899 100%)";
+
 export function PopCelebration({ children }: Props) {
   const ref = useRef<HTMLSpanElement>(null);
   const isInView = useInView(ref, { once: true, margin: "0px 0px -12% 0px" });
@@ -33,8 +63,49 @@ export function PopCelebration({ children }: Props) {
   const plain = useMemo(() => extractText(children), [children]);
   const letters = plain.split("");
 
+  const dots: Dot[] = useMemo(() => {
+    const allDots: Dot[] = [];
+    let dotId = 0;
+    letters.forEach((char, i) => {
+      if (char === " ") return;
+      const count = Math.random() > 0.5 ? 2 : 1;
+      for (let j = 0; j < count; j++) {
+        const basePercent =
+          letters.length > 1 ? (i / (letters.length - 1)) * 100 : 50;
+        const style = DOT_STYLES[Math.floor(Math.random() * DOT_STYLES.length)];
+        allDots.push({
+          id: dotId++,
+          leftPercent: Math.max(
+            3,
+            Math.min(97, basePercent + (Math.random() - 0.5) * 8),
+          ),
+          x: (Math.random() - 0.5) * 36,
+          y: -(14 + Math.random() * 28),
+          size: 5 + Math.random() * 3.2,
+          delay: i * 0.04 + 0.18 + Math.random() * 0.04,
+          bg: style.bg,
+          shadow: style.shadow,
+        });
+      }
+    });
+    while (allDots.length < 10) {
+      const style = DOT_STYLES[Math.floor(Math.random() * DOT_STYLES.length)];
+      allDots.push({
+        id: dotId++,
+        leftPercent: 10 + Math.random() * 80,
+        x: (Math.random() - 0.5) * 30,
+        y: -(12 + Math.random() * 24),
+        size: 4 + Math.random() * 2.5,
+        delay: Math.random() * 0.2,
+        bg: style.bg,
+        shadow: style.shadow,
+      });
+    }
+    return allDots;
+  }, [plain, letters]);
+
   return (
-    <span ref={ref} className="relative inline-block">
+    <span ref={ref} className="relative inline-block overflow-visible">
       <span className="inline-block">
         {plain ? (
           letters.map((letter, i) => {
@@ -47,108 +118,84 @@ export function PopCelebration({ children }: Props) {
             }
             const bgPos =
               letters.length > 1 ? (i / (letters.length - 1)) * 100 : 0;
-            // 1-2 dots per letter, moves with that letter
-            const dotsForLetter = letter === " " ? 0 : i % 3 === 0 ? 2 : 1;
-
             return (
-              <span key={`${letter}-${i}`} className="relative inline-block">
-                <motion.span
-                  className="inline-block will-change-transform bg-clip-text text-transparent"
-                  style={{
-                    backgroundImage: GRADIENT,
-                    backgroundSize: `${Math.max(100, letters.length * 100)}% 100%`,
-                    backgroundPosition: `${bgPos}% 0%`,
-                    WebkitBackgroundClip: "text",
-                    backgroundClip: "text",
-                  }}
-                  initial={{ y: 0, scale: 1 }}
-                  animate={
-                    isInView ? { y: [0, -14, 0], scale: [1, 1.2, 1] } : {}
-                  }
-                  transition={{
-                    delay: i * 0.04,
-                    duration: 0.52,
-                    ease: [0.34, 1.56, 0.64, 1],
-                  }}
-                >
-                  {letter}
-                </motion.span>
-
-                {/* Dots that follow this letter's jump */}
-                {Array.from({ length: dotsForLetter }).map((_, dotIdx) => {
-                  const color =
-                    DOT_COLORS[Math.floor(Math.random() * DOT_COLORS.length)];
-                  const x = (Math.random() - 0.5) * 32;
-                  const y = -(Math.random() * 28 + 8);
-                  const size = Math.random() * 2.4 + 1.4;
-                  return (
-                    <motion.span
-                      key={`dot-${i}-${dotIdx}`}
-                      className={`pointer-events-none absolute z-10 rounded-full ${color}`}
-                      style={{
-                        left: "50%",
-                        top: "8%",
-                        width: size,
-                        height: size,
-                        marginLeft: -size / 2,
-                      }}
-                      initial={{ x: 0, y: 0, scale: 0, opacity: 0 }}
-                      animate={
-                        isInView
-                          ? {
-                              x: x,
-                              y: y,
-                              scale: [0, 1.2, 0],
-                              opacity: [0, 1, 0],
-                            }
-                          : { x: 0, y: 0, scale: 0, opacity: 0 }
-                      }
-                      transition={{
-                        // Sync with letter jump: same delay as letter
-                        delay: i * 0.04 + 0.12 + dotIdx * 0.04,
-                        duration: 0.6,
-                        ease: [0.22, 1, 0.36, 1],
-                      }}
-                    />
-                  );
-                })}
-              </span>
+              <motion.span
+                key={`${letter}-${i}`}
+                className="inline-block will-change-transform bg-clip-text text-transparent"
+                style={{
+                  backgroundImage: GRADIENT,
+                  backgroundSize: `${Math.max(100, letters.length * 100)}% 100%`,
+                  backgroundPosition: `${bgPos}% 0%`,
+                  WebkitBackgroundClip: "text",
+                  backgroundClip: "text",
+                }}
+                initial={{ y: 0, scale: 1 }}
+                animate={
+                  isInView ? { y: [0, -12, 0], scale: [1, 1.18, 1] } : {}
+                }
+                transition={{
+                  delay: i * 0.04,
+                  duration: 0.46,
+                  ease: [0.25, 0.46, 0.45, 0.94] as any,
+                }}
+              >
+                {letter}
+              </motion.span>
             );
           })
         ) : (
-          <span className="relative inline-block">
-            <motion.span
-              className="inline-block bg-clip-text text-transparent"
-              style={{
-                backgroundImage: GRADIENT,
-                WebkitBackgroundClip: "text",
-                backgroundClip: "text",
-              }}
-              initial={{ y: 0, scale: 1 }}
-              animate={isInView ? { y: [0, -14, 0], scale: [1, 1.2, 1] } : {}}
-              transition={{ duration: 0.52, ease: [0.34, 1.56, 0.64, 1] }}
-            >
-              {children}
-            </motion.span>
-            {/* Fallback single dot */}
-            <motion.span
-              className="pointer-events-none absolute left-1/2 top-[10%] size-2 rounded-full bg-amber-200"
-              initial={{ x: 0, y: 0, scale: 0, opacity: 0 }}
-              animate={
-                isInView
-                  ? { x: 0, y: -20, scale: [0, 1, 0], opacity: [0, 1, 0] }
-                  : {}
-              }
-              transition={{ delay: 0.2, duration: 0.6 }}
-            />
-          </span>
+          <motion.span
+            className="inline-block bg-clip-text text-transparent"
+            style={{
+              backgroundImage: GRADIENT,
+              WebkitBackgroundClip: "text",
+              backgroundClip: "text",
+            }}
+            initial={{ y: 0, scale: 1 }}
+            animate={isInView ? { y: [0, -12, 0], scale: [1, 1.18, 1] } : {}}
+            transition={{
+              duration: 0.46,
+              ease: [0.25, 0.46, 0.45, 0.94] as any,
+            }}
+          >
+            {children}
+          </motion.span>
         )}
       </span>
+
+      {/* Better confetti - glossy 3D dots with highlight */}
+      {dots.map((d) => (
+        <motion.span
+          key={d.id}
+          className="pointer-events-none absolute z-10 rounded-full"
+          style={{
+            left: `${d.leftPercent}%`,
+            top: "20%",
+            width: d.size,
+            height: d.size,
+            background: d.bg,
+            boxShadow: d.shadow,
+          }}
+          initial={{ x: 0, y: 0, scale: 0, opacity: 0 }}
+          animate={
+            isInView
+              ? { x: d.x, y: d.y, scale: [0, 1.2, 0], opacity: [0, 1, 0] }
+              : { x: 0, y: 0, scale: 0, opacity: 0 }
+          }
+          transition={{
+            delay: d.delay,
+            duration: 0.72,
+            ease: [0.22, 1, 0.36, 1] as any,
+          }}
+        >
+          {/* inner glossy highlight */}
+          <span className="absolute left-[22%] top-[18%] size-[38%] rounded-full bg-white/75 blur-[0.2px]" />
+        </motion.span>
+      ))}
     </span>
   );
 }
 
-// WAVY - single line, really wavy with random highs/lows/phases/frequency, organic pen, ease [1,0,0.39,0.91]
 export function WavyCelebration({ children }: Props) {
   const ref = useRef<HTMLSpanElement>(null);
   const isInView = useInView(ref, { once: true, margin: "0px 0px -10% 0px" });
