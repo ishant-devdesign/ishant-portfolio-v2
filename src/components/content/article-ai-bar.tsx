@@ -148,11 +148,11 @@ export function ArticleAITools({
         {/* Copy link */}
         <div className="relative group">
           <button
-            onClick={() => copyText(currentUrl)}
+            onClick={() => copyText(currentUrl, "copy-link")}
             className="inline-flex h-8 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.06] px-3 text-[11px] font-medium text-white/70 hover:bg-white/[0.12] hover:text-white transition-colors"
           >
             <Link2 className="size-3.5" />
-            Copy link
+            {copied === "copy-link" ? "Copied" : "Copy link"}
           </button>
           <div className="pointer-events-none absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-full bg-black/90 border border-white/10 px-2.5 py-1 text-[11px] text-white/80 group-hover:block z-50">
             {copied === "copy-link" ? "Copied!" : "Copy link"}
@@ -170,19 +170,19 @@ export function ArticleAITools({
                     url: currentUrl,
                   });
                 } catch {
-                  copyText(currentUrl);
+                  copyText(currentUrl, "share");
                 }
               } else {
-                copyText(currentUrl);
+                copyText(currentUrl, "share");
               }
             }}
             className="inline-flex h-8 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.06] px-3 text-[11px] font-medium text-white/70 hover:bg-white/[0.12] hover:text-white transition-colors"
           >
             <Share2 className="size-3.5" />
-            Share
+            {copied === "share" ? "Copied" : "Share"}
           </button>
           <div className="pointer-events-none absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-full bg-black/90 border border-white/10 px-2.5 py-1 text-[11px] text-white/80 group-hover:block z-50">
-            Share article
+            {copied === "share" ? "Copied!" : "Share article"}
           </div>
         </div>
 
@@ -193,9 +193,7 @@ export function ArticleAITools({
           <div key={p.id} className="relative group">
             <button
               onClick={() => {
-                copyText(currentUrl);
-                setCopied(p.id);
-                setTimeout(() => setCopied(null), 2500);
+                copyText(currentUrl, p.id);
                 window.open(
                   p.getUrl(currentUrl),
                   "_blank",
