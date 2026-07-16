@@ -76,7 +76,7 @@ export function BlogsArchivePage({ blogs }: { blogs: Blog[] }) {
                 onClick={() => setActiveTag(tag)}
                 className={cn(
                   buttonClasses({
-                    tone: isActive ? "selected" : "inverted",
+                    tone: isActive ? "inverted" : "muted",
                     size: "xs",
                   }),
                 )}
