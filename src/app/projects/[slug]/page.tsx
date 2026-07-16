@@ -84,9 +84,9 @@ export default async function ProjectDetailPage({
         description={project.summary}
         image={ogImage}
         datePublished={project.publishedAtIso || undefined}
-        dateModified={project.updatedAt?.toISOString()}
         tags={project.tags}
         url={`/projects/${slug}`}
+        personId={`${baseUrl}#person`}
       />
       <ProjectDetailShell project={project} nextProject={nextProject} tagSuggestions={tagSuggestions} />
       <SiteFooter />

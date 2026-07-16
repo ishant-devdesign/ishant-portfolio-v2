@@ -10,6 +10,7 @@ export function StructuredData({
   tags,
   authorName = "Ishant Kumar",
   url,
+  personId,
 }: {
   type: StructuredDataType;
   title: string;
@@ -20,6 +21,7 @@ export function StructuredData({
   tags?: string[];
   authorName?: string;
   url: string;
+  personId?: string;
 }) {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://ishant-devdesign.vercel.app";
   const fullUrl = url.startsWith("http") ? url : `${baseUrl}${url}`;
@@ -58,11 +60,13 @@ export function StructuredData({
         ...(image && { "image": image }),
         ...(datePublished && { "datePublished": datePublished }),
         ...(dateModified && { "dateModified": dateModified }),
-        "author": {
-          "@type": "Person",
-          "name": authorName,
-          "url": baseUrl,
-        },
+        "author": personId
+        ? { "@id": personId }
+        : {
+            "@type": "Person",
+            "name": authorName,
+            "url": baseUrl,
+          },
         "publisher": {
           "@type": "Organization",
           "name": siteName,
@@ -87,11 +91,13 @@ export function StructuredData({
         ...(image && { "image": image }),
         ...(datePublished && { "datePublished": datePublished }),
         ...(dateModified && { "dateModified": dateModified }),
-        "creator": {
-          "@type": "Person",
-          "name": authorName,
-          "url": baseUrl,
-        },
+        "creator": personId
+        ? { "@id": personId }
+        : {
+            "@type": "Person",
+            "name": authorName,
+            "url": baseUrl,
+          },
         ...(tags && tags.length > 0 && { "keywords": tags.join(", ") }),
       };
 

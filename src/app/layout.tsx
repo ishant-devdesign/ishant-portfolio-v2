@@ -209,6 +209,7 @@ export default async function RootLayout({
   const personSchema = {
     "@context": "https://schema.org",
     "@type": "Person",
+    "@id": `${baseUrl}#person`,
     name: siteSettings.siteName,
     url: baseUrl,
     description: siteSettings.heroSubheading,

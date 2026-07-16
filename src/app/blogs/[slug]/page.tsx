@@ -86,6 +86,7 @@ export default async function BlogDetailPage({
         datePublished={blog.publishedAtIso}
         tags={blog.tags}
         url={`/blogs/${slug}`}
+        personId={`${baseUrl}#person`}
       />
       <BlogDetailShell blog={blog} nextBlog={nextBlog} tagSuggestions={tagSuggestions} />
       <SiteFooter />
