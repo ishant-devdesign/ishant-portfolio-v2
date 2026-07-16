@@ -171,7 +171,7 @@ export const metadata: Metadata = {
     apple: "/apple-touch-icon.png",
   },
 
-  manifest: "/manifest.json",
+  manifest: "/site.webmanifest",
 
   appleWebApp: {
     capable: true,
@@ -194,6 +194,27 @@ export default async function RootLayout({
     getAdminContext(),
   ]);
 
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://ishant-devdesign.vercel.app";
+
+  // Build social profile URLs array for Person schema
+  const socialUrls = [
+    siteSettings.linkedinUrl,
+    siteSettings.githubUrl,
+    siteSettings.twitterUrl,
+    siteSettings.instagramUrl,
+    siteSettings.dribbbleUrl,
+    siteSettings.behanceUrl,
+  ].filter((url): url is string => Boolean(url && url.trim() && url.trim() !== "#"));
+
+  const personSchema = {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: siteSettings.siteName,
+    url: baseUrl,
+    description: siteSettings.heroSubheading,
+    sameAs: socialUrls,
+  };
+
   return (
     <html
       lang="en"
@@ -212,6 +233,10 @@ export default async function RootLayout({
         <meta
           name="google-site-verification"
           content="yb5Bk1bP-DkPPiMJKJ5nsJl8I8uZgaKm5RzmZlZcFiY"
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(personSchema) }}
         />
       </head>
       <body className="min-h-full bg-[#050505] font-sans text-white antialiased">

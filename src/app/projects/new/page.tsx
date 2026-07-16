@@ -3,8 +3,17 @@ import { SiteFooter } from "@/components/layout/site-footer";
 import { ProjectDetailShell } from "@/components/projects/project-detail-shell";
 import { createEmptyProject } from "@/lib/editor";
 import { getLiveTagSuggestions } from "@/lib/content";
+import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+  },
+  title: "New Project — Ishant Kumar",
+};
 
 export default async function NewProjectPage() {
   const tagSuggestions = await getLiveTagSuggestions();

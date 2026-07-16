@@ -1,6 +1,7 @@
 import { BlogsArchivePage } from "@/components/blogs/blogs-archive-page";
 import { SiteShell } from "@/components/layout/site-shell";
 import { SiteFooter } from "@/components/layout/site-footer";
+import { StructuredData } from "@/components/seo/structured-data";
 import { getLiveBlogs } from "@/lib/content";
 import type { Metadata } from "next";
 
@@ -33,6 +34,12 @@ export default async function BlogsPage() {
 
   return (
     <SiteShell>
+      <StructuredData
+        type="webSite"
+        title="Blog — Ishant Kumar"
+        description="Thoughts on frontend development, UI/UX design, and building thoughtful digital experiences."
+        url="/blogs"
+      />
       <BlogsArchivePage blogs={blogs} />
       <SiteFooter />
     </SiteShell>

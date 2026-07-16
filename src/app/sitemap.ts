@@ -35,17 +35,31 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
 
     {
-      url: `${baseUrl}/pets`,
+      url: `${baseUrl}/certifications`,
       lastModified: new Date(),
       changeFrequency: "monthly",
       priority: 0.7,
     },
 
     {
-      url: `${baseUrl}/api/docs`,
+      url: `${baseUrl}/archive`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+
+    {
+      url: `${baseUrl}/pets`,
       lastModified: new Date(),
       changeFrequency: "monthly",
       priority: 0.6,
+    },
+
+    {
+      url: `${baseUrl}/api/docs`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.5,
     },
   ];
 

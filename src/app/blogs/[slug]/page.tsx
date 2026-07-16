@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { SiteShell } from "@/components/layout/site-shell";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { BlogDetailShell } from "@/components/blogs/blog-detail-shell";
+import { StructuredData } from "@/components/seo/structured-data";
 import { getLiveBlogBySlug, getLiveBlogs, getLiveTagSuggestions } from "@/lib/content";
 import type { Metadata } from "next";
 
@@ -21,36 +22,6 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       : `${baseUrl}${blog.heroImage}`
     : `${baseUrl}/og-image.png`;
 
-  // Create JSON-LD structured data for head injection
-  const structuredData = {
-    "@context": "https://schema.org",
-    "@type": "BlogPosting",
-    "mainEntityOfPage": {
-      "@type": "WebPage",
-      "@id": `${baseUrl}/blogs/${slug}`,
-    },
-    "headline": blog.title,
-    "description": blog.excerpt,
-    "image": ogImage,
-    ...(blog.publishedAtIso && { "datePublished": blog.publishedAtIso }),
-    "author": {
-      "@type": "Person",
-      "name": "Ishant Kumar",
-      "url": baseUrl,
-    },
-    "publisher": {
-      "@type": "Organization",
-      "name": "Ishant Kumar",
-      "logo": {
-        "@type": "ImageObject",
-        "url": `${baseUrl}/og-image.png`,
-        "width": 1200,
-        "height": 630,
-      },
-    },
-    ...(blog.tags && blog.tags.length > 0 && { "keywords": blog.tags.join(", ") }),
-  };
-
   return {
     title: `${blog.title} — Ishant Kumar`,
     description: blog.excerpt,
@@ -67,9 +38,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       description: blog.excerpt,
       images: [ogImage],
     },
-    // Inject structured data into head as JSON-LD
-    other: {
-      "ld+json": JSON.stringify(structuredData),
+    alternates: {
+      canonical: `/blogs/${slug}`,
     },
   };
 }
@@ -88,6 +58,12 @@ export default async function BlogDetailPage({
 
   if (!blog) notFound();
 
+  const ogImage = blog.heroImage
+    ? blog.heroImage.startsWith("http")
+      ? blog.heroImage
+      : `${baseUrl}${blog.heroImage}`
+    : `${baseUrl}/og-image.png`;
+
   const publishedBlogs = blogs.filter((item) => item.status === "published");
   const currentIndex = publishedBlogs.findIndex((item) => item.slug === blog.slug);
   const nextBlog =
@@ -102,6 +78,15 @@ export default async function BlogDetailPage({
 
   return (
     <SiteShell>
+      <StructuredData
+        type="blogPosting"
+        title={blog.title}
+        description={blog.excerpt}
+        image={ogImage}
+        datePublished={blog.publishedAtIso}
+        tags={blog.tags}
+        url={`/blogs/${slug}`}
+      />
       <BlogDetailShell blog={blog} nextBlog={nextBlog} tagSuggestions={tagSuggestions} />
       <SiteFooter />
     </SiteShell>

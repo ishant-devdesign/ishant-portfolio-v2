@@ -1,6 +1,7 @@
 import { SiteShell } from "@/components/layout/site-shell";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { PetsPageShell } from "@/components/pets/pets-page-shell";
+import { StructuredData } from "@/components/seo/structured-data";
 import { getLivePets } from "@/lib/content";
 
 import type { Metadata } from "next";
@@ -34,6 +35,12 @@ export default async function PetsPage() {
 
   return (
     <SiteShell>
+      <StructuredData
+        type="webSite"
+        title="Pets — Ishant Kumar"
+        description="A collection of pet photos and stories."
+        url="/pets"
+      />
       <PetsPageShell initialPets={pets} />
       <SiteFooter />
     </SiteShell>

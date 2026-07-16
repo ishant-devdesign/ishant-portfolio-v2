@@ -30,12 +30,16 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       description: project.summary,
       images: [{ url: ogImage }],
       type: "article",
+      ...(project.publishedAtIso && { publishedTime: project.publishedAtIso }),
     },
     twitter: {
       card: "summary_large_image",
       title: project.title,
       description: project.summary,
       images: [ogImage],
+    },
+    alternates: {
+      canonical: `/projects/${slug}`,
     },
   };
 }

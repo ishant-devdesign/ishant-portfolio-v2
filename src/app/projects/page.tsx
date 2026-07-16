@@ -1,6 +1,7 @@
 import { ProjectsArchivePage } from "@/components/projects/projects-archive-page";
 import { SiteShell } from "@/components/layout/site-shell";
 import { SiteFooter } from "@/components/layout/site-footer";
+import { StructuredData } from "@/components/seo/structured-data";
 import { getLiveProjects } from "@/lib/content";
 import type { Metadata } from "next";
 
@@ -33,6 +34,12 @@ export default async function ProjectsPage() {
 
   return (
     <SiteShell>
+      <StructuredData
+        type="webSite"
+        title="Projects — Ishant Kumar"
+        description="Selected frontend projects showcasing React, Next.js, and UI/UX design work."
+        url="/projects"
+      />
       <ProjectsArchivePage projects={projects} />
       <SiteFooter />
     </SiteShell>

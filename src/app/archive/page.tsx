@@ -1,6 +1,7 @@
 import { SiteShell } from "@/components/layout/site-shell";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { ArchivePageShell } from "@/components/archive/archive-page-shell";
+import { StructuredData } from "@/components/seo/structured-data";
 import { getLiveCreativeArchive } from "@/lib/content";
 
 import type { Metadata } from "next";
@@ -37,6 +38,12 @@ export default async function ArchivePage() {
 
   return (
     <SiteShell>
+      <StructuredData
+        type="webSite"
+        title="Creative Archive — Ishant Kumar"
+        description="A visual record of creative work spanning branding, illustration, motion graphics, 3D, and design experiments."
+        url="/archive"
+      />
       <ArchivePageShell initialItems={items} initialBlocks={blocks} />
       <SiteFooter />
     </SiteShell>

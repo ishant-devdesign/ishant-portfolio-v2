@@ -11,9 +11,17 @@ import { AuthForm } from "@/components/auth/auth-form";
 import { getAdminContext } from "@/lib/auth/admin";
 import Link from "next/link";
 import { buttonClasses } from "@/components/ui/button";
+import type { Metadata } from "next";
 
 type AuthPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 function readParam(value: string | string[] | undefined, fallback = "") {

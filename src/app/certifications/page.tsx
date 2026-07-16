@@ -1,11 +1,10 @@
 import { SiteShell } from "@/components/layout/site-shell";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { CertificationsPageShell } from "@/components/certifications/certifications-page-shell";
+import { StructuredData } from "@/components/seo/structured-data";
 import { getLiveCertifications } from "@/lib/content";
 
 import type { Metadata } from "next";
-
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://ishant-devdesign.vercel.app";
 
 export const metadata: Metadata = {
   title: "Certifications — Ishant Kumar",
@@ -36,6 +35,12 @@ export default async function CertificationsPage() {
 
   return (
     <SiteShell>
+      <StructuredData
+        type="webSite"
+        title="Certifications — Ishant Kumar"
+        description="Professional certifications and credentials in frontend development and UI/UX design."
+        url="/certifications"
+      />
       <CertificationsPageShell certifications={certifications} />
       <SiteFooter />
     </SiteShell>
