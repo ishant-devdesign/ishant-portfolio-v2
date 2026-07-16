@@ -4,7 +4,7 @@ import { getLiveBlogs, getLiveProjects } from "@/lib/content";
 
 export const revalidate = 3600; // Revalidate at most once per hour, but also on-demand via API calls
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://ishant.dev";
+const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://ishant-devdesign.vercel.app";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [blogs, projects] = await Promise.all([

@@ -15,7 +15,6 @@ import {
 } from "@/lib/content";
 import { homeSections } from "@/lib/site-config";
 import type { Metadata } from "next";
-import { ClientEffects } from "@/components/layout/client-effects";
 
 export async function generateMetadata(): Promise<Metadata> {
   const siteSettings = await getLiveSiteSettings();
@@ -44,7 +43,7 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     alternates: {
       types: {
-        "application/rss+xml": `${process.env.NEXT_PUBLIC_SITE_URL || "https://ishant.dev"}/rss.xml`,
+        "application/rss+xml": `${process.env.NEXT_PUBLIC_SITE_URL || "https://ishant-devdesign.vercel.app"}/rss.xml`,
       },
     },
   };

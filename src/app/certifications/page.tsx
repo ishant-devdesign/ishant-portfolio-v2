@@ -5,7 +5,7 @@ import { getLiveCertifications } from "@/lib/content";
 
 import type { Metadata } from "next";
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://ishant.dev";
+const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://ishant-devdesign.vercel.app";
 
 export const metadata: Metadata = {
   title: "Certifications — Ishant Kumar",
