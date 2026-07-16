@@ -838,26 +838,71 @@ function BlockEditorContent({
       ) : null}
 
       {block.type === "list" ? (
-        <div className="space-y-2">
+        <div className="space-y-3">
+          {/* Toggle between bullet and numbered */}
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] uppercase tracking-[0.14em] text-white/30">
+              Style
+            </span>
+            <div className="flex gap-1 rounded-full border border-white/10 bg-white/[0.02] p-1">
+              <button
+                type="button"
+                onClick={() =>
+                  updateBlockHandler(block.id, (current) => ({
+                    ...current,
+                    data: { ...current.data, style: "unordered" },
+                  }))
+                }
+                className={
+                  String(block.data?.style ?? "unordered") === "unordered" ||
+                  String(block.data?.style ?? "unordered") === "bullet"
+                    ? "rounded-full bg-white text-black px-3 py-1 text-xs font-medium"
+                    : "rounded-full px-3 py-1 text-xs text-white/60 hover:text-white"
+                }
+              >
+                • Bullet
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  updateBlockHandler(block.id, (current) => ({
+                    ...current,
+                    data: { ...current.data, style: "ordered" },
+                  }))
+                }
+                className={
+                  String(block.data?.style) === "ordered" ||
+                  String(block.data?.style) === "numbered"
+                    ? "rounded-full bg-white text-black px-3 py-1 text-xs font-medium"
+                    : "rounded-full px-3 py-1 text-xs text-white/60 hover:text-white"
+                }
+              >
+                1. Numbered
+              </button>
+            </div>
+          </div>
+
           {ensureStringArray(block.data?.items).map((item, itemIndex) => (
             <div
               key={`${block.id}-item-${itemIndex}`}
-              className="flex items-start gap-2"
+              className="flex w-full items-start gap-2"
             >
-              <AutoGrowTextarea
-                value={item}
-                onChange={(value) => {
-                  const items = [...ensureStringArray(block.data?.items)];
-                  items[itemIndex] = value;
-                  updateBlockHandler(block.id, (current) => ({
-                    ...current,
-                    data: { ...current.data, items },
-                  }));
-                }}
-                placeholder={`Item ${itemIndex + 1}`}
-                className="min-h-[1lh] flex-1 resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
-                enableFormatToolbar
-              />
+              <div className="min-w-0 flex-1">
+                <AutoGrowTextarea
+                  value={item}
+                  onChange={(value) => {
+                    const items = [...ensureStringArray(block.data?.items)];
+                    items[itemIndex] = value;
+                    updateBlockHandler(block.id, (current) => ({
+                      ...current,
+                      data: { ...current.data, items },
+                    }));
+                  }}
+                  placeholder={`Item ${itemIndex + 1}`}
+                  className="min-h-[1lh] w-full resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
+                  enableFormatToolbar
+                />
+              </div>
               <button
                 type="button"
                 onClick={() => {

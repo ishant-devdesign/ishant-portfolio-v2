@@ -11,18 +11,12 @@ type AutoGrowTextareaProps = {
   className?: string;
   placeholder?: string;
   style?: React.CSSProperties;
-  /** Enable formatting toolbar (admin mode) */
   enableFormatToolbar?: boolean;
 };
 
-/**
- * Get caret coordinates inside a textarea, accounting for wrapping, padding, borders, scroll.
- * Based on the classic textarea-caret-position technique.
- */
 function getCaretCoordinates(element: HTMLTextAreaElement, position: number) {
   const div = document.createElement("div");
   const computed = window.getComputedStyle(element);
-
   const props: (keyof CSSStyleDeclaration)[] = [
     "direction",
     "boxSizing",
@@ -56,7 +50,6 @@ function getCaretCoordinates(element: HTMLTextAreaElement, position: number) {
     "tabSize",
   ] as any;
 
-  // Off-screen mirror
   div.style.position = "absolute";
   div.style.visibility = "hidden";
   div.style.whiteSpace = "pre-wrap";
@@ -71,21 +64,14 @@ function getCaretCoordinates(element: HTMLTextAreaElement, position: number) {
     div.style[prop as any] = computed[prop as any];
   });
 
-  // Use offsetWidth for accurate wrapping (width includes padding + border when box-sizing is border-box)
   div.style.width = `${element.offsetWidth}px`;
-  // Reset height - let it auto-grow to match content wrapping
   div.style.height = "auto";
 
-  // Text up to caret
   div.textContent = element.value.substring(0, position);
 
   const span = document.createElement("span");
-  // Use the next char or a dot placeholder at end of text to get height
-  const remaining = element.value.substring(position);
-  span.textContent = remaining[0] || ".";
-  // Preserve line breaks visualization
+  span.textContent = element.value.substring(position) || ".";
   span.style.whiteSpace = "pre-wrap";
-
   div.appendChild(span);
   document.body.appendChild(div);
 
@@ -122,7 +108,6 @@ export function AutoGrowTextarea({
     rect: null,
   });
 
-  // Track mouse interaction for precise positioning
   const lastMousePosRef = useRef<{ x: number; y: number } | null>(null);
   const isMouseDownRef = useRef(false);
   const mouseDownTimeRef = useRef<number>(0);
@@ -130,17 +115,13 @@ export function AutoGrowTextarea({
   useEffect(() => {
     const element = ref.current;
     if (!element) return;
-
     element.style.height = "auto";
     element.style.height = `${Math.max(element.scrollHeight, 24)}px`;
   }, [value]);
 
-  // Hide toolbar on scroll / resize - prevents detached floating
   useEffect(() => {
     if (!showToolbar) return;
-
     const hide = () => setShowToolbar(false);
-
     window.addEventListener("scroll", hide, true);
     window.addEventListener("resize", hide);
     return () => {
@@ -172,20 +153,15 @@ export function AutoGrowTextarea({
         now - mouseDownTimeRef.current < 800;
 
       if (recentMouse && lastMousePosRef.current) {
-        // === MOUSE MODE: pill appears right where mouse-up happened ===
         top = lastMousePosRef.current.y;
         left = lastMousePosRef.current.x;
       } else {
-        // === KEYBOARD / PROGRAMMATIC MODE: calculate caret position accounting for wrapping ===
         try {
           const caret = getCaretCoordinates(element, end);
           const textareaRect = element.getBoundingClientRect();
-
-          // caret is relative to textarea's internal layout
           top = textareaRect.top + caret.top - element.scrollTop + caret.height;
           left = textareaRect.left + caret.left - element.scrollLeft;
         } catch {
-          // Fallback below textarea if caret calculation fails
           const r = element.getBoundingClientRect();
           top = r.bottom + 8;
           left = r.left + 20;
@@ -205,14 +181,12 @@ export function AutoGrowTextarea({
   const handleMouseDown = () => {
     isMouseDownRef.current = true;
     mouseDownTimeRef.current = Date.now();
-    // Start of new selection - hide old toolbar immediately
     setShowToolbar(false);
   };
 
   const handleMouseUp = (e: React.MouseEvent<HTMLTextAreaElement>) => {
     isMouseDownRef.current = false;
     lastMousePosRef.current = { x: e.clientX, y: e.clientY };
-    // Let browser finalize selectionStart/End first
     requestAnimationFrame(() => {
       updateToolbarPosition(true);
     });
@@ -232,9 +206,7 @@ export function AutoGrowTextarea({
   };
 
   const handleSelect = () => {
-    // If mouse is still down, we're in the middle of drag - wait for mouseUp
     if (isMouseDownRef.current) return;
-    // If we just had a mouseUp, that handler already positioned it - don't override
     if (
       lastMousePosRef.current &&
       Date.now() - mouseDownTimeRef.current < 300
@@ -245,7 +217,6 @@ export function AutoGrowTextarea({
   };
 
   const handleKeyUp = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Only show for selection-modifying keys
     const isSelectionKey =
       e.shiftKey ||
       [
@@ -258,15 +229,12 @@ export function AutoGrowTextarea({
       ].includes(e.key);
 
     if (!isSelectionKey) {
-      // If user types, hide toolbar if selection collapses
       const el = ref.current;
       if (el && el.selectionStart === el.selectionEnd) {
         setShowToolbar(false);
       }
       return;
     }
-
-    // Keyboard selection -> clear mouse pos so caret is used
     lastMousePosRef.current = null;
     updateToolbarPosition(false);
   };
@@ -278,7 +246,6 @@ export function AutoGrowTextarea({
     lastMousePosRef.current = null;
     setShowToolbar(false);
 
-    // Restore focus and set cursor after formatting
     setTimeout(() => {
       const element = ref.current;
       if (element) {
@@ -292,9 +259,7 @@ export function AutoGrowTextarea({
   };
 
   const handleBlur = () => {
-    // Delay hiding to allow clicking toolbar buttons (toolbar is in portal)
     setTimeout(() => {
-      // If toolbar is being interacted with, don't hide yet - toolbar handles outside clicks
       setShowToolbar(false);
       lastMousePosRef.current = null;
     }, 200);
@@ -318,7 +283,7 @@ export function AutoGrowTextarea({
       : null;
 
   return (
-    <div className="relative">
+    <div className="relative w-full flex-1 min-w-0">
       <textarea
         ref={ref}
         rows={1}
