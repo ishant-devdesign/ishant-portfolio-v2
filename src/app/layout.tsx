@@ -14,7 +14,6 @@ import { ConfirmDialogProvider } from "@/components/ui/confirm-dialog";
 import { getLiveSiteSettings } from "@/lib/content";
 import { getAdminContext } from "@/lib/auth/admin";
 import { cn } from "@/lib/utils";
-import { ClientEffects } from "@/components/layout/client-effects";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
@@ -209,12 +208,16 @@ export default async function RootLayout({
         geist.variable,
       )}
     >
+      <head>
+        <meta
+          name="google-site-verification"
+          content="yb5Bk1bP-DkPPiMJKJ5nsJl8I8uZgaKm5RzmZlZcFiY"
+        />
+      </head>
       <body className="min-h-full bg-[#050505] font-sans text-white antialiased">
         <AdminSessionProvider initialAdmin={adminContext}>
           <ExperienceProvider settings={siteSettings}>
-            <ConfirmDialogProvider>
-              {children}
-            </ConfirmDialogProvider>
+            <ConfirmDialogProvider>{children}</ConfirmDialogProvider>
           </ExperienceProvider>
           <AdminFloatPill />
         </AdminSessionProvider>
