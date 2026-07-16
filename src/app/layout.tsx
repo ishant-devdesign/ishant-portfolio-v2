@@ -235,6 +235,9 @@ export default async function RootLayout({
           name="google-site-verification"
           content="yb5Bk1bP-DkPPiMJKJ5nsJl8I8uZgaKm5RzmZlZcFiY"
         />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(personSchema) }}
