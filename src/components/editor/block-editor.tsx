@@ -1,5 +1,8 @@
 "use client";
+
 import { AnimatePresence, motion } from "framer-motion";
+import { createPortal } from "react-dom";
+
 import {
   Plus,
   Trash2,
@@ -12,7 +15,22 @@ import {
   Image,
   Video,
   Link,
+  Type,
+  Pilcrow,
+  Quote,
+  Info,
+  List,
+  Table,
+  Code2,
+  ListChecks,
+  Images,
+  BarChart3,
+  Clock,
+  PanelTop,
+  SeparatorHorizontal,
+  Columns2,
 } from "lucide-react";
+
 import {
   DndContext,
   closestCenter,
@@ -23,6 +41,7 @@ import {
   useSensors,
   type DragEndEvent,
 } from "@dnd-kit/core";
+
 import {
   arrayMove,
   SortableContext,
@@ -30,7 +49,9 @@ import {
   useSortable,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
+
 import { CSS } from "@dnd-kit/utilities";
+
 import {
   useEffect,
   useLayoutEffect,
@@ -40,19 +61,13 @@ import {
   type SetStateAction,
   type ReactNode,
 } from "react";
-import { cn } from "@/lib/utils";
 
-// ─── Mobile drag fix: use TouchSensor for native touch handling ───────────
-function isTouchDevice() {
-  if (typeof window === "undefined") return false;
-  return "ontouchstart" in window || navigator.maxTouchPoints > 0;
-}
+import { cn } from "@/lib/utils";
 
 import type { ContentBlock } from "@/lib/site-config";
 import type { CalloutVariant } from "@/components/content/callout-block";
 import { createBlock } from "@/lib/editor";
 import { AutoGrowTextarea } from "@/components/admin/auto-grow-textarea";
-import { buttonClasses } from "@/components/ui/button";
 import { MediaAssetField } from "@/components/editor/media-asset-field";
 import {
   buildCodePreviewDocument,
@@ -150,6 +165,51 @@ function duplicateBlock(blocks: ContentBlock[], id: string): ContentBlock[] {
   return [...blocks.slice(0, index + 1), copy, ...blocks.slice(index + 1)];
 }
 
+/**
+ * Custom hook to compute portal positioning for popovers & dropdowns
+ * so they escape all parent CSS transform stacking contexts.
+ */
+function usePortalPosition(
+  isOpen: boolean,
+  targetRef: React.RefObject<HTMLElement | null>,
+) {
+  const [coords, setCoords] = useState<{
+    top: number;
+    left: number;
+    width: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!isOpen || !targetRef.current) {
+      setCoords(null);
+      return;
+    }
+
+    const updateCoords = () => {
+      if (targetRef.current) {
+        const rect = targetRef.current.getBoundingClientRect();
+        setCoords({
+          top: rect.bottom + 6,
+          left: rect.left,
+          width: Math.max(rect.width, 160),
+        });
+      }
+    };
+
+    updateCoords();
+
+    window.addEventListener("scroll", updateCoords, true);
+    window.addEventListener("resize", updateCoords);
+
+    return () => {
+      window.removeEventListener("scroll", updateCoords, true);
+      window.removeEventListener("resize", updateCoords);
+    };
+  }, [isOpen, targetRef]);
+
+  return coords;
+}
+
 type InsertBlockMenuProps = {
   index: number;
   open: boolean;
@@ -160,163 +220,94 @@ type InsertBlockMenuProps = {
   isRoot?: boolean;
 };
 
-// Block type preview configurations
 const blockTypePreviews: Record<
   string,
   { icon: ReactNode; label: string; description: string }
 > = {
   heading: {
-    icon: <strong className="text-base text-white">Heading</strong>,
+    icon: <Type className="size-4 text-white/70" />,
     label: "Heading",
-    description: "h2, h3, h4, or h5",
+    description: "h2, h3, h4, or h5 title",
   },
   paragraph: {
-    icon: <p className="text-sm text-white/60">Paragraph text...</p>,
+    icon: <Pilcrow className="size-4 text-white/70" />,
     label: "Paragraph",
     description: "Text content",
   },
   image: {
-    icon: (
-      <div className="flex h-8 w-12 items-center justify-center rounded border border-white/12">
-        <Image className="size-4 text-white/42" />
-      </div>
-    ),
+    icon: <Image className="size-4 text-white/70" />,
     label: "Image",
     description: "Photo or graphic",
   },
   video: {
-    icon: (
-      <div className="flex h-8 w-12 items-center justify-center rounded border border-white/12">
-        <Video className="size-4 text-white/42" />
-      </div>
-    ),
+    icon: <Video className="size-4 text-white/70" />,
     label: "Video",
     description: "Embedded video",
   },
   quote: {
-    icon: (
-      <div className="border-l-2 border-white/20 pl-2">
-        <p className="text-xs text-white/60">Quote text...</p>
-      </div>
-    ),
+    icon: <Quote className="size-4 text-white/70" />,
     label: "Quote",
     description: "Testimonial",
   },
   callout: {
-    icon: (
-      <div className="flex items-center gap-1.5 rounded border border-white/12 bg-white/[0.02] px-2 py-1">
-        <div className="size-2 rounded-full bg-blue-400/60" />
-        <span className="text-xs text-white/70">Callout text...</span>
-      </div>
-    ),
+    icon: <Info className="size-4 text-white/70" />,
     label: "Callout",
     description: "Highlighted note",
   },
   list: {
-    icon: (
-      <div className="space-y-0.5">
-        <div className="flex items-center gap-1">
-          <div className="size-1.5 rounded-full bg-white/40" />
-          <span className="text-xs text-white/60">List item</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="size-1.5 rounded-full bg-white/40" />
-          <span className="text-xs text-white/60">Another item</span>
-        </div>
-      </div>
-    ),
+    icon: <List className="size-4 text-white/70" />,
     label: "List",
     description: "Bulleted or numbered",
   },
   accordion: {
-    icon: (
-      <div className="w-full space-y-0.5">
-        <div className="h-4 w-full rounded border border-white/12" />
-        <div className="h-3 w-full rounded border border-white/10" />
-      </div>
-    ),
+    icon: <PanelTop className="size-4 text-white/70" />,
     label: "Accordion",
     description: "Expandable items",
   },
   divider: {
-    icon: <div className="h-px w-8 bg-white/20" />,
+    icon: <SeparatorHorizontal className="size-4 text-white/50" />,
     label: "Divider",
     description: "Visual separator",
   },
   table: {
-    icon: (
-      <div className="w-full space-y-0.5">
-        <div className="h-3 w-full rounded border border-white/12" />
-        <div className="h-2 w-full rounded border border-white/10" />
-      </div>
-    ),
+    icon: <Table className="size-4 text-white/70" />,
     label: "Table",
     description: "Data table",
   },
   code: {
-    icon: (
-      <div className="flex items-center gap-1 rounded bg-white/[0.02] px-2 py-1 font-mono">
-        <span className="text-xs text-white/60">code</span>
-      </div>
-    ),
+    icon: <Code2 className="size-4 text-white/70" />,
     label: "Code",
     description: "Code snippet",
   },
   stepper: {
-    icon: (
-      <div className="flex items-center gap-1">
-        <div className="flex h-4 w-4 items-center justify-center rounded-full border border-white/20 text-[10px] text-white/60">
-          1
-        </div>
-        <span className="text-xs text-white/60">Step</span>
-      </div>
-    ),
+    icon: <ListChecks className="size-4 text-white/70" />,
     label: "Stepper",
     description: "Process steps",
   },
   gallery: {
-    icon: (
-      <div className="grid grid-cols-3 gap-0.5">
-        <div className="h-3 w-3 rounded border border-white/12" />
-        <div className="h-3 w-3 rounded border border-white/12" />
-        <div className="h-3 w-3 rounded border border-white/12" />
-      </div>
-    ),
+    icon: <Images className="size-4 text-white/70" />,
     label: "Gallery",
     description: "Image grid",
   },
   link: {
-    icon: (
-      <div className="flex items-center gap-1.5 rounded border border-white/12 bg-white/[0.02] px-2 py-1">
-        <Link className="size-3 text-white/42" />
-        <span className="text-xs text-white/70">Link title</span>
-      </div>
-    ),
+    icon: <Link className="size-4 text-white/70" />,
     label: "Link",
     description: "External link",
   },
   metric: {
-    icon: (
-      <div className="rounded border border-white/12 bg-white/[0.02] px-2 py-1">
-        <div className="text-[10px] text-white/34">Metric</div>
-        <div className="text-xs font-medium text-white">84%</div>
-      </div>
-    ),
+    icon: <BarChart3 className="size-4 text-white/70" />,
     label: "Metric",
     description: "Key stat",
   },
   timeline: {
-    icon: (
-      <div className="flex gap-1">
-        <div className="h-3 w-3 rounded-full border border-white/20" />
-        <div className="space-y-0.5">
-          <div className="h-2 w-6 rounded border border-white/12" />
-          <div className="h-1.5 w-4 rounded border border-white/10" />
-        </div>
-      </div>
-    ),
+    icon: <Clock className="size-4 text-white/70" />,
     label: "Timeline",
     description: "Chronological events",
+  },
+  "columns-2": {
+    icon: <Columns2 className="size-4 text-white/70" />,
+    label: "2 Columns",
+    description: "Side-by-side split layout",
   },
 };
 
@@ -329,78 +320,138 @@ function InsertBlockMenu({
   onInsert,
   isRoot = true,
 }: InsertBlockMenuProps) {
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const coords = usePortalPosition(open, buttonRef);
+
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
         open &&
         menuRef.current &&
-        !menuRef.current.contains(event.target as Node)
+        !menuRef.current.contains(event.target as Node) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(event.target as Node)
       ) {
         onClose();
       }
     }
+
     if (open) {
       document.addEventListener("mousedown", handleClickOutside);
     }
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [open, onClose]);
 
-  // Filter out columns-2 from the insert menu when inside columns (can't nest columns)
   const availableBlockTypes = isRoot
     ? blockTypes
     : blockTypes.filter((type) => type !== "columns-2");
 
   return (
-    <div className="flex justify-start transition-all" data-insert-menu>
-      <div ref={menuRef}>
+    <div
+      className="mt-3.5 flex items-center justify-start relative"
+      data-insert-menu
+    >
+      <div className="flex items-center">
         <button
+          ref={buttonRef}
           type="button"
           onClick={open ? onClose : onOpen}
           className={cn(
-            "flex items-center justify-center rounded-full border border-white/10 bg-white/[0.03] transition-all h-10 w-10 mt-3.5",
+            "group flex size-8 items-center justify-center rounded-full border transition-all duration-200 select-none shadow-sm",
             open
-              ? "border-white/20 bg-white/[0.08] hover:bg-white/[0.12]"
-              : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]",
+              ? "border-white/30 bg-white text-black rotate-45 shadow-md"
+              : "border-white/10 bg-white/[0.03] text-white/50 hover:bg-white/[0.08] hover:text-white hover:border-white/20",
           )}
+          title={
+            open
+              ? "Close selector"
+              : `Add block ${index === 0 ? "at top" : `after #${index}`}`
+          }
           aria-label={
             open
               ? "Close block selector"
               : `Insert block at position ${index + 1}`
           }
         >
-          <Plus
-            className={cn(
-              "text-white/42 transition-transform duration-200",
-              open ? "size-5 rotate-45" : "size-5",
-            )}
-          />
+          <Plus className="size-5 transition-transform group-hover:scale-110" />
         </button>
-        <AnimatePresence>
-          {open ? (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-              className="overflow-hidden"
-            >
-              <div className="flex flex-wrap items-center gap-2 pt-3">
-                {availableBlockTypes.map((type) => (
-                  <button
-                    key={type}
-                    type="button"
-                    onClick={() => onInsert(type, index)}
-                    className={buttonClasses({ tone: "muted", size: "xs" })}
-                  >
-                    <Plus className="size-3.5" />
-                    {type}
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-          ) : null}
-        </AnimatePresence>
+
+        {/* Portaled Minimal Format-Pill Menu */}
+        {typeof document !== "undefined" &&
+          createPortal(
+            <AnimatePresence>
+              {open && coords ? (
+                <motion.div
+                  ref={menuRef}
+                  onClick={(e) => e.stopPropagation()}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                  initial={{
+                    opacity: 0,
+                    y: 6,
+                    scale: 0.96,
+                    filter: "blur(8px)",
+                  }}
+                  animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+                  exit={{ opacity: 0, y: 6, scale: 0.96, filter: "blur(8px)" }}
+                  transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                  className="fixed z-[9999] pointer-events-auto max-w-[min(540px,92vw)] overflow-hidden rounded-3xl border border-white/[0.12] bg-[#141414] p-3.5 backdrop-blur-[24px] shadow-[0_24px_60px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.06)_inset]"
+                  style={{
+                    top: coords.top,
+                    left: Math.max(
+                      12,
+                      Math.min(coords.left, window.innerWidth - 480),
+                    ),
+                    width: Math.max(coords.width, 340),
+                  }}
+                >
+                  <p className="px-2 pb-2 text-[10px] uppercase tracking-[0.2em] font-medium text-white/35">
+                    Choose Block
+                  </p>
+                  <div className="grid gap-2 sm:grid-cols-2 max-h-[320px] overflow-y-auto pr-1">
+                    {availableBlockTypes.map((type) => {
+                      const preview = blockTypePreviews[type];
+                      return (
+                        <button
+                          key={type}
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            onInsert(type, index);
+                          }}
+                          className="group/item flex items-center gap-3 rounded-full bg-white/[0.03] p-2 text-left transition-all hover:border-white/20 hover:bg-white/[0.08] hover:shadow-md"
+                        >
+                          <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-white/[0.08] group-hover/item:border-white/20 transition-colors">
+                            <span className="scale-90 text-white/70 group-hover/item:text-white">
+                              {preview?.icon}
+                            </span>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-semibold text-white/85 group-hover/item:text-white">
+                              {preview?.label || type}
+                            </p>
+                            <p className="text-[10px] text-white/40 group-hover/item:text-white/60 truncate">
+                              {preview?.description}
+                            </p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              ) : null}
+            </AnimatePresence>,
+            document.body,
+          )}
       </div>
     </div>
   );
@@ -442,12 +493,10 @@ function BlockEditorContent({
     onChange(blocks.map((b) => (b.id === id ? updater(b) : b)));
   };
 
-  // When inside columns-2, filter out Large (h2) heading to prevent nested h2
   const availableHeadingOptions = isRoot
     ? headingOptions
     : headingOptions.filter((option) => option.level !== 2);
 
-  // For nested editors inside columns-2, filter out columns-2 option
   const nestedBlockTypes = blockTypes.filter((type) => type !== "columns-2");
 
   const headingLevel = Number(block.data?.level ?? 2);
@@ -457,6 +506,7 @@ function BlockEditorContent({
 
   const [headingHighlightedIndex, setHeadingHighlightedIndex] = useState(0);
   const headingButtonRef = useRef<HTMLButtonElement>(null);
+  const headingMenuRef = useRef<HTMLDivElement>(null);
 
   const codeLanguage = String(block.data?.language ?? "javascript");
   const showPreview = Boolean(block.data?.showPreview ?? false);
@@ -468,13 +518,25 @@ function BlockEditorContent({
   );
   const canPreviewCode = Boolean(codePreviewDocument);
   const showCodePreview = showPreview && canPreviewCode;
+
   const [showAdminCodePanel, setShowAdminCodePanel] = useState(true);
   const [codeLangHighlightedIndex, setCodeLangHighlightedIndex] = useState(0);
   const codeLangButtonRef = useRef<HTMLButtonElement>(null);
+  const codeLangMenuRef = useRef<HTMLDivElement>(null);
+
   const headingTypeAheadTimeoutRef = useRef<number | null>(null);
   const codeLangTypeAheadTimeoutRef = useRef<number | null>(null);
 
-  // Cleanup type-ahead timeouts on unmount
+  const headingCoords = usePortalPosition(
+    openHeadingMenu === block.id,
+    headingButtonRef,
+  );
+
+  const codeLangCoords = usePortalPosition(
+    openCodeLangMenu === block.id,
+    codeLangButtonRef,
+  );
+
   useEffect(() => {
     return () => {
       if (headingTypeAheadTimeoutRef.current) {
@@ -490,6 +552,7 @@ function BlockEditorContent({
   useEffect(() => {
     function handleHeadingKeyDown(event: KeyboardEvent) {
       if (openHeadingMenu !== block.id) return;
+
       if (event.key === "Escape") {
         setOpenHeadingMenu(null);
         headingButtonRef.current?.focus();
@@ -507,11 +570,11 @@ function BlockEditorContent({
         event.preventDefault();
         if (availableHeadingOptions[headingHighlightedIndex]) {
           const option = availableHeadingOptions[headingHighlightedIndex];
-          setOpenHeadingMenu(null);
           updateBlockHandler(block.id, (current) => ({
             ...current,
             data: { ...current.data, level: option.level },
           }));
+          setOpenHeadingMenu(null);
           headingButtonRef.current?.focus();
         }
       } else if (
@@ -520,7 +583,6 @@ function BlockEditorContent({
         !event.ctrlKey &&
         !event.metaKey
       ) {
-        // Type-ahead support
         const char = event.key.toLowerCase();
         if (headingTypeAheadTimeoutRef.current) {
           clearTimeout(headingTypeAheadTimeoutRef.current);
@@ -531,15 +593,18 @@ function BlockEditorContent({
           }
           return false;
         });
+
         const firstMatch =
           nextMatch === -1
             ? availableHeadingOptions.findIndex((opt) =>
                 opt.label.toLowerCase().startsWith(char),
               )
             : nextMatch;
+
         if (firstMatch !== -1) {
           setHeadingHighlightedIndex(firstMatch);
         }
+
         headingTypeAheadTimeoutRef.current = window.setTimeout(() => {
           headingTypeAheadTimeoutRef.current = null;
         }, 1000);
@@ -548,6 +613,9 @@ function BlockEditorContent({
 
     if (openHeadingMenu === block.id) {
       document.addEventListener("keydown", handleHeadingKeyDown);
+      requestAnimationFrame(() => {
+        headingMenuRef.current?.focus();
+      });
       return () =>
         document.removeEventListener("keydown", handleHeadingKeyDown);
     }
@@ -563,6 +631,7 @@ function BlockEditorContent({
   useEffect(() => {
     function handleCodeLangKeyDown(event: KeyboardEvent) {
       if (openCodeLangMenu !== block.id) return;
+
       if (event.key === "Escape") {
         setCodeLangMenu(null);
         codeLangButtonRef.current?.focus();
@@ -580,11 +649,11 @@ function BlockEditorContent({
         event.preventDefault();
         if (codeLanguageOptions[codeLangHighlightedIndex]) {
           const opt = codeLanguageOptions[codeLangHighlightedIndex];
-          setCodeLangMenu(null);
           updateBlockHandler(block.id, (current) => ({
             ...current,
             data: { ...current.data, language: opt.value },
           }));
+          setCodeLangMenu(null);
           codeLangButtonRef.current?.focus();
         }
       } else if (
@@ -593,7 +662,6 @@ function BlockEditorContent({
         !event.ctrlKey &&
         !event.metaKey
       ) {
-        // Type-ahead support
         const char = event.key.toLowerCase();
         if (codeLangTypeAheadTimeoutRef.current) {
           clearTimeout(codeLangTypeAheadTimeoutRef.current);
@@ -607,6 +675,7 @@ function BlockEditorContent({
           }
           return false;
         });
+
         const firstMatch =
           nextMatch === -1
             ? codeLanguageOptions.findIndex(
@@ -615,9 +684,11 @@ function BlockEditorContent({
                   opt.value.toLowerCase().startsWith(char),
               )
             : nextMatch;
+
         if (firstMatch !== -1) {
           setCodeLangHighlightedIndex(firstMatch);
         }
+
         codeLangTypeAheadTimeoutRef.current = window.setTimeout(() => {
           codeLangTypeAheadTimeoutRef.current = null;
         }, 1000);
@@ -626,6 +697,9 @@ function BlockEditorContent({
 
     if (openCodeLangMenu === block.id) {
       document.addEventListener("keydown", handleCodeLangKeyDown);
+      requestAnimationFrame(() => {
+        codeLangMenuRef.current?.focus();
+      });
       return () =>
         document.removeEventListener("keydown", handleCodeLangKeyDown);
     }
@@ -636,576 +710,646 @@ function BlockEditorContent({
     codeLanguageOptions.length,
   ]);
 
+  const listStyle = String(block.data?.style ?? "unordered");
+  const isUnordered = listStyle === "unordered" || listStyle === "bullet";
+  const isOrdered = listStyle === "ordered" || listStyle === "numbered";
+
   return (
-    <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-4">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2">
+    <div className="group relative rounded-[2rem] border border-white/[0.08] bg-[#151515]/80 backdrop-blur-[16px] shadow-[0_8px_28px_rgba(0,0,0,0.35)] transition-all duration-300 hover:border-white/[0.14]">
+      {/* Header Bar */}
+      <div className="relative flex items-center justify-between gap-3 border-b border-white/[0.06] bg-white/[0.02] px-5 py-3 rounded-t-[2rem]">
+        <div className="flex min-w-0 items-center gap-3">
           {dragHandle}
-          <p className="truncate text-[0.62rem] uppercase tracking-[0.28em] text-white/34">
-            {block.type}
-          </p>
+          {/* Unified icon + block name + | + block desc cell */}
+          <div className="flex items-center gap-2.5 rounded-full bg-white/[0.04] px-3.5 py-1.5 border border-white/[0.06] transition-colors">
+            <span className="text-white/70">
+              {blockTypePreviews[block.type]?.icon || (
+                <div className="size-2 rounded-full bg-white/30" />
+              )}
+            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/85">
+                {block.type}
+              </span>
+              {blockTypePreviews[block.type]?.description ? (
+                <span className="hidden sm:inline-block text-[10px] text-white/40 normal-case font-normal border-l border-white/10 pl-2">
+                  {blockTypePreviews[block.type]?.description}
+                </span>
+              ) : null}
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
+
+        {/* Format-Pill Action Track */}
+        <div className="flex items-center gap-0.5 rounded-full bg-white/[0.04] p-1 border border-white/[0.06]">
           <button
             type="button"
             onClick={() => duplicateBlock(block.id)}
-            className={buttonClasses({ tone: "muted", iconOnly: true })}
+            className="inline-flex size-7 items-center justify-center rounded-full text-white/60 hover:bg-white/[0.08] hover:text-white transition-colors"
             title="Duplicate block"
           >
-            <Copy className="size-4" />
+            <Copy className="size-3.5" />
           </button>
+          <div className="mx-0.5 h-3.5 w-px bg-white/10" />
           <button
             type="button"
             onClick={() => removeBlock(block.id)}
-            className={buttonClasses({ tone: "danger", iconOnly: true })}
+            className="inline-flex size-7 items-center justify-center rounded-full text-white/50 hover:bg-rose-500/20 hover:text-rose-200 transition-colors"
             title="Delete block"
           >
-            <Trash2 className="size-4" />
+            <Trash2 className="size-3.5" />
           </button>
         </div>
       </div>
 
-      {block.type === "heading" ? (
-        <div className="grid gap-3 sm:grid-cols-[160px_minmax(0,1fr)]">
-          <div className="relative">
-            <button
-              ref={headingButtonRef}
-              type="button"
-              onClick={() => {
-                setOpenHeadingMenu((current) =>
-                  current === block.id ? null : block.id,
-                );
-                setHeadingHighlightedIndex(
-                  headingOptions.findIndex(
-                    (opt) => opt.level === headingLevel,
-                  ) || 0,
-                );
-              }}
-              onKeyDown={(event) => {
-                if (
-                  event.key === "Enter" ||
-                  event.key === " " ||
-                  event.key === "ArrowDown"
-                ) {
-                  event.preventDefault();
+      {/* Main Content Body */}
+      <div className="relative p-6 space-y-4 rounded-b-[2rem]">
+        {block.type === "heading" ? (
+          <div className="grid gap-4 sm:grid-cols-[160px_minmax(0,1fr)] items-center">
+            <div className="relative">
+              <button
+                ref={headingButtonRef}
+                type="button"
+                onClick={() => {
                   setOpenHeadingMenu((current) =>
                     current === block.id ? null : block.id,
                   );
-                }
-              }}
-              className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white"
-            >
-              <span>{headingLabel}</span>
-              <ChevronsUpDown className="size-4 text-white/42" />
-            </button>
-            <AnimatePresence>
-              {openHeadingMenu === block.id ? (
-                <motion.div
-                  initial={{ opacity: 0, y: 8, filter: "blur(12px)" }}
-                  animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                  exit={{ opacity: 0, y: 6, filter: "blur(12px)" }}
-                  transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                  className="absolute left-0 top-[calc(100%+0.5rem)] z-20 w-full rounded-[1rem] border border-white/10 bg-[#0c0c0c]/96 p-2 backdrop-blur-xl"
-                >
-                  {availableHeadingOptions.map((option, index) => (
-                    <button
-                      key={option.level}
-                      type="button"
-                      onMouseEnter={() => setHeadingHighlightedIndex(index)}
-                      onClick={() => {
-                        setOpenHeadingMenu(null);
-                        updateBlockHandler(block.id, (current) => ({
-                          ...current,
-                          data: { ...current.data, level: option.level },
-                        }));
-                        headingButtonRef.current?.focus();
-                      }}
-                      className={cn(
-                        "flex w-full rounded-[0.8rem] px-3 py-2 text-left text-sm transition-colors",
-                        headingHighlightedIndex === index
-                          ? "bg-white/[0.08] text-white"
-                          : "text-white/72 hover:bg-white/[0.04] hover:text-white",
-                      )}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </motion.div>
-              ) : null}
-            </AnimatePresence>
+                  setHeadingHighlightedIndex(
+                    availableHeadingOptions.findIndex(
+                      (opt) => opt.level === headingLevel,
+                    ) || 0,
+                  );
+                }}
+                className="h-11 flex w-full items-center justify-between gap-2 rounded-full bg-white/[0.06] hover:bg-white/[0.1] px-4 text-xs font-semibold text-white transition-all select-none"
+              >
+                <span>{headingLabel}</span>
+                <ChevronsUpDown className="size-3.5 text-white/50" />
+              </button>
+
+              {/* Portaled Heading Menu */}
+              {typeof document !== "undefined" &&
+                createPortal(
+                  <AnimatePresence>
+                    {openHeadingMenu === block.id && headingCoords ? (
+                      <motion.div
+                        ref={headingMenuRef}
+                        onClick={(e) => e.stopPropagation()}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }}
+                        initial={{
+                          opacity: 0,
+                          y: 6,
+                          scale: 0.96,
+                          filter: "blur(8px)",
+                        }}
+                        animate={{
+                          opacity: 1,
+                          y: 0,
+                          scale: 1,
+                          filter: "blur(0px)",
+                        }}
+                        exit={{
+                          opacity: 0,
+                          y: 6,
+                          scale: 0.96,
+                          filter: "blur(8px)",
+                        }}
+                        transition={{
+                          duration: 0.18,
+                          ease: [0.22, 1, 0.36, 1],
+                        }}
+                        className="fixed z-[9999] pointer-events-auto min-w-[160px] overflow-hidden rounded-2xl border border-white/[0.12] bg-[#181818] p-1.5 backdrop-blur-[20px] shadow-[0_20px_50px_rgba(0,0,0,0.8),0_0_0_1px_rgba(255,255,255,0.06)_inset]"
+                        style={{
+                          top: headingCoords.top,
+                          left: headingCoords.left,
+                          width: headingCoords.width,
+                        }}
+                        role="listbox"
+                        tabIndex={-1}
+                      >
+                        {availableHeadingOptions.map((option, index) => (
+                          <button
+                            key={option.level}
+                            type="button"
+                            role="option"
+                            aria-selected={headingHighlightedIndex === index}
+                            tabIndex={-1}
+                            onMouseEnter={() =>
+                              setHeadingHighlightedIndex(index)
+                            }
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                            }}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              updateBlockHandler(block.id, (current) => ({
+                                ...current,
+                                data: { ...current.data, level: option.level },
+                              }));
+                              setOpenHeadingMenu(null);
+                            }}
+                            className={cn(
+                              "flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-xs font-medium transition-colors select-none",
+                              headingHighlightedIndex === index
+                                ? "bg-white/10 text-white"
+                                : "text-white/70 hover:bg-white/[0.04] hover:text-white",
+                            )}
+                          >
+                            <span>{option.label}</span>
+                            <span className="text-[10px] font-mono text-white/30">
+                              H{option.level}
+                            </span>
+                          </button>
+                        ))}
+                      </motion.div>
+                    ) : null}
+                  </AnimatePresence>,
+                  document.body,
+                )}
+            </div>
+            <AutoGrowTextarea
+              value={String(block.data?.text ?? "")}
+              onChange={(value) =>
+                updateBlockHandler(block.id, (current) => ({
+                  ...current,
+                  data: { ...current.data, text: value },
+                }))
+              }
+              placeholder="Heading text..."
+              className="min-h-[2.75rem] h-11 flex items-center w-full resize-none overflow-hidden rounded-2xl bg-white/[0.03] hover:bg-white/[0.05] focus:bg-white/[0.06] px-4 py-2.5 text-sm font-medium text-white placeholder:text-white/25 outline-none transition-all"
+              enableFormatToolbar
+            />
           </div>
+        ) : null}
+
+        {block.type === "paragraph" ? (
           <AutoGrowTextarea
-            value={String(block.data?.text ?? "")}
+            value={String(
+              block.data?.text ?? decodeHtml(String(block.data?.html ?? "")),
+            )}
             onChange={(value) =>
               updateBlockHandler(block.id, (current) => ({
                 ...current,
-                data: { ...current.data, text: value },
+                data: {
+                  ...current.data,
+                  text: value,
+                  html: `<p>${value}</p>`,
+                },
               }))
             }
-            placeholder="Heading text"
-            className="min-h-[1lh] w-full resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
+            placeholder="Paragraph text..."
+            className="min-h-[2.75rem] w-full resize-none overflow-hidden rounded-2xl bg-white/[0.03] hover:bg-white/[0.05] focus:bg-white/[0.06] px-4 py-2.5 text-sm leading-7 text-white placeholder:text-white/25 outline-none transition-all"
             enableFormatToolbar
           />
-        </div>
-      ) : null}
+        ) : null}
 
-      {block.type === "paragraph" ? (
-        <AutoGrowTextarea
-          value={String(
-            block.data?.text ?? decodeHtml(String(block.data?.html ?? "")),
-          )}
-          onChange={(value) =>
-            updateBlockHandler(block.id, (current) => ({
-              ...current,
-              data: {
-                ...current.data,
-                text: value,
-                html: `<p>${value}</p>`,
-              },
-            }))
-          }
-          placeholder="Paragraph text"
-          className="min-h-[1lh] w-full resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-3 text-sm text-white outline-none"
-          enableFormatToolbar
-        />
-      ) : null}
-
-      {block.type === "image" ? (
-        <div className="grid gap-3 rounded-3xl">
-          <MediaAssetField
-            label="Image source"
-            value={String(block.data?.url ?? "")}
-            onChange={(value) =>
-              updateBlockHandler(block.id, (current) => ({
-                ...current,
-                data: { ...current.data, url: value },
-              }))
-            }
-            bucket={mediaBucket}
-            accept="image/*"
-          />
-          <input
-            placeholder="Alt text"
-            value={String(block.data?.alt ?? "")}
-            onChange={(event) =>
-              updateBlockHandler(block.id, (current) => ({
-                ...current,
-                data: { ...current.data, alt: event.target.value },
-              }))
-            }
-            className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
-          />
-          <AutoGrowTextarea
-            value={String(block.data?.caption ?? "")}
-            onChange={(value) =>
-              updateBlockHandler(block.id, (current) => ({
-                ...current,
-                data: { ...current.data, caption: value },
-              }))
-            }
-            placeholder="Caption"
-            className="min-h-[1lh] w-full resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
-          />
-        </div>
-      ) : null}
-
-      {block.type === "video" ? (
-        <div className="grid gap-3">
-          <MediaAssetField
-            label="Video source"
-            value={String(block.data?.url ?? "")}
-            onChange={(value) =>
-              updateBlockHandler(block.id, (current) => ({
-                ...current,
-                data: { ...current.data, url: value },
-              }))
-            }
-            bucket={mediaBucket}
-            accept="video/*"
-          />
-          <AutoGrowTextarea
-            value={String(block.data?.caption ?? "")}
-            onChange={(value) =>
-              updateBlockHandler(block.id, (current) => ({
-                ...current,
-                data: { ...current.data, caption: value },
-              }))
-            }
-            placeholder="Caption"
-            className="min-h-[1lh] w-full resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
-          />
-        </div>
-      ) : null}
-
-      {block.type === "list" ? (
-        <div className="space-y-3">
-          {/* Toggle between bullet and numbered */}
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] uppercase tracking-[0.14em] text-white/30">
-              Style
-            </span>
-            <div className="flex gap-1 rounded-full border border-white/10 bg-white/[0.02] p-1">
-              <button
-                type="button"
-                onClick={() =>
-                  updateBlockHandler(block.id, (current) => ({
-                    ...current,
-                    data: { ...current.data, style: "unordered" },
-                  }))
-                }
-                className={
-                  String(block.data?.style ?? "unordered") === "unordered" ||
-                  String(block.data?.style ?? "unordered") === "bullet"
-                    ? "rounded-full bg-white text-black px-3 py-1 text-xs font-medium"
-                    : "rounded-full px-3 py-1 text-xs text-white/60 hover:text-white"
-                }
-              >
-                • Bullet
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  updateBlockHandler(block.id, (current) => ({
-                    ...current,
-                    data: { ...current.data, style: "ordered" },
-                  }))
-                }
-                className={
-                  String(block.data?.style) === "ordered" ||
-                  String(block.data?.style) === "numbered"
-                    ? "rounded-full bg-white text-black px-3 py-1 text-xs font-medium"
-                    : "rounded-full px-3 py-1 text-xs text-white/60 hover:text-white"
-                }
-              >
-                1. Numbered
-              </button>
-            </div>
+        {block.type === "image" ? (
+          <div className="grid gap-3">
+            <MediaAssetField
+              label="Image source"
+              value={String(block.data?.url ?? "")}
+              onChange={(value) =>
+                updateBlockHandler(block.id, (current) => ({
+                  ...current,
+                  data: { ...current.data, url: value },
+                }))
+              }
+              bucket={mediaBucket}
+              accept="image/*"
+            />
+            <input
+              placeholder="Alt text"
+              value={String(block.data?.alt ?? "")}
+              onChange={(event) =>
+                updateBlockHandler(block.id, (current) => ({
+                  ...current,
+                  data: { ...current.data, alt: event.target.value },
+                }))
+              }
+              className="h-11 w-full rounded-2xl bg-white/[0.03] hover:bg-white/[0.05] focus:bg-white/[0.06] px-4 py-2.5 text-sm text-white placeholder:text-white/25 outline-none transition-all"
+            />
+            <AutoGrowTextarea
+              value={String(block.data?.caption ?? "")}
+              onChange={(value) =>
+                updateBlockHandler(block.id, (current) => ({
+                  ...current,
+                  data: { ...current.data, caption: value },
+                }))
+              }
+              placeholder="Caption (optional)"
+              className="min-h-[2.75rem] w-full resize-none overflow-hidden rounded-2xl bg-white/[0.03] hover:bg-white/[0.05] focus:bg-white/[0.06] px-4 py-2.5 text-sm text-white placeholder:text-white/25 outline-none transition-all"
+            />
           </div>
+        ) : null}
 
-          {ensureStringArray(block.data?.items).map((item, itemIndex) => (
-            <div
-              key={`${block.id}-item-${itemIndex}`}
-              className="flex w-full items-start gap-2"
-            >
-              <div className="min-w-0 flex-1">
-                <AutoGrowTextarea
-                  value={item}
-                  onChange={(value) => {
-                    const items = [...ensureStringArray(block.data?.items)];
-                    items[itemIndex] = value;
+        {block.type === "video" ? (
+          <div className="grid gap-3">
+            <MediaAssetField
+              label="Video source"
+              value={String(block.data?.url ?? "")}
+              onChange={(value) =>
+                updateBlockHandler(block.id, (current) => ({
+                  ...current,
+                  data: { ...current.data, url: value },
+                }))
+              }
+              bucket={mediaBucket}
+              accept="video/*"
+            />
+            <AutoGrowTextarea
+              value={String(block.data?.caption ?? "")}
+              onChange={(value) =>
+                updateBlockHandler(block.id, (current) => ({
+                  ...current,
+                  data: { ...current.data, caption: value },
+                }))
+              }
+              placeholder="Caption (optional)"
+              className="min-h-[2.75rem] w-full resize-none overflow-hidden rounded-2xl bg-white/[0.03] hover:bg-white/[0.05] focus:bg-white/[0.06] px-4 py-2.5 text-sm text-white placeholder:text-white/25 outline-none transition-all"
+            />
+          </div>
+        ) : null}
+
+        {block.type === "list" ? (
+          <div className="space-y-3">
+            {/* Animated Motion List Toggle */}
+            <div className="flex items-center justify-between">
+              <span className="text-xs uppercase tracking-wider font-medium text-white/40">
+                List Style
+              </span>
+              <div className="relative flex items-center rounded-full bg-white/[0.04] p-1 border border-white/[0.06] shadow-inner">
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateBlockHandler(block.id, (current) => ({
+                      ...current,
+                      data: { ...current.data, style: "unordered" },
+                    }))
+                  }
+                  className={cn(
+                    "relative z-10 inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition-colors select-none",
+                    isUnordered
+                      ? "text-black"
+                      : "text-white/60 hover:text-white",
+                  )}
+                >
+                  {isUnordered && (
+                    <motion.span
+                      layoutId={`list-style-pill-${block.id}`}
+                      className="absolute inset-0 rounded-full bg-white shadow-md z-[-1]"
+                      transition={{
+                        type: "spring",
+                        stiffness: 450,
+                        damping: 30,
+                      }}
+                    />
+                  )}
+                  <span>• Bullet</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateBlockHandler(block.id, (current) => ({
+                      ...current,
+                      data: { ...current.data, style: "ordered" },
+                    }))
+                  }
+                  className={cn(
+                    "relative z-10 inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition-colors select-none",
+                    isOrdered ? "text-black" : "text-white/60 hover:text-white",
+                  )}
+                >
+                  {isOrdered && (
+                    <motion.span
+                      layoutId={`list-style-pill-${block.id}`}
+                      className="absolute inset-0 rounded-full bg-white shadow-md z-[-1]"
+                      transition={{
+                        type: "spring",
+                        stiffness: 450,
+                        damping: 30,
+                      }}
+                    />
+                  )}
+                  <span>1. Numbered</span>
+                </button>
+              </div>
+            </div>
+
+            {/* List items with exact sentence-1 vertical baseline alignment */}
+            {ensureStringArray(block.data?.items).map((item, itemIndex) => (
+              <div
+                key={`${block.id}-item-${itemIndex}`}
+                className="group/item flex items-start gap-3 rounded-2xl bg-white/[0.025] hover:bg-white/[0.04] px-3.5 py-2.5 transition-all"
+              >
+                <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-white/[0.08] text-[10px] font-mono font-bold text-white/60">
+                  {isOrdered ? String(itemIndex + 1) : "•"}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <AutoGrowTextarea
+                    value={item}
+                    onChange={(value) => {
+                      const items = [...ensureStringArray(block.data?.items)];
+                      items[itemIndex] = value;
+                      updateBlockHandler(block.id, (current) => ({
+                        ...current,
+                        data: { ...current.data, items },
+                      }));
+                    }}
+                    placeholder={`Item ${itemIndex + 1}`}
+                    className="min-h-[1.5rem] w-full resize-none overflow-hidden bg-transparent py-0 text-sm leading-6 text-white placeholder:text-white/20 outline-none"
+                    enableFormatToolbar
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const items = ensureStringArray(block.data?.items).filter(
+                      (_, idx) => idx !== itemIndex,
+                    );
                     updateBlockHandler(block.id, (current) => ({
                       ...current,
                       data: { ...current.data, items },
                     }));
                   }}
-                  placeholder={`Item ${itemIndex + 1}`}
-                  className="min-h-[1lh] w-full resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
-                  enableFormatToolbar
-                />
+                  className="inline-flex size-6 shrink-0 items-center justify-center rounded-full text-white/30 hover:bg-rose-500/20 hover:text-rose-200 transition-colors"
+                >
+                  <Trash2 className="size-3.5" />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  const items = ensureStringArray(block.data?.items).filter(
-                    (_, idx) => idx !== itemIndex,
-                  );
-                  updateBlockHandler(block.id, (current) => ({
-                    ...current,
-                    data: { ...current.data, items },
-                  }));
-                }}
-                className={buttonClasses({ tone: "danger", iconOnly: true })}
-              >
-                <Trash2 className="size-3.5" />
-              </button>
-            </div>
-          ))}
-          <button
-            type="button"
-            onClick={() => {
-              const items = ensureStringArray(block.data?.items);
-              items.push("");
-              updateBlockHandler(block.id, (current) => ({
-                ...current,
-                data: { ...current.data, items },
-              }));
-            }}
-            className={buttonClasses({
-              tone: "muted",
-              size: "xs",
-              className: "normal-case tracking-normal",
-            })}
-          >
-            <PlusCircle className="size-3.5" />
-            Add item
-          </button>
-        </div>
-      ) : null}
-
-      {block.type === "quote" ? (
-        <div className="grid gap-3">
-          <AutoGrowTextarea
-            value={String(block.data?.text ?? "")}
-            onChange={(value) =>
-              updateBlockHandler(block.id, (current) => ({
-                ...current,
-                data: { ...current.data, text: value },
-              }))
-            }
-            placeholder="Quote text"
-            className="min-h-[1lh] w-full resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-3 text-sm text-white outline-none"
-            enableFormatToolbar
-          />
-          <input
-            placeholder="Author"
-            value={String(block.data?.author ?? "")}
-            onChange={(event) =>
-              updateBlockHandler(block.id, (current) => ({
-                ...current,
-                data: { ...current.data, author: event.target.value },
-              }))
-            }
-            className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
-          />
-        </div>
-      ) : null}
-
-      {block.type === "callout" ? (
-        <div className="grid gap-3">
-          <div className="flex flex-wrap gap-2">
-            {calloutVariantOptions.map((variant) => (
-              <button
-                key={variant}
-                type="button"
-                onClick={() =>
-                  updateBlockHandler(block.id, (current) => ({
-                    ...current,
-                    data: { ...current.data, variant },
-                  }))
-                }
-                className={buttonClasses({
-                  tone:
-                    (block.data?.variant as CalloutVariant) === variant
-                      ? "selected"
-                      : "muted",
-                  size: "xs",
-                  className: "normal-case tracking-normal capitalize",
-                })}
-              >
-                {variant}
-              </button>
             ))}
-          </div>
-          <input
-            placeholder="Callout title"
-            value={String(block.data?.title ?? "")}
-            onChange={(event) =>
-              updateBlockHandler(block.id, (current) => ({
-                ...current,
-                data: { ...current.data, title: event.target.value },
-              }))
-            }
-            className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
-          />
-          <AutoGrowTextarea
-            value={String(block.data?.text ?? "")}
-            onChange={(value) =>
-              updateBlockHandler(block.id, (current) => ({
-                ...current,
-                data: { ...current.data, text: value },
-              }))
-            }
-            placeholder="Callout text"
-            className="min-h-[1lh] w-full resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-3 text-sm text-white outline-none"
-            enableFormatToolbar
-          />
-        </div>
-      ) : null}
 
-      {block.type === "table" ? (
-        <div className="space-y-3">
-          <div className="overflow-x-auto rounded-xl border border-white/10">
-            <table className="min-w-full border-collapse text-sm text-white/78">
-              <thead>
-                <tr>
-                  {ensureStringArray(block.data?.headers).map(
-                    (header, headerIndex) => (
-                      <th
-                        key={`${block.id}-header-${headerIndex}`}
-                        className="border-b border-white/10 px-3 py-2 align-top"
-                      >
-                        <div className="flex items-start gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                const items = ensureStringArray(block.data?.items);
+                items.push("");
+                updateBlockHandler(block.id, (current) => ({
+                  ...current,
+                  data: { ...current.data, items },
+                }));
+              }}
+              className="h-9 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/20 px-4 text-xs font-semibold text-white/80 hover:text-white transition-all shadow-sm"
+            >
+              <PlusCircle className="size-3.5" />
+              Add item
+            </button>
+          </div>
+        ) : null}
+
+        {block.type === "quote" ? (
+          <div className="grid gap-3">
+            <AutoGrowTextarea
+              value={String(block.data?.text ?? "")}
+              onChange={(value) =>
+                updateBlockHandler(block.id, (current) => ({
+                  ...current,
+                  data: { ...current.data, text: value },
+                }))
+              }
+              placeholder="Quote text..."
+              className="min-h-[2.75rem] w-full resize-none overflow-hidden rounded-2xl bg-white/[0.03] hover:bg-white/[0.05] focus:bg-white/[0.06] px-4 py-2.5 text-sm text-white placeholder:text-white/25 outline-none transition-all"
+              enableFormatToolbar
+            />
+            <input
+              placeholder="Author"
+              value={String(block.data?.author ?? "")}
+              onChange={(event) =>
+                updateBlockHandler(block.id, (current) => ({
+                  ...current,
+                  data: { ...current.data, author: event.target.value },
+                }))
+              }
+              className="h-11 w-full rounded-2xl bg-white/[0.03] hover:bg-white/[0.05] focus:bg-white/[0.06] px-4 text-sm text-white placeholder:text-white/25 outline-none transition-all"
+            />
+          </div>
+        ) : null}
+
+        {block.type === "callout" ? (
+          <div className="grid gap-3">
+            <div className="flex items-center gap-1 rounded-full bg-white/[0.04] p-1 border border-white/[0.06] w-fit shadow-inner">
+              {calloutVariantOptions.map((variant) => (
+                <button
+                  key={variant}
+                  type="button"
+                  onClick={() =>
+                    updateBlockHandler(block.id, (current) => ({
+                      ...current,
+                      data: { ...current.data, variant },
+                    }))
+                  }
+                  className={cn(
+                    "rounded-full px-3.5 py-1 text-xs font-semibold capitalize transition-all select-none",
+                    (block.data?.variant as CalloutVariant) === variant
+                      ? "bg-white text-black shadow-md"
+                      : "text-white/60 hover:text-white",
+                  )}
+                >
+                  {variant}
+                </button>
+              ))}
+            </div>
+            <input
+              placeholder="Callout title (optional)"
+              value={String(block.data?.title ?? "")}
+              onChange={(event) =>
+                updateBlockHandler(block.id, (current) => ({
+                  ...current,
+                  data: { ...current.data, title: event.target.value },
+                }))
+              }
+              className="h-11 w-full rounded-2xl bg-white/[0.03] hover:bg-white/[0.05] focus:bg-white/[0.06] px-4 text-sm text-white placeholder:text-white/25 outline-none transition-all"
+            />
+            <AutoGrowTextarea
+              value={String(block.data?.text ?? "")}
+              onChange={(value) =>
+                updateBlockHandler(block.id, (current) => ({
+                  ...current,
+                  data: { ...current.data, text: value },
+                }))
+              }
+              placeholder="Callout text..."
+              className="min-h-[2.75rem] w-full resize-none overflow-hidden rounded-2xl bg-white/[0.03] hover:bg-white/[0.05] focus:bg-white/[0.06] px-4 py-2.5 text-sm text-white placeholder:text-white/25 outline-none transition-all"
+              enableFormatToolbar
+            />
+          </div>
+        ) : null}
+
+        {block.type === "table" ? (
+          <div className="space-y-3">
+            <div className="overflow-x-auto rounded-2xl bg-white/[0.02] p-1">
+              <table className="min-w-full border-collapse text-sm text-white/80">
+                <thead>
+                  <tr>
+                    {ensureStringArray(block.data?.headers).map(
+                      (header, headerIndex) => (
+                        <th
+                          key={`${block.id}-header-${headerIndex}`}
+                          className="p-2 align-top border-b border-white/10"
+                        >
+                          <div className="flex items-start gap-2">
+                            <AutoGrowTextarea
+                              value={header}
+                              onChange={(value) => {
+                                const headers = [
+                                  ...ensureStringArray(block.data?.headers),
+                                ];
+                                headers[headerIndex] = value;
+                                updateBlockHandler(block.id, (current) => ({
+                                  ...current,
+                                  data: { ...current.data, headers },
+                                }));
+                              }}
+                              placeholder={`Column ${headerIndex + 1}`}
+                              className="min-h-[1.5rem] py-0.5 w-full resize-none overflow-hidden bg-transparent text-xs font-semibold uppercase tracking-wider text-white outline-none"
+                              enableFormatToolbar
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const headers = [
+                                  ...ensureStringArray(block.data?.headers),
+                                ];
+                                if (headers.length <= 1) return;
+                                headers.splice(headerIndex, 1);
+                                const rows = Array.isArray(block.data?.rows)
+                                  ? (block.data.rows as string[][]).map((row) =>
+                                      row.filter(
+                                        (_, idx) => idx !== headerIndex,
+                                      ),
+                                    )
+                                  : [];
+                                updateBlockHandler(block.id, (current) => ({
+                                  ...current,
+                                  data: { ...current.data, headers, rows },
+                                }));
+                              }}
+                              className="inline-flex size-6 shrink-0 items-center justify-center rounded-full text-white/30 hover:bg-rose-500/20 hover:text-rose-200 transition-colors"
+                            >
+                              <Trash2 className="size-3" />
+                            </button>
+                          </div>
+                        </th>
+                      ),
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {(Array.isArray(block.data?.rows)
+                    ? (block.data.rows as string[][])
+                    : []
+                  ).map((row, rowIndex) => (
+                    <tr key={`${block.id}-row-${rowIndex}`}>
+                      {row.map((cell, cellIndex) => (
+                        <td
+                          key={`${block.id}-cell-${rowIndex}-${cellIndex}`}
+                          className="p-2 align-top border-t border-white/[0.06]"
+                        >
                           <AutoGrowTextarea
-                            value={header}
+                            value={cell}
                             onChange={(value) => {
-                              const headers = [
-                                ...ensureStringArray(block.data?.headers),
-                              ];
-                              headers[headerIndex] = value;
-                              updateBlockHandler(block.id, (current) => ({
-                                ...current,
-                                data: { ...current.data, headers },
-                              }));
-                            }}
-                            placeholder={`Column ${headerIndex + 1}`}
-                            className="min-h-[1lh] w-full resize-none overflow-hidden bg-transparent text-sm text-white outline-none"
-                            enableFormatToolbar
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const headers = [
-                                ...ensureStringArray(block.data?.headers),
-                              ];
-                              if (headers.length <= 1) return;
-                              headers.splice(headerIndex, 1);
                               const rows = Array.isArray(block.data?.rows)
-                                ? (block.data.rows as string[][]).map((row) =>
-                                    row.filter((_, idx) => idx !== headerIndex),
+                                ? (block.data.rows as string[][]).map(
+                                    (item) => [...item],
                                   )
                                 : [];
+                              rows[rowIndex][cellIndex] = value;
                               updateBlockHandler(block.id, (current) => ({
                                 ...current,
-                                data: { ...current.data, headers, rows },
+                                data: { ...current.data, rows },
                               }));
                             }}
-                            className={buttonClasses({
-                              tone: "danger",
-                              iconOnly: true,
-                            })}
-                          >
-                            <Trash2 className="size-3.5" />
-                          </button>
-                        </div>
-                      </th>
-                    ),
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {(Array.isArray(block.data?.rows)
-                  ? (block.data.rows as string[][])
-                  : []
-                ).map((row, rowIndex) => (
-                  <tr key={`${block.id}-row-${rowIndex}`}>
-                    {row.map((cell, cellIndex) => (
-                      <td
-                        key={`${block.id}-cell-${rowIndex}-${cellIndex}`}
-                        className="border-t border-white/10 px-3 py-2 align-top"
-                      >
-                        <AutoGrowTextarea
-                          value={cell}
-                          onChange={(value) => {
+                            placeholder={`Row ${rowIndex + 1}, Col ${cellIndex + 1}`}
+                            className="min-h-[1.5rem] py-0.5 w-full resize-none overflow-hidden bg-transparent text-sm text-white outline-none"
+                            enableFormatToolbar
+                          />
+                        </td>
+                      ))}
+                      <td className="p-2 text-right border-t border-white/[0.06]">
+                        <button
+                          type="button"
+                          onClick={() => {
                             const rows = Array.isArray(block.data?.rows)
-                              ? (block.data.rows as string[][]).map((item) => [
-                                  ...item,
-                                ])
+                              ? (block.data.rows as string[][]).filter(
+                                  (_, idx) => idx !== rowIndex,
+                                )
                               : [];
-                            rows[rowIndex][cellIndex] = value;
+                            if (rows.length === 0) return;
                             updateBlockHandler(block.id, (current) => ({
                               ...current,
                               data: { ...current.data, rows },
                             }));
                           }}
-                          placeholder={`Row ${rowIndex + 1}, Col ${cellIndex + 1}`}
-                          className="min-h-[1lh] w-full resize-none overflow-hidden bg-transparent text-sm text-white outline-none"
-                          enableFormatToolbar
-                        />
+                          className="inline-flex size-6 items-center justify-center rounded-full text-white/30 hover:bg-rose-500/20 hover:text-rose-200 transition-colors"
+                        >
+                          <Trash2 className="size-3" />
+                        </button>
                       </td>
-                    ))}
-                    <td className="border-t border-white/10 px-3 py-2 text-right">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const rows = Array.isArray(block.data?.rows)
-                            ? (block.data.rows as string[][]).filter(
-                                (_, idx) => idx !== rowIndex,
-                              )
-                            : [];
-                          if (rows.length === 0) return;
-                          updateBlockHandler(block.id, (current) => ({
-                            ...current,
-                            data: { ...current.data, rows },
-                          }));
-                        }}
-                        className={buttonClasses({
-                          tone: "danger",
-                          iconOnly: true,
-                        })}
-                      >
-                        <Trash2 className="size-3.5" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const headers = ensureStringArray(block.data?.headers);
+                  const rows = Array.isArray(block.data?.rows)
+                    ? (block.data.rows as string[][]).map((row) => [...row, ""])
+                    : [];
+                  updateBlockHandler(block.id, (current) => ({
+                    ...current,
+                    data: {
+                      ...current.data,
+                      headers: [...headers, ""],
+                      rows,
+                    },
+                  }));
+                }}
+                className="h-9 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/20 px-4 text-xs font-semibold text-white/80 hover:text-white transition-all shadow-sm"
+              >
+                <PlusCircle className="size-3.5" />
+                Add column
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const headers = ensureStringArray(block.data?.headers);
+                  const rows = Array.isArray(block.data?.rows)
+                    ? (block.data.rows as string[][])
+                    : [];
+                  updateBlockHandler(block.id, (current) => ({
+                    ...current,
+                    data: {
+                      ...current.data,
+                      rows: [...rows, new Array(headers.length).fill("")],
+                    },
+                  }));
+                }}
+                className="h-9 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/20 px-4 text-xs font-semibold text-white/80 hover:text-white transition-all shadow-sm"
+              >
+                <PlusCircle className="size-3.5" />
+                Add row
+              </button>
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                const headers = ensureStringArray(block.data?.headers);
-                const rows = Array.isArray(block.data?.rows)
-                  ? (block.data.rows as string[][]).map((row) => [...row, ""])
-                  : [];
-                updateBlockHandler(block.id, (current) => ({
-                  ...current,
-                  data: {
-                    ...current.data,
-                    headers: [...headers, ""],
-                    rows,
-                  },
-                }));
-              }}
-              className={buttonClasses({
-                tone: "muted",
-                size: "xs",
-                className: "normal-case tracking-normal",
-              })}
-            >
-              <PlusCircle className="size-3.5" />
-              Add column
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                const headers = ensureStringArray(block.data?.headers);
-                const rows = Array.isArray(block.data?.rows)
-                  ? (block.data.rows as string[][])
-                  : [];
-                updateBlockHandler(block.id, (current) => ({
-                  ...current,
-                  data: {
-                    ...current.data,
-                    rows: [...rows, new Array(headers.length).fill("")],
-                  },
-                }));
-              }}
-              className={buttonClasses({
-                tone: "muted",
-                size: "xs",
-                className: "normal-case tracking-normal",
-              })}
-            >
-              <PlusCircle className="size-3.5" />
-              Add row
-            </button>
-          </div>
-        </div>
-      ) : null}
+        ) : null}
 
-      {block.type === "accordion" ? (
-        <div className="space-y-3">
-          {Array.isArray(block.data?.items)
-            ? (
+        {block.type === "accordion" ? (
+          <div className="space-y-3">
+            {Array.isArray(block.data?.items) &&
+              (
                 block.data.items as Array<{ title: string; content: string }>
               ).map((item, itemIndex) => (
                 <div
                   key={`${block.id}-accordion-${itemIndex}`}
-                  className="rounded-[1rem] border border-white/10 p-3"
+                  className="rounded-2xl bg-white/[0.02] hover:bg-white/[0.03] p-4 space-y-3 transition-colors"
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
                     <input
                       value={item.title}
                       onChange={(event) => {
@@ -1224,8 +1368,8 @@ function BlockEditorContent({
                           data: { ...current.data, items },
                         }));
                       }}
-                      placeholder={`Accordion title ${itemIndex + 1}`}
-                      className="w-full bg-transparent text-sm text-white outline-none"
+                      placeholder={`Accordion Item ${itemIndex + 1} Title`}
+                      className="w-full bg-transparent text-sm font-medium text-white outline-none placeholder:text-white/25"
                     />
                     <button
                       type="button"
@@ -1241,12 +1385,9 @@ function BlockEditorContent({
                           data: { ...current.data, items },
                         }));
                       }}
-                      className={buttonClasses({
-                        tone: "danger",
-                        iconOnly: true,
-                      })}
+                      className="inline-flex size-7 shrink-0 items-center justify-center rounded-full text-white/30 hover:bg-rose-500/20 hover:text-rose-200 transition-colors"
                     >
-                      <Trash2 className="size-4" />
+                      <Trash2 className="size-3.5" />
                     </button>
                   </div>
                   <AutoGrowTextarea
@@ -1267,247 +1408,269 @@ function BlockEditorContent({
                         data: { ...current.data, items },
                       }));
                     }}
-                    placeholder="Accordion content"
-                    className="mt-3 min-h-[1lh] w-full resize-none overflow-hidden bg-transparent text-sm leading-6 text-white/68 outline-none"
+                    placeholder="Accordion content..."
+                    className="min-h-[1.5rem] py-0.5 w-full resize-none overflow-hidden bg-transparent text-sm leading-6 text-white/70 outline-none placeholder:text-white/20"
                     enableFormatToolbar
                   />
                 </div>
-              ))
-            : null}
-          <button
-            type="button"
-            onClick={() => {
-              const items = Array.isArray(block.data?.items)
-                ? [
-                    ...(block.data.items as Array<{
-                      title: string;
-                      content: string;
-                    }>),
-                  ]
-                : [];
-              items.push({
-                title: "",
-                content: "",
-              });
-              updateBlockHandler(block.id, (current) => ({
-                ...current,
-                data: { ...current.data, items },
-              }));
-            }}
-            className={buttonClasses({
-              tone: "muted",
-              size: "xs",
-              className: "normal-case tracking-normal",
-            })}
-          >
-            <PlusCircle className="size-3.5" />
-            Add item
-          </button>
-        </div>
-      ) : null}
+              ))}
+            <button
+              type="button"
+              onClick={() => {
+                const items = Array.isArray(block.data?.items)
+                  ? [
+                      ...(block.data.items as Array<{
+                        title: string;
+                        content: string;
+                      }>),
+                    ]
+                  : [];
+                items.push({
+                  title: "",
+                  content: "",
+                });
+                updateBlockHandler(block.id, (current) => ({
+                  ...current,
+                  data: { ...current.data, items },
+                }));
+              }}
+              className="h-9 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/20 px-4 text-xs font-semibold text-white/80 hover:text-white transition-all shadow-sm"
+            >
+              <PlusCircle className="size-3.5" />
+              Add item
+            </button>
+          </div>
+        ) : null}
 
-      {block.type === "divider" ? (
-        <p className="text-sm text-white/42">
-          Divider block — no editable content.
-        </p>
-      ) : null}
+        {block.type === "divider" ? (
+          <div className="flex items-center justify-center py-2 text-white/20">
+            <span className="text-[11px] uppercase tracking-widest font-mono">
+              — Divider —
+            </span>
+          </div>
+        ) : null}
 
-      {block.type === "code" ? (
-        <div className="grid gap-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap gap-2">
-              <div className="relative w-full min-w-0 sm:w-56">
-                <button
-                  ref={codeLangButtonRef}
-                  type="button"
-                  onClick={() => {
-                    setCodeLangMenu((current) =>
-                      current === block.id ? null : block.id,
-                    );
-                    setCodeLangHighlightedIndex(
-                      codeLanguageOptions.findIndex(
-                        (opt) => opt.value === codeLanguage,
-                      ) || 0,
-                    );
-                  }}
-                  onKeyDown={(event) => {
-                    if (
-                      event.key === "Enter" ||
-                      event.key === " " ||
-                      event.key === "ArrowDown"
-                    ) {
-                      event.preventDefault();
+        {block.type === "code" ? (
+          <div className="grid gap-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative w-full min-w-0 sm:w-56">
+                  <button
+                    ref={codeLangButtonRef}
+                    type="button"
+                    onClick={() => {
                       setCodeLangMenu((current) =>
                         current === block.id ? null : block.id,
                       );
-                    }
-                  }}
-                  className="flex w-full min-w-0 items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white"
+                      setCodeLangHighlightedIndex(
+                        codeLanguageOptions.findIndex(
+                          (opt) => opt.value === codeLanguage,
+                        ) || 0,
+                      );
+                    }}
+                    className="h-11 flex w-full items-center justify-between gap-2 rounded-full bg-white/[0.06] hover:bg-white/[0.1] px-4 text-xs font-semibold text-white transition-all select-none"
+                  >
+                    <span className="truncate">
+                      {getLanguageLabel(codeLanguage)}
+                    </span>
+                    <ChevronsUpDown className="size-3.5 shrink-0 text-white/50" />
+                  </button>
+
+                  {/* Portaled Code Language Menu */}
+                  {typeof document !== "undefined" &&
+                    createPortal(
+                      <AnimatePresence>
+                        {openCodeLangMenu === block.id && codeLangCoords ? (
+                          <motion.div
+                            ref={codeLangMenuRef}
+                            onClick={(e) => e.stopPropagation()}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                            }}
+                            initial={{
+                              opacity: 0,
+                              y: 6,
+                              scale: 0.96,
+                              filter: "blur(8px)",
+                            }}
+                            animate={{
+                              opacity: 1,
+                              y: 0,
+                              scale: 1,
+                              filter: "blur(0px)",
+                            }}
+                            exit={{
+                              opacity: 0,
+                              y: 6,
+                              scale: 0.96,
+                              filter: "blur(8px)",
+                            }}
+                            transition={{
+                              duration: 0.18,
+                              ease: [0.22, 1, 0.36, 1],
+                            }}
+                            className="fixed z-[9999] pointer-events-auto max-h-[18rem] overflow-y-auto rounded-2xl border border-white/[0.12] bg-[#181818] p-1.5 backdrop-blur-[20px] shadow-[0_20px_50px_rgba(0,0,0,0.8)]"
+                            style={{
+                              top: codeLangCoords.top,
+                              left: codeLangCoords.left,
+                              width: Math.max(codeLangCoords.width, 180),
+                            }}
+                            role="listbox"
+                            tabIndex={-1}
+                          >
+                            {codeLanguageOptions.map((opt, index) => (
+                              <button
+                                key={opt.value}
+                                type="button"
+                                role="option"
+                                aria-selected={
+                                  codeLangHighlightedIndex === index
+                                }
+                                tabIndex={-1}
+                                onMouseEnter={() =>
+                                  setCodeLangHighlightedIndex(index)
+                                }
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                }}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  updateBlockHandler(block.id, (current) => ({
+                                    ...current,
+                                    data: {
+                                      ...current.data,
+                                      language: opt.value,
+                                    },
+                                  }));
+                                  setCodeLangMenu(null);
+                                }}
+                                className={cn(
+                                  "flex w-full min-w-0 rounded-xl px-3 py-2 text-left text-xs font-medium transition-colors select-none",
+                                  codeLangHighlightedIndex === index
+                                    ? "bg-white/10 text-white"
+                                    : "text-white/70 hover:bg-white/[0.04] hover:text-white",
+                                )}
+                              >
+                                <span className="truncate">{opt.label}</span>
+                              </button>
+                            ))}
+                          </motion.div>
+                        ) : null}
+                      </AnimatePresence>,
+                      document.body,
+                    )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateBlockHandler(block.id, (current) => ({
+                      ...current,
+                      data: { ...current.data, showPreview: !showPreview },
+                    }))
+                  }
+                  disabled={!showPreview && !canPreviewCode}
+                  className={cn(
+                    "h-11 inline-flex items-center justify-center gap-1.5 rounded-full px-4 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40 select-none",
+                    showPreview
+                      ? "bg-white/15 text-white"
+                      : "bg-white/[0.04] text-white/60 hover:bg-white/[0.08] hover:text-white",
+                  )}
                 >
-                  <span className="min-w-0 truncate">
-                    {getLanguageLabel(codeLanguage)}
+                  {showPreview ? (
+                    <EyeOff className="size-3.5" />
+                  ) : (
+                    <Eye className="size-3.5" />
+                  )}
+                  <span>
+                    {showPreview ? "Preview active" : "Enable preview"}
                   </span>
-                  <ChevronsUpDown className="size-4 shrink-0 text-white/42" />
                 </button>
-                <AnimatePresence>
-                  {openCodeLangMenu === block.id ? (
-                    <motion.div
-                      initial={{ opacity: 0, y: 8, filter: "blur(12px)" }}
-                      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                      exit={{ opacity: 0, y: 6, filter: "blur(12px)" }}
-                      transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                      className="absolute left-0 top-[calc(100%+0.5rem)] z-20 max-h-[18rem] w-full overflow-y-auto rounded-[1rem] border border-white/10 bg-[#0c0c0c]/96 p-2 backdrop-blur-xl"
-                    >
-                      {codeLanguageOptions.map((opt, index) => (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          onMouseEnter={() =>
-                            setCodeLangHighlightedIndex(index)
-                          }
-                          onClick={() => {
-                            setCodeLangMenu(null);
-                            updateBlockHandler(block.id, (current) => ({
-                              ...current,
-                              data: { ...current.data, language: opt.value },
-                            }));
-                            codeLangButtonRef.current?.focus();
-                          }}
-                          className={cn(
-                            "flex w-full min-w-0 rounded-[0.8rem] px-3 py-2 text-left text-sm transition-colors",
-                            codeLangHighlightedIndex === index
-                              ? "bg-white/[0.08] text-white"
-                              : "text-white/72 hover:bg-white/[0.04] hover:text-white",
-                          )}
-                        >
-                          <span className="min-w-0 truncate">{opt.label}</span>
-                        </button>
-                      ))}
-                    </motion.div>
-                  ) : null}
-                </AnimatePresence>
               </div>
-              <button
-                type="button"
-                onClick={() =>
-                  updateBlockHandler(block.id, (current) => ({
-                    ...current,
-                    data: { ...current.data, showPreview: !showPreview },
-                  }))
-                }
-                disabled={!showPreview && !canPreviewCode}
-                className={buttonClasses({
-                  tone: showPreview ? "selected" : "muted",
-                  size: "xs",
-                  className:
-                    "normal-case tracking-normal disabled:cursor-not-allowed disabled:opacity-40",
-                })}
-                title={
-                  canPreviewCode
-                    ? "Toggle live preview for this code block"
-                    : "Preview supports HTML, CSS, and JavaScript"
-                }
-              >
-                {showPreview ? (
-                  <EyeOff className="size-3.5" />
-                ) : (
-                  <Eye className="size-3.5" />
-                )}
-                <span>
-                  {showPreview ? "Preview enabled" : "Enable preview"}
-                </span>
-              </button>
+              {showCodePreview ? (
+                <button
+                  type="button"
+                  onClick={() => setShowAdminCodePanel((current) => !current)}
+                  className="h-11 hidden md:inline-flex items-center justify-center gap-1.5 rounded-full bg-white/[0.04] px-4 text-xs font-semibold text-white/60 hover:bg-white/[0.08] hover:text-white transition-colors select-none"
+                >
+                  {showAdminCodePanel ? (
+                    <EyeOff className="size-3.5" />
+                  ) : (
+                    <Eye className="size-3.5" />
+                  )}
+                  <span>
+                    {showAdminCodePanel ? "Hide editor" : "Show editor"}
+                  </span>
+                </button>
+              ) : null}
             </div>
+            {showPreview && !canPreviewCode ? (
+              <p className="rounded-2xl bg-amber-400/[0.08] px-4 py-2.5 text-xs text-amber-200/80">
+                Live preview is supported for HTML, CSS, and JavaScript.
+              </p>
+            ) : null}
             {showCodePreview ? (
-              <button
-                type="button"
-                onClick={() => setShowAdminCodePanel((current) => !current)}
-                className={buttonClasses({
-                  tone: showAdminCodePanel ? "selected" : "muted",
-                  size: "xs",
-                  className:
-                    "hidden normal-case tracking-normal md:inline-flex",
-                })}
+              <div
+                className={
+                  showAdminCodePanel
+                    ? "grid overflow-hidden rounded-2xl bg-black/40 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"
+                    : "grid overflow-hidden rounded-2xl bg-black/40"
+                }
               >
                 {showAdminCodePanel ? (
-                  <EyeOff className="size-3.5" />
-                ) : (
-                  <Eye className="size-3.5" />
-                )}
-                <span>{showAdminCodePanel ? "Hide code" : "Show code"}</span>
-              </button>
-            ) : null}
-          </div>
-          {showPreview && !canPreviewCode ? (
-            <p className="rounded-xl border border-amber-400/15 bg-amber-400/[0.04] px-3 py-2 text-xs leading-5 text-amber-200/72">
-              Live preview supports HTML, CSS, and JavaScript. This language
-              will still render as code.
-            </p>
-          ) : null}
-          {showCodePreview ? (
-            <div
-              className={
-                showAdminCodePanel
-                  ? "grid overflow-hidden rounded-xl border border-white/10 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"
-                  : "grid overflow-hidden rounded-xl border border-white/10"
-              }
-            >
-              {showAdminCodePanel ? (
-                <div className="min-w-0 bg-white/[0.02] md:border-r md:border-white/10">
-                  <div className="border-b border-white/10 px-3 py-2 text-[0.62rem] uppercase tracking-[0.24em] text-white/34">
-                    Code
+                  <div className="min-w-0 bg-[#0c0c0c] md:border-r md:border-white/10">
+                    <div className="px-4 py-2.5 text-[10px] uppercase font-mono tracking-wider text-white/40 border-b border-white/10">
+                      Code Editor
+                    </div>
+                    <textarea
+                      value={codeValue}
+                      onChange={(event) =>
+                        updateBlockHandler(block.id, (current) => ({
+                          ...current,
+                          data: { ...current.data, code: event.target.value },
+                        }))
+                      }
+                      className="h-[28rem] max-h-[70vh] min-h-[16rem] w-full resize-none overflow-auto bg-transparent px-4 py-3 font-mono text-xs leading-6 text-white outline-none"
+                      placeholder="// Code snippet..."
+                      spellCheck={false}
+                    />
                   </div>
-                  <textarea
-                    value={codeValue}
-                    onChange={(event) =>
-                      updateBlockHandler(block.id, (current) => ({
-                        ...current,
-                        data: { ...current.data, code: event.target.value },
-                      }))
-                    }
-                    className="h-[32rem] max-h-[70vh] min-h-[18rem] w-full resize-none overflow-auto bg-transparent px-3 py-3 font-mono text-sm leading-6 text-white outline-none"
-                    placeholder={
-                      'const greet = (name) => {\n  return `Hello, ${name}!`;\n};\n\ngreet("World"); // Hello, World!'
-                    }
-                    spellCheck={false}
+                ) : null}
+                <div className="min-w-0 bg-white">
+                  <div className="px-4 py-2.5 text-[10px] uppercase font-mono tracking-wider text-zinc-600 bg-zinc-100 border-b border-zinc-200">
+                    Live Output
+                  </div>
+                  <iframe
+                    title="Code preview"
+                    srcDoc={codePreviewDocument ?? ""}
+                    sandbox="allow-scripts allow-modals allow-forms"
+                    className="h-[28rem] max-h-[70vh] w-full border-0 bg-white"
                   />
                 </div>
-              ) : null}
-              <div className="min-w-0 bg-white">
-                <div className="border-b border-black/10 bg-white px-3 py-2 text-[0.62rem] uppercase tracking-[0.24em] text-black/40">
-                  Preview
-                </div>
-                <iframe
-                  title="Code preview"
-                  srcDoc={codePreviewDocument ?? ""}
-                  sandbox="allow-scripts allow-modals allow-forms"
-                  className="h-[32rem] max-h-[70vh] w-full border-0 bg-white"
-                />
               </div>
-            </div>
-          ) : (
-            <textarea
-              value={codeValue}
-              onChange={(event) =>
-                updateBlockHandler(block.id, (current) => ({
-                  ...current,
-                  data: { ...current.data, code: event.target.value },
-                }))
-              }
-              className="h-[22rem] max-h-[70vh] min-h-[12rem] w-full resize-y overflow-auto rounded-xl border border-white/10 bg-white/[0.02] px-3 py-3 font-mono text-sm leading-6 text-white outline-none"
-              placeholder={
-                'const greet = (name) => {\n  return `Hello, ${name}!`;\n};\n\ngreet("World"); // Hello, World!'
-              }
-              spellCheck={false}
-            />
-          )}
-        </div>
-      ) : null}
+            ) : (
+              <textarea
+                value={codeValue}
+                onChange={(event) =>
+                  updateBlockHandler(block.id, (current) => ({
+                    ...current,
+                    data: { ...current.data, code: event.target.value },
+                  }))
+                }
+                className="h-[18rem] max-h-[70vh] min-h-[10rem] w-full resize-y overflow-auto rounded-2xl bg-white/[0.03] hover:bg-white/[0.05] focus:bg-white/[0.06] px-4 py-3 font-mono text-xs leading-6 text-white placeholder:text-white/25 outline-none transition-all"
+                placeholder="// Code snippet..."
+                spellCheck={false}
+              />
+            )}
+          </div>
+        ) : null}
 
-      {block.type === "stepper" ? (
-        <div className="space-y-3">
-          {Array.isArray(block.data?.steps)
-            ? (
+        {block.type === "stepper" ? (
+          <div className="space-y-3">
+            {Array.isArray(block.data?.steps) &&
+              (
                 block.data.steps as Array<{
                   title?: string;
                   description?: string;
@@ -1515,10 +1678,10 @@ function BlockEditorContent({
               ).map((step, stepIndex) => (
                 <div
                   key={`${block.id}-step-${stepIndex}`}
-                  className="rounded-[1rem] border border-white/10 p-3"
+                  className="rounded-2xl bg-white/[0.02] hover:bg-white/[0.03] p-4 transition-colors"
                 >
                   <div className="flex items-start gap-3">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-white/10 bg-white/[0.02] text-sm font-medium text-white/60">
+                    <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-white/[0.08] text-[10px] font-mono font-bold text-white mt-1">
                       {stepIndex + 1}
                     </div>
                     <div className="flex-1 space-y-2">
@@ -1541,7 +1704,7 @@ function BlockEditorContent({
                           }));
                         }}
                         placeholder="Step title"
-                        className="w-full rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
+                        className="w-full bg-transparent text-sm font-medium text-white outline-none placeholder:text-white/25"
                       />
                       <AutoGrowTextarea
                         value={step.description ?? ""}
@@ -1561,8 +1724,8 @@ function BlockEditorContent({
                             data: { ...current.data, steps },
                           }));
                         }}
-                        placeholder="Step description"
-                        className="min-h-[1lh] w-full resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
+                        placeholder="Step description..."
+                        className="min-h-[1.5rem] py-0.5 w-full resize-none overflow-hidden bg-transparent text-sm text-white/70 outline-none placeholder:text-white/20"
                         enableFormatToolbar
                       />
                     </div>
@@ -1581,53 +1744,45 @@ function BlockEditorContent({
                           data: { ...current.data, steps },
                         }));
                       }}
-                      className={buttonClasses({
-                        tone: "danger",
-                        iconOnly: true,
-                      })}
+                      className="inline-flex size-7 shrink-0 items-center justify-center rounded-full text-white/30 hover:bg-rose-500/20 hover:text-rose-200 transition-colors"
                     >
-                      <Trash2 className="size-4" />
+                      <Trash2 className="size-3.5" />
                     </button>
                   </div>
                 </div>
-              ))
-            : null}
-          <button
-            type="button"
-            onClick={() => {
-              const steps = Array.isArray(block.data?.steps)
-                ? [
-                    ...(block.data.steps as Array<{
-                      title?: string;
-                      description?: string;
-                    }>),
-                  ]
-                : [];
-              steps.push({
-                title: "",
-                description: "",
-              });
-              updateBlockHandler(block.id, (current) => ({
-                ...current,
-                data: { ...current.data, steps },
-              }));
-            }}
-            className={buttonClasses({
-              tone: "muted",
-              size: "xs",
-              className: "normal-case tracking-normal",
-            })}
-          >
-            <PlusCircle className="size-3.5" />
-            Add step
-          </button>
-        </div>
-      ) : null}
+              ))}
+            <button
+              type="button"
+              onClick={() => {
+                const steps = Array.isArray(block.data?.steps)
+                  ? [
+                      ...(block.data.steps as Array<{
+                        title?: string;
+                        description?: string;
+                      }>),
+                    ]
+                  : [];
+                steps.push({
+                  title: "",
+                  description: "",
+                });
+                updateBlockHandler(block.id, (current) => ({
+                  ...current,
+                  data: { ...current.data, steps },
+                }));
+              }}
+              className="h-9 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/20 px-4 text-xs font-semibold text-white/80 hover:text-white transition-all shadow-sm"
+            >
+              <PlusCircle className="size-3.5" />
+              Add step
+            </button>
+          </div>
+        ) : null}
 
-      {block.type === "gallery" ? (
-        <div className="space-y-3">
-          {Array.isArray(block.data?.images)
-            ? (
+        {block.type === "gallery" ? (
+          <div className="space-y-3">
+            {Array.isArray(block.data?.images) &&
+              (
                 block.data.images as Array<{
                   url?: string;
                   alt?: string;
@@ -1636,10 +1791,10 @@ function BlockEditorContent({
               ).map((img, imgIndex) => (
                 <div
                   key={`${block.id}-img-${imgIndex}`}
-                  className="rounded-[1rem] border border-white/10 p-3"
+                  className="rounded-2xl bg-white/[0.02] hover:bg-white/[0.03] p-4 space-y-3 transition-colors"
                 >
                   <MediaAssetField
-                    label="Image URL"
+                    label={`Gallery Image #${imgIndex + 1}`}
                     value={String(img.url ?? "")}
                     onChange={(value) => {
                       const images = [
@@ -1678,7 +1833,7 @@ function BlockEditorContent({
                       }));
                     }}
                     placeholder="Alt text"
-                    className="mt-2 w-full rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
+                    className="h-11 w-full rounded-2xl bg-white/[0.03] hover:bg-white/[0.05] focus:bg-white/[0.06] px-4 text-sm text-white placeholder:text-white/25 outline-none transition-all"
                   />
                   <AutoGrowTextarea
                     value={String(img.caption ?? "")}
@@ -1700,7 +1855,7 @@ function BlockEditorContent({
                       }));
                     }}
                     placeholder="Caption (optional)"
-                    className="mt-2 w-full resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
+                    className="min-h-[2.75rem] w-full resize-none overflow-hidden rounded-2xl bg-white/[0.03] hover:bg-white/[0.05] focus:bg-white/[0.06] px-4 py-2.5 text-sm text-white placeholder:text-white/25 outline-none transition-all"
                   />
                   <button
                     type="button"
@@ -1717,129 +1872,120 @@ function BlockEditorContent({
                         data: { ...current.data, images },
                       }));
                     }}
-                    className={buttonClasses({
-                      tone: "danger",
-                      size: "xs",
-                      className: "mt-2 normal-case tracking-normal",
-                    })}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-rose-500/10 hover:bg-rose-500/20 px-3 py-1 text-xs font-medium text-rose-300 transition-colors"
                   >
                     <Trash2 className="size-3.5" />
                     Remove image
                   </button>
                 </div>
-              ))
-            : null}
-          <button
-            type="button"
-            onClick={() => {
-              const images = Array.isArray(block.data?.images)
-                ? [
-                    ...(block.data.images as Array<{
-                      url?: string;
-                      alt?: string;
-                      caption?: string;
-                    }>),
-                  ]
-                : [];
-              images.push({ url: "", alt: "", caption: "" });
-              updateBlockHandler(block.id, (current) => ({
-                ...current,
-                data: { ...current.data, images },
-              }));
-            }}
-            className={buttonClasses({
-              tone: "muted",
-              size: "xs",
-              className: "normal-case tracking-normal",
-            })}
-          >
-            <PlusCircle className="size-3.5" />
-            Add image
-          </button>
-        </div>
-      ) : null}
+              ))}
+            <button
+              type="button"
+              onClick={() => {
+                const images = Array.isArray(block.data?.images)
+                  ? [
+                      ...(block.data.images as Array<{
+                        url?: string;
+                        alt?: string;
+                        caption?: string;
+                      }>),
+                    ]
+                  : [];
+                images.push({ url: "", alt: "", caption: "" });
+                updateBlockHandler(block.id, (current) => ({
+                  ...current,
+                  data: { ...current.data, images },
+                }));
+              }}
+              className="h-9 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/20 px-4 text-xs font-semibold text-white/80 hover:text-white transition-all shadow-sm"
+            >
+              <PlusCircle className="size-3.5" />
+              Add image
+            </button>
+          </div>
+        ) : null}
 
-      {block.type === "link" ? (
-        <div className="grid gap-3">
-          <input
-            value={String(block.data?.url ?? "")}
-            onChange={(event) =>
-              updateBlockHandler(block.id, (current) => ({
-                ...current,
-                data: { ...current.data, url: event.target.value },
-              }))
-            }
-            placeholder="URL"
-            className="w-full rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
-          />
-          <input
-            value={String(block.data?.title ?? "")}
-            onChange={(event) =>
-              updateBlockHandler(block.id, (current) => ({
-                ...current,
-                data: { ...current.data, title: event.target.value },
-              }))
-            }
-            placeholder="Title"
-            className="w-full rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
-          />
-          <AutoGrowTextarea
-            value={String(block.data?.description ?? "")}
-            onChange={(value) =>
-              updateBlockHandler(block.id, (current) => ({
-                ...current,
-                data: { ...current.data, description: value },
-              }))
-            }
-            placeholder="Description"
-            className="w-full resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
-            enableFormatToolbar
-          />
-        </div>
-      ) : null}
+        {block.type === "link" ? (
+          <div className="grid gap-3">
+            <input
+              value={String(block.data?.url ?? "")}
+              onChange={(event) =>
+                updateBlockHandler(block.id, (current) => ({
+                  ...current,
+                  data: { ...current.data, url: event.target.value },
+                }))
+              }
+              placeholder="Target URL (https://...)"
+              className="h-11 w-full rounded-2xl bg-white/[0.03] hover:bg-white/[0.05] focus:bg-white/[0.06] px-4 text-sm text-white placeholder:text-white/25 outline-none transition-all"
+            />
+            <input
+              value={String(block.data?.title ?? "")}
+              onChange={(event) =>
+                updateBlockHandler(block.id, (current) => ({
+                  ...current,
+                  data: { ...current.data, title: event.target.value },
+                }))
+              }
+              placeholder="Card Title"
+              className="h-11 w-full rounded-2xl bg-white/[0.03] hover:bg-white/[0.05] focus:bg-white/[0.06] px-4 text-sm font-medium text-white placeholder:text-white/25 outline-none transition-all"
+            />
+            <AutoGrowTextarea
+              value={String(block.data?.description ?? "")}
+              onChange={(value) =>
+                updateBlockHandler(block.id, (current) => ({
+                  ...current,
+                  data: { ...current.data, description: value },
+                }))
+              }
+              placeholder="Description..."
+              className="w-full resize-none overflow-hidden rounded-2xl bg-white/[0.03] hover:bg-white/[0.05] focus:bg-white/[0.06] px-4 py-2.5 text-sm text-white placeholder:text-white/25 outline-none transition-all"
+              enableFormatToolbar
+            />
+          </div>
+        ) : null}
 
-      {block.type === "metric" ? (
-        <div className="grid gap-3">
-          <input
-            value={String(block.data?.label ?? "")}
-            onChange={(event) =>
-              updateBlockHandler(block.id, (current) => ({
-                ...current,
-                data: { ...current.data, label: event.target.value },
-              }))
-            }
-            placeholder="Label (e.g., Performance)"
-            className="w-full rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
-          />
-          <input
-            value={String(block.data?.value ?? "")}
-            onChange={(event) =>
-              updateBlockHandler(block.id, (current) => ({
-                ...current,
-                data: { ...current.data, value: event.target.value },
-              }))
-            }
-            placeholder="Value (e.g., 98%)"
-            className="w-full rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
-          />
-          <AutoGrowTextarea
-            value={String(block.data?.description ?? "")}
-            onChange={(value) =>
-              updateBlockHandler(block.id, (current) => ({
-                ...current,
-                data: { ...current.data, description: value },
-              }))
-            }
-            placeholder="Description (optional)"
-            className="w-full resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
-          />
-        </div>
-      ) : null}
+        {block.type === "metric" ? (
+          <div className="grid gap-3">
+            <input
+              value={String(block.data?.label ?? "")}
+              onChange={(event) =>
+                updateBlockHandler(block.id, (current) => ({
+                  ...current,
+                  data: { ...current.data, label: event.target.value },
+                }))
+              }
+              placeholder="Label (e.g., Performance Score)"
+              className="h-11 w-full rounded-2xl bg-white/[0.03] hover:bg-white/[0.05] focus:bg-white/[0.06] px-4 text-sm text-white placeholder:text-white/25 outline-none transition-all"
+            />
+            <input
+              value={String(block.data?.value ?? "")}
+              onChange={(event) =>
+                updateBlockHandler(block.id, (current) => ({
+                  ...current,
+                  data: { ...current.data, value: event.target.value },
+                }))
+              }
+              placeholder="Value (e.g., 99.8%)"
+              className="h-11 w-full rounded-2xl bg-white/[0.03] hover:bg-white/[0.05] focus:bg-white/[0.06] px-4 text-sm font-semibold text-white placeholder:text-white/25 outline-none transition-all"
+            />
+            <AutoGrowTextarea
+              value={String(block.data?.description ?? "")}
+              onChange={(value) =>
+                updateBlockHandler(block.id, (current) => ({
+                  ...current,
+                  data: { ...current.data, description: value },
+                }))
+              }
+              placeholder="Description (optional)"
+              className="w-full resize-none overflow-hidden rounded-2xl bg-white/[0.03] hover:bg-white/[0.05] focus:bg-white/[0.06] px-4 py-2.5 text-sm text-white placeholder:text-white/25 outline-none transition-all"
+            />
+          </div>
+        ) : null}
 
-      {block.type === "timeline" ? (
-        <div className="space-y-3">
-          {Array.isArray(block.data?.items)
-            ? (
+        {block.type === "timeline" ? (
+          <div className="space-y-3">
+            {Array.isArray(block.data?.items) &&
+              (
                 block.data.items as Array<{
                   date?: string;
                   title?: string;
@@ -1848,7 +1994,7 @@ function BlockEditorContent({
               ).map((item, itemIndex) => (
                 <div
                   key={`${block.id}-tl-${itemIndex}`}
-                  className="rounded-[1rem] border border-white/10 p-3"
+                  className="rounded-2xl bg-white/[0.02] hover:bg-white/[0.03] p-4 space-y-3 transition-colors"
                 >
                   <div className="grid gap-2">
                     <input
@@ -1870,8 +2016,8 @@ function BlockEditorContent({
                           data: { ...current.data, items },
                         }));
                       }}
-                      placeholder="Date"
-                      className="w-full rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
+                      placeholder="Date or Period (e.g., Q1 2024)"
+                      className="h-10 w-full rounded-2xl bg-white/[0.03] hover:bg-white/[0.05] focus:bg-white/[0.06] px-4 text-xs text-white placeholder:text-white/25 outline-none transition-all"
                     />
                     <input
                       value={item.title ?? ""}
@@ -1892,8 +2038,8 @@ function BlockEditorContent({
                           data: { ...current.data, items },
                         }));
                       }}
-                      placeholder="Title"
-                      className="w-full rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
+                      placeholder="Milestone Title"
+                      className="h-11 w-full rounded-2xl bg-white/[0.03] hover:bg-white/[0.05] focus:bg-white/[0.06] px-4 text-sm font-medium text-white placeholder:text-white/25 outline-none transition-all"
                     />
                     <AutoGrowTextarea
                       value={item.description ?? ""}
@@ -1914,8 +2060,8 @@ function BlockEditorContent({
                           data: { ...current.data, items },
                         }));
                       }}
-                      placeholder="Description"
-                      className="w-full resize-none overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none"
+                      placeholder="Milestone description..."
+                      className="w-full resize-none overflow-hidden bg-transparent text-sm text-white/70 outline-none placeholder:text-white/20"
                       enableFormatToolbar
                     />
                   </div>
@@ -1934,99 +2080,90 @@ function BlockEditorContent({
                         data: { ...current.data, items },
                       }));
                     }}
-                    className={buttonClasses({
-                      tone: "danger",
-                      size: "xs",
-                      className: "mt-2 normal-case tracking-normal",
-                    })}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-rose-500/10 hover:bg-rose-500/20 px-3 py-1 text-xs font-medium text-rose-300 transition-colors"
                   >
                     <Trash2 className="size-3.5" />
                     Remove
                   </button>
                 </div>
-              ))
-            : null}
-          <button
-            type="button"
-            onClick={() => {
-              const items = Array.isArray(block.data?.items)
-                ? [
-                    ...(block.data.items as Array<{
-                      date?: string;
-                      title?: string;
-                      description?: string;
-                    }>),
-                  ]
-                : [];
-              items.push({ date: "", title: "", description: "" });
-              updateBlockHandler(block.id, (current) => ({
-                ...current,
-                data: { ...current.data, items },
-              }));
-            }}
-            className={buttonClasses({
-              tone: "muted",
-              size: "xs",
-              className: "normal-case tracking-normal",
-            })}
-          >
-            <PlusCircle className="size-3.5" />
-            Add timeline item
-          </button>
-        </div>
-      ) : null}
+              ))}
+            <button
+              type="button"
+              onClick={() => {
+                const items = Array.isArray(block.data?.items)
+                  ? [
+                      ...(block.data.items as Array<{
+                        date?: string;
+                        title?: string;
+                        description?: string;
+                      }>),
+                    ]
+                  : [];
+                items.push({ date: "", title: "", description: "" });
+                updateBlockHandler(block.id, (current) => ({
+                  ...current,
+                  data: { ...current.data, items },
+                }));
+              }}
+              className="h-9 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/20 px-4 text-xs font-semibold text-white/80 hover:text-white transition-all shadow-sm"
+            >
+              <PlusCircle className="size-3.5" />
+              Add timeline item
+            </button>
+          </div>
+        ) : null}
 
-      {block.type === "columns-2" ? (
-        <div className="grid gap-4 lg:grid-cols-2" data-columns-container>
-          <div className="min-w-0 rounded-[1.25rem] border border-white/10 bg-black/10 p-3">
-            <p className="mb-3 text-[0.62rem] uppercase tracking-[0.28em] text-white/34">
-              Left column
-            </p>
-            <BlockEditor
-              isRoot={false}
-              blocks={
-                Array.isArray(block.data?.left)
-                  ? (block.data.left as ContentBlock[])
-                  : []
-              }
-              onChange={(leftBlocks) =>
-                updateBlockHandler(block.id, (current) => ({
-                  ...current,
-                  data: { ...current.data, left: leftBlocks },
-                }))
-              }
-              blockTypes={nestedBlockTypes}
-              mediaBucket={mediaBucket}
-            />
+        {block.type === "columns-2" ? (
+          <div className="grid gap-4 lg:grid-cols-2" data-columns-container>
+            <div className="min-w-0 rounded-2xl bg-black/20 p-4 border border-white/[0.04]">
+              <p className="mb-3 text-[10px] uppercase font-mono tracking-widest text-white/35">
+                Left Column
+              </p>
+              <BlockEditor
+                isRoot={false}
+                blocks={
+                  Array.isArray(block.data?.left)
+                    ? (block.data.left as ContentBlock[])
+                    : []
+                }
+                onChange={(leftBlocks) =>
+                  updateBlockHandler(block.id, (current) => ({
+                    ...current,
+                    data: { ...current.data, left: leftBlocks },
+                  }))
+                }
+                blockTypes={nestedBlockTypes}
+                mediaBucket={mediaBucket}
+              />
+            </div>
+            <div className="min-w-0 rounded-2xl bg-black/20 p-4 border border-white/[0.04]">
+              <p className="mb-3 text-[10px] uppercase font-mono tracking-widest text-white/35">
+                Right Column
+              </p>
+              <BlockEditor
+                isRoot={false}
+                blocks={
+                  Array.isArray(block.data?.right)
+                    ? (block.data.right as ContentBlock[])
+                    : []
+                }
+                onChange={(rightBlocks) =>
+                  updateBlockHandler(block.id, (current) => ({
+                    ...current,
+                    data: { ...current.data, right: rightBlocks },
+                  }))
+                }
+                blockTypes={nestedBlockTypes}
+                mediaBucket={mediaBucket}
+              />
+            </div>
           </div>
-          <div className="min-w-0 rounded-[1.25rem] border border-white/10 bg-black/10 p-3">
-            <p className="mb-3 text-[0.62rem] uppercase tracking-[0.28em] text-white/34">
-              Right column
-            </p>
-            <BlockEditor
-              isRoot={false}
-              blocks={
-                Array.isArray(block.data?.right)
-                  ? (block.data.right as ContentBlock[])
-                  : []
-              }
-              onChange={(rightBlocks) =>
-                updateBlockHandler(block.id, (current) => ({
-                  ...current,
-                  data: { ...current.data, right: rightBlocks },
-                }))
-              }
-              blockTypes={nestedBlockTypes}
-              mediaBucket={mediaBucket}
-            />
-          </div>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
     </div>
   );
 }
 
-// ─── FIXED: InsertBlockMenu is now INSIDE SortableBlock ─────────────────
 function SortableBlock({
   block,
   onChange,
@@ -2079,8 +2216,6 @@ function SortableBlock({
     opacity: isDragging ? 0.5 : 1,
   };
 
-  // Measure the content height when exit starts so we can animate
-  // from a known pixel value down to 0.
   const contentRef = useRef<HTMLDivElement>(null);
   const [exitHeight, setExitHeight] = useState<number | null>(null);
 
@@ -2097,10 +2232,12 @@ function SortableBlock({
     <div
       ref={setNodeRef}
       style={style}
-      className={isExiting ? "overflow-hidden" : ""}
+      className={cn(
+        "transition-all relative",
+        isExiting ? "overflow-hidden" : "",
+      )}
     >
       {isExiting && exitHeight !== null ? (
-        /* ── Exit animation: blur-out + measured height → 0 ── */
         <motion.div
           key={`exit-${block.id}`}
           initial={{
@@ -2133,12 +2270,8 @@ function SortableBlock({
               dragHandle={
                 <button
                   type="button"
-                  className={buttonClasses({
-                    tone: "muted",
-                    iconOnly: true,
-                    className: "shrink-0 cursor-grab active:cursor-grabbing",
-                  })}
-                  title="Drag block"
+                  className="shrink-0 cursor-grab active:cursor-grabbing text-white/40 hover:text-white transition-colors p-2 rounded-full"
+                  title="Drag to reorder"
                   aria-label={`Drag ${block.type} block`}
                   {...attributes}
                   {...listeners}
@@ -2154,7 +2287,6 @@ function SortableBlock({
           </div>
         </motion.div>
       ) : (
-        /* ── Normal / entry animation ── */
         <motion.div
           key={block.id}
           initial={{
@@ -2184,12 +2316,8 @@ function SortableBlock({
               dragHandle={
                 <button
                   type="button"
-                  className={buttonClasses({
-                    tone: "muted",
-                    iconOnly: true,
-                    className: "shrink-0 cursor-grab active:cursor-grabbing",
-                  })}
-                  title="Drag block"
+                  className="shrink-0 cursor-grab active:cursor-grabbing text-white/40 hover:text-white transition-colors p-2 rounded-full"
+                  title="Drag to reorder"
                   aria-label={`Drag ${block.type} block`}
                   {...attributes}
                   {...listeners}
@@ -2229,10 +2357,6 @@ export function BlockEditor({
   const [openCodeLangMenu, setCodeLangMenu] = useState<string | null>(null);
   const [openInsertMenu, setOpenInsertMenu] = useState<number | null>(null);
 
-  // ── Exit animation state ─────────────────────────────────────────────
-  // Track which block IDs are playing their exit animation.
-  // The block stays in the `blocks` array during the animation so it
-  // remains in the correct DOM position, then gets removed afterwards.
   const [exitingBlockIds, setExitingBlockIds] = useState<Set<string>>(
     new Set(),
   );
@@ -2241,29 +2365,24 @@ export function BlockEditor({
   blocksRef.current = blocks;
 
   const removeBlockWithAnimation = (id: string) => {
-    if (exitingBlockIds.has(id)) return; // prevent double-click
-    // Mark the block as exiting — it stays in `blocks` for the animation
+    if (exitingBlockIds.has(id)) return;
+
     setExitingBlockIds((prev) => new Set(prev).add(id));
-    // After the animation completes, finally remove it from data
+
     setTimeout(() => {
       setExitingBlockIds((prev) => {
         const next = new Set(prev);
         next.delete(id);
         return next;
       });
-      // Remove from blocks — the sortable items list will update too
       onChange(blocksRef.current.filter((b) => b.id !== id));
-    }, 420); // slightly longer than the 350ms animation duration
+    }, 420);
   };
 
-  // ── End exit animation state ─────────────────────────────────────────
-
-  // Filter out columns-2 for nested editors
   const nestedBlockTypes = blockTypes.filter((type) => type !== "columns-2");
 
   const [activeId, setActiveId] = useState<string | null>(null);
 
-  // Use both PointerSensor and TouchSensor for cross-platform support
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 8 },
@@ -2288,20 +2407,19 @@ export function BlockEditor({
     setOpenInsertMenu(null);
   };
 
-  const addBlock = (type: string) => {
-    onChange([...blocks, createBlock(type as ContentBlock["type"])]);
-  };
-
-  // `removeBlock` is replaced with the animated version
   const removeBlock = removeBlockWithAnimation;
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveId(null);
+
     if (!over || active.id === over.id) return;
+
     const activeIndex = blocks.findIndex((block) => block.id === active.id);
     const overIndex = blocks.findIndex((block) => block.id === over.id);
+
     if (activeIndex === -1 || overIndex === -1) return;
+
     onChange(arrayMove(blocks, activeIndex, overIndex));
   };
 
@@ -2309,7 +2427,6 @@ export function BlockEditor({
     onChange(duplicateBlock(blocks, id));
   };
 
-  // ── Shared render function for both root and non-root editors ──
   const renderBlocks = (root: boolean) => (
     <DndContext
       sensors={sensors}
@@ -2328,7 +2445,6 @@ export function BlockEditor({
             touchAction: activeId ? "none" : undefined,
           }}
         >
-          {/* Insert button at the very top — stays outside sortable (OK, nothing above it to overlap with) */}
           <InsertBlockMenu
             index={0}
             open={openInsertMenu === 0}

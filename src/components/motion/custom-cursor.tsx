@@ -400,7 +400,7 @@ export function CustomCursor() {
     <>
       {/* ── Center dot (instant pointer) z=9999 ── */}
       <motion.div
-        className="pointer-events-none fixed left-0 top-0 z-[9999] hidden md:block"
+        className="pointer-events-none fixed left-0 top-0 z-[999999] hidden md:block"
         style={{ x: dotX, y: dotY }}
         animate={{ opacity: visible ? 1 : 0 }}
         transition={{ duration: 0.12, ease: EASE_OUT }}
@@ -426,7 +426,7 @@ export function CustomCursor() {
 
       {/* ── Outer orb / ring z=9998 ── */}
       <motion.div
-        className="pointer-events-none fixed left-0 top-0 z-[9998] hidden md:block"
+        className="pointer-events-none fixed left-0 top-0 z-[999998] hidden md:block"
         style={{ x: orbX, y: orbY }}
         animate={{ opacity: visible ? 1 : 0 }}
         transition={{ duration: 0.2, ease: EASE_OUT }}

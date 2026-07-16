@@ -1101,18 +1101,6 @@ export function HomePage({
 
           <>
             <div className="mt-10 gap-4 columns-2 grid sm:hidden">
-              <div className="break-inside-avoid col-span-2">
-                <div className="group overflow-hidden rounded-[1.6rem] border border-white/10 bg-black/20">
-                  <video
-                    src="/archive-preview/video-1.mp4"
-                    muted
-                    autoPlay
-                    loop
-                    playsInline
-                    className="h-auto w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
-                  />
-                </div>
-              </div>
               <div className="col-span-1 h-full">
                 <div className="mb-4 break-inside-avoid">
                   <div className="group overflow-hidden rounded-[1.6rem] border border-white/10 bg-black/20">
@@ -1168,19 +1156,6 @@ export function HomePage({
                   <img
                     src="/archive-preview/image-1.jpg"
                     alt="Creative archive preview"
-                    className="h-auto w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
-                  />
-                </div>
-              </div>
-
-              <div className="mb-4 break-inside-avoid">
-                <div className="group overflow-hidden rounded-[1.6rem] border border-white/10 bg-black/20">
-                  <video
-                    src="/archive-preview/video-1.mp4"
-                    muted
-                    autoPlay
-                    loop
-                    playsInline
                     className="h-auto w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
                   />
                 </div>

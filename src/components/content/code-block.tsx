@@ -208,9 +208,7 @@ ${code}
   }
 
   if (normalizedLanguage === "markdown") {
-    // Markdown preview - escaped and styled for readability
     const escapedCode = escapeHtml(code);
-    // Convert line breaks to <br> for basic rendering
     const htmlContent = escapedCode.replace(/\n/g, "<br>");
     return `<!doctype html>
 <html lang="en">

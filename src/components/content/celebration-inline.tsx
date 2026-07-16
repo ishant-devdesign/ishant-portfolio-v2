@@ -27,34 +27,15 @@ type Dot = {
 };
 
 const DOT_STYLES = [
-  {
-    bg: "radial-gradient(circle at 32% 28%, #fef08a 0%, #facc15 38%, #eab308 100%)",
-    shadow: "0 0 10px rgba(250,204,21,0.6)",
-  },
-  {
-    bg: "radial-gradient(circle at 32% 28%, #fed7aa 0%, #fb923c 42%, #ea580c 100%)",
-    shadow: "0 0 10px rgba(251,146,60,0.6)",
-  },
-  {
-    bg: "radial-gradient(circle at 32% 28%, #fbcfe8 0%, #ec4899 45%, #be185d 100%)",
-    shadow: "0 0 10px rgba(236,72,153,0.6)",
-  },
-  {
-    bg: "radial-gradient(circle at 32% 28%, #a5f3fc 0%, #06b6d4 45%, #0891b2 100%)",
-    shadow: "0 0 10px rgba(6,182,214,0.55)",
-  },
-  {
-    bg: "radial-gradient(circle at 32% 28%, #c4b5fd 0%, #a855f7 48%, #7e22ce 100%)",
-    shadow: "0 0 10px rgba(168,85,247,0.55)",
-  },
-  {
-    bg: "radial-gradient(circle at 32% 28%, #bbf7d0 0%, #4ade80 45%, #16a34a 100%)",
-    shadow: "0 0 10px rgba(74,222,128,0.5)",
-  },
+  { bg: "radial-gradient(circle at 32% 28%, #fef08a 0%, #facc15 38%, #eab308 100%)", shadow: "0 0 10px rgba(250,204,21,0.6)" },
+  { bg: "radial-gradient(circle at 32% 28%, #fed7aa 0%, #fb923c 42%, #ea580c 100%)", shadow: "0 0 10px rgba(251,146,60,0.6)" },
+  { bg: "radial-gradient(circle at 32% 28%, #fbcfe8 0%, #ec4899 45%, #be185d 100%)", shadow: "0 0 10px rgba(236,72,153,0.6)" },
+  { bg: "radial-gradient(circle at 32% 28%, #a5f3fc 0%, #06b6d4 45%, #0891b2 100%)", shadow: "0 0 10px rgba(6,182,214,0.55)" },
+  { bg: "radial-gradient(circle at 32% 28%, #c4b5fd 0%, #a855f7 48%, #7e22ce 100%)", shadow: "0 0 10px rgba(168,85,247,0.55)" },
+  { bg: "radial-gradient(circle at 32% 28%, #bbf7d0 0%, #4ade80 45%, #16a34a 100%)", shadow: "0 0 10px rgba(74,222,128,0.5)" },
 ];
 
-const GRADIENT =
-  "linear-gradient(90deg, #06b6d4 0%, #facc15 22%, #fb923c 42%, #f43f5e 68%, #a855f7 88%, #ec4899 100%)";
+const GRADIENT = "linear-gradient(90deg, #06b6d4 0%, #facc15 22%, #fb923c 42%, #f43f5e 68%, #a855f7 88%, #ec4899 100%)";
 
 export function PopCelebration({ children }: Props) {
   const ref = useRef<HTMLSpanElement>(null);
@@ -70,15 +51,11 @@ export function PopCelebration({ children }: Props) {
       if (char === " ") return;
       const count = Math.random() > 0.5 ? 2 : 1;
       for (let j = 0; j < count; j++) {
-        const basePercent =
-          letters.length > 1 ? (i / (letters.length - 1)) * 100 : 50;
+        const basePercent = letters.length > 1 ? (i / (letters.length - 1)) * 100 : 50;
         const style = DOT_STYLES[Math.floor(Math.random() * DOT_STYLES.length)];
         allDots.push({
           id: dotId++,
-          leftPercent: Math.max(
-            3,
-            Math.min(97, basePercent + (Math.random() - 0.5) * 8),
-          ),
+          leftPercent: Math.max(3, Math.min(97, basePercent + (Math.random() - 0.5) * 8)),
           x: (Math.random() - 0.5) * 36,
           y: -(14 + Math.random() * 28),
           size: 5 + Math.random() * 3.2,
@@ -107,60 +84,54 @@ export function PopCelebration({ children }: Props) {
   return (
     <span ref={ref} className="relative inline-block overflow-visible">
       <span className="inline-block">
-        {plain ? (
-          letters.map((letter, i) => {
-            if (letter === " ") {
+        {plain
+          ? letters.map((letter, i) => {
+              if (letter === " ") {
+                return (
+                  <span key={`sp-${i}`} className="inline-block">
+                    {"\u00A0"}
+                  </span>
+                );
+              }
+              const bgPos = letters.length > 1 ? (i / (letters.length - 1)) * 100 : 0;
               return (
-                <span key={`sp-${i}`} className="inline-block">
-                  {"\u00A0"}
-                </span>
+                <motion.span
+                  key={`${letter}-${i}`}
+                  className="inline-block will-change-transform bg-clip-text text-transparent"
+                  style={{
+                    backgroundImage: GRADIENT,
+                    backgroundSize: `${Math.max(100, letters.length * 100)}% 100%`,
+                    backgroundPosition: `${bgPos}% 0%`,
+                    WebkitBackgroundClip: "text",
+                    backgroundClip: "text",
+                  }}
+                  initial={{ y: 0, scale: 1 }}
+                  animate={isInView ? { y: [0, -12, 0], scale: [1, 1.18, 1] } : {}}
+                  transition={{
+                    delay: i * 0.04,
+                    duration: 0.46,
+                    ease: [0.25, 0.46, 0.45, 0.94] as any,
+                  }}
+                >
+                  {letter}
+                </motion.span>
               );
-            }
-            const bgPos =
-              letters.length > 1 ? (i / (letters.length - 1)) * 100 : 0;
-            return (
-              <motion.span
-                key={`${letter}-${i}`}
-                className="inline-block will-change-transform bg-clip-text text-transparent"
-                style={{
-                  backgroundImage: GRADIENT,
-                  backgroundSize: `${Math.max(100, letters.length * 100)}% 100%`,
-                  backgroundPosition: `${bgPos}% 0%`,
-                  WebkitBackgroundClip: "text",
-                  backgroundClip: "text",
-                }}
-                initial={{ y: 0, scale: 1 }}
-                animate={
-                  isInView ? { y: [0, -12, 0], scale: [1, 1.18, 1] } : {}
-                }
-                transition={{
-                  delay: i * 0.04,
-                  duration: 0.46,
-                  ease: [0.25, 0.46, 0.45, 0.94] as any,
-                }}
-              >
-                {letter}
-              </motion.span>
-            );
-          })
-        ) : (
-          <motion.span
-            className="inline-block bg-clip-text text-transparent"
-            style={{
-              backgroundImage: GRADIENT,
-              WebkitBackgroundClip: "text",
-              backgroundClip: "text",
-            }}
-            initial={{ y: 0, scale: 1 }}
-            animate={isInView ? { y: [0, -12, 0], scale: [1, 1.18, 1] } : {}}
-            transition={{
-              duration: 0.46,
-              ease: [0.25, 0.46, 0.45, 0.94] as any,
-            }}
-          >
-            {children}
-          </motion.span>
-        )}
+            })
+          : (
+            <motion.span
+              className="inline-block bg-clip-text text-transparent"
+              style={{
+                backgroundImage: GRADIENT,
+                WebkitBackgroundClip: "text",
+                backgroundClip: "text",
+              }}
+              initial={{ y: 0, scale: 1 }}
+              animate={isInView ? { y: [0, -12, 0], scale: [1, 1.18, 1] } : {}}
+              transition={{ duration: 0.46, ease: [0.25, 0.46, 0.45, 0.94] as any }}
+            >
+              {children}
+            </motion.span>
+          )}
       </span>
 
       {/* Better confetti - glossy 3D dots with highlight */}
@@ -207,18 +178,11 @@ export function WavyCelebration({ children }: Props) {
     for (let i = 1; i <= segments; i++) {
       const t = i / segments;
       const x = t * 100;
-      const freqBase =
-        2.5 + Math.sin(t * 3.2 + basePhase * 0.7) * 1.2 + Math.random() * 0.8;
-      const ampEnvelope =
-        2.0 +
-        Math.sin(t * Math.PI * 1.8 + basePhase) * 1.1 +
-        Math.sin(t * Math.PI * 0.7) * 0.8;
+      const freqBase = 2.5 + Math.sin(t * 3.2 + basePhase * 0.7) * 1.2 + Math.random() * 0.8;
+      const ampEnvelope = 2.0 + Math.sin(t * Math.PI * 1.8 + basePhase) * 1.1 + Math.sin(t * Math.PI * 0.7) * 0.8;
       const amp = ampEnvelope + (Math.random() - 0.5) * 0.9;
       const phaseJitter = (Math.random() - 0.5) * 0.8 + basePhase;
-      const y =
-        5 +
-        Math.sin(t * freqBase + phaseJitter) * amp +
-        (Math.random() - 0.5) * 0.4;
+      const y = 5 + Math.sin(t * freqBase + phaseJitter) * amp + (Math.random() - 0.5) * 0.4;
       const prevX = ((i - 1) / segments) * 100;
       const cx = (prevX + x) / 2 + (Math.random() - 0.5) * 0.6;
       const cy = y + (Math.random() - 0.5) * 0.5;
@@ -243,11 +207,7 @@ export function WavyCelebration({ children }: Props) {
           strokeLinecap="round"
           strokeLinejoin="round"
           initial={{ pathLength: 0, opacity: 0 }}
-          animate={
-            isInView
-              ? { pathLength: 1, opacity: 1 }
-              : { pathLength: 0, opacity: 0 }
-          }
+          animate={isInView ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0 }}
           transition={{ duration: 0.92, ease: [1, 0, 0.39, 0.91] as any }}
         />
       </svg>

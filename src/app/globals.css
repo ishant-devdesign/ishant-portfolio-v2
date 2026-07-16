@@ -140,15 +140,24 @@ a {
 }
 
 .variable-display {
-  font-variation-settings: "wght" 720, "wdth" 121, "slnt" -5;
+  font-variation-settings:
+    "wght" 720,
+    "wdth" 121,
+    "slnt" -5;
 }
 
 .variable-tight {
-  font-variation-settings: "wght" 620, "wdth" 92, "slnt" -4;
+  font-variation-settings:
+    "wght" 620,
+    "wdth" 92,
+    "slnt" -4;
 }
 
 .variable-wide {
-  font-variation-settings: "wght" 540, "wdth" 128, "slnt" 0;
+  font-variation-settings:
+    "wght" 540,
+    "wdth" 128,
+    "slnt" 0;
 }
 
 .glass-panel {
@@ -228,23 +237,52 @@ a {
   }
 }
 
-/* Custom scrollbars */
-@layer utilities {
-  .dropdown-scrollbar {
+/* Custom scrollbars - sleek glass pill style for all scrollable elements */
+@layer base {
+  /* Firefox scrollbar */
+  * {
     scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+    scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
   }
-  .dropdown-scrollbar::-webkit-scrollbar {
-    width: 4px;
+}
+
+@layer utilities {
+  /* WebKit scrollbar (Chrome, Safari, Edge) */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
   }
-  .dropdown-scrollbar::-webkit-scrollbar-track {
+
+  ::-webkit-scrollbar-track {
     background: transparent;
   }
-  .dropdown-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.12);
-    border-radius: 2px;
-  }
-  .dropdown-scrollbar::-webkit-scrollbar-thumb:hover {
+
+  ::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.18);
+    border-radius: 9999px;
+    transition: background 0.2s ease;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.35);
+  }
+
+  /* Hide scrollbar arrows/buttons */
+  ::-webkit-scrollbar-button {
+    display: none;
+    height: 0;
+    width: 0;
+  }
+
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.18);
+    border-radius: 9999px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.35);
   }
 }

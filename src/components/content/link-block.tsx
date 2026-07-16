@@ -27,7 +27,7 @@ export function LinkBlock({
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      className="group block border-y border-white/8 py-5 transition-colors hover:border-white/16 "
+      className="group block border-y border-white/8 py-5 transition-colors hover:border-white/16"
     >
       <div className="flex items-start justify-between gap-5">
         <div className="min-w-0 flex-1">

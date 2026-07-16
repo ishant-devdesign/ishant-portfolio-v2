@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { InlineContentRenderer } from "./inline-content-renderer";
 
 export type CalloutVariant = "note" | "warning" | "success";
 
@@ -35,8 +36,6 @@ const variantConfig: Record<CalloutVariant, VariantConfig> = {
     text: "text-white/76",
   },
 };
-
-import { InlineContentRenderer } from "./inline-content-renderer";
 
 export function CalloutBlock({
   variant = "note",

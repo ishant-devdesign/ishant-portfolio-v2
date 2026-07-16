@@ -20,39 +20,15 @@ type TextFormatToolbarProps = {
 };
 
 const classicOptions = [
-  {
-    format: "bold" as FormatType,
-    label: "Bold",
-    icon: <Bold className="size-4" />,
-  },
-  {
-    format: "italic" as FormatType,
-    label: "Italic",
-    icon: <Italic className="size-4" />,
-  },
-  {
-    format: "code" as FormatType,
-    label: "Code",
-    icon: <Code className="size-4" />,
-  },
-  {
-    format: "highlight" as FormatType,
-    label: "Highlight",
-    icon: <Highlighter className="size-4" />,
-  },
+  { format: "bold" as FormatType, label: "Bold", icon: <Bold className="size-4" /> },
+  { format: "italic" as FormatType, label: "Italic", icon: <Italic className="size-4" /> },
+  { format: "code" as FormatType, label: "Code", icon: <Code className="size-4" /> },
+  { format: "highlight" as FormatType, label: "Highlight", icon: <Highlighter className="size-4" /> },
 ];
 
 const celebrateOptions = [
-  {
-    format: "pop" as FormatType,
-    label: "Pop",
-    icon: <PartyPopper className="size-4" />,
-  },
-  {
-    format: "wavy" as FormatType,
-    label: "Wavy",
-    icon: <Underline className="size-4" />,
-  },
+  { format: "pop" as FormatType, label: "Pop", icon: <PartyPopper className="size-4" /> },
+  { format: "wavy" as FormatType, label: "Wavy", icon: <Underline className="size-4" /> },
 ];
 
 export function TextFormatToolbar({
@@ -62,9 +38,7 @@ export function TextFormatToolbar({
   selectionRect,
 }: TextFormatToolbarProps) {
   const toolbarRef = useRef<HTMLDivElement>(null);
-  const [coords, setCoords] = useState<{ top: number; left: number } | null>(
-    null,
-  );
+  const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
 
   useLayoutEffect(() => {
     if (!selectionRect || !visible) {
@@ -117,15 +91,8 @@ export function TextFormatToolbar({
               <div key={opt.format} className="relative group">
                 <button
                   data-cursor="true"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                  }}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onFormat(opt.format);
-                  }}
+                  onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); onFormat(opt.format); }}
                   className="inline-flex size-8 items-center justify-center rounded-full text-white/60 hover:bg-white/[0.08] hover:text-white transition-colors"
                   aria-label={opt.label}
                 >
@@ -145,16 +112,9 @@ export function TextFormatToolbar({
               <div key={opt.format} className="relative group">
                 <button
                   data-cursor="true"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                  }}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onFormat(opt.format);
-                  }}
-                  className="inline-flex size-9 items-center justify-center rounded-full bg-white/[0.06] text-white/70 hover:bg-amber-200/10 hover:border-amber-200/20 hover:text-amber-100 transition-colors"
+                  onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); onFormat(opt.format); }}
+                  className="inline-flex size-8 items-center justify-center rounded-full bg-white/[0.06] border border-white/10 text-white/70 hover:bg-amber-200/10 hover:border-amber-200/20 hover:text-amber-100 transition-colors"
                   aria-label={opt.label}
                 >
                   {opt.icon}

@@ -135,7 +135,6 @@ export function CustomVideoPlayer({
     };
   }, [isScrubbing]);
 
-  // Keep isFullscreen in sync when user presses Esc / browser UI exits FS
   useEffect(() => {
     const onFullscreenChange = () => {
       const active = getFullscreenElement() === containerRef.current;
@@ -221,7 +220,6 @@ export function CustomVideoPlayer({
     }
   };
 
-  /** Fullscreen the whole player shell so custom controls stay mounted */
   const toggleFullscreen = async () => {
     const container = containerRef.current;
     if (!container) return;
@@ -233,7 +231,7 @@ export function CustomVideoPlayer({
         await requestElementFullscreen(container);
       }
     } catch {
-      // User denied / browser blocked — ignore
+      // User denied
     }
   };
 
@@ -252,11 +250,7 @@ export function CustomVideoPlayer({
     <div
       ref={containerRef}
       className={cn(
-        // cursor-none: hide native pointer so CustomCursor is the only one
-        // min sizes keep the shell + controls from collapsing while metadata loads
         "group relative min-h-[12rem] w-full min-w-[20rem] overflow-hidden rounded-[1.6rem] bg-black/20 cursor-none sm:min-h-[16rem] sm:min-w-[28rem]",
-        // Fill the screen when this container is the fullscreen element.
-        // overflow-visible so the portaled custom cursor isn't clipped.
         isFullscreen &&
           "flex h-screen w-screen min-h-screen items-center justify-center overflow-visible rounded-none bg-black",
         className,
@@ -282,7 +276,6 @@ export function CustomVideoPlayer({
         onClick={togglePlay}
       />
 
-      {/* Center play affordance when paused */}
       <AnimatePresence>
         {!isPlaying && (
           <motion.div
@@ -303,7 +296,6 @@ export function CustomVideoPlayer({
         )}
       </AnimatePresence>
 
-      {/* Bottom controls — separate glass pills (same UI in fullscreen) */}
       {controls && (
         <AnimatePresence>
           {showControls && (
@@ -314,7 +306,6 @@ export function CustomVideoPlayer({
               exit={{ opacity: 0, y: 8 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
             >
-              {/* { Play / Pause } */}
               <button
                 type="button"
                 onClick={togglePlay}
@@ -331,7 +322,6 @@ export function CustomVideoPlayer({
                 )}
               </button>
 
-              {/* { Volume + slider } — whole pill is the cursor snap target */}
               <div
                 data-cursor
                 className={cn(pillClass, "h-11 shrink-0 px-3 sm:h-12")}
@@ -388,7 +378,7 @@ export function CustomVideoPlayer({
                         document.addEventListener("mouseup", handleUp);
                       }}
                     >
-                      <div className="absolute inset-x-0 top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-white/25">
+                      <div className="absolute inset-x-0 top-1/2 h-1.5 -translate-y-1/2 overflow-hidden rounded-full bg-white/25">
                         <div
                           className="h-full rounded-full bg-white"
                           style={{ width: `${displayVolume * 100}%` }}
@@ -399,13 +389,10 @@ export function CustomVideoPlayer({
                 </AnimatePresence>
               </div>
 
-              {/* { Timeline + time } — whole pill is the cursor snap target */}
               <div
                 data-cursor
                 className={cn(
                   pillClass,
-                  // basis-0 + grow forces the pill to claim remaining width;
-                  // min-w keeps the track usable even in tight layouts.
                   "h-11 min-w-[10rem] flex-1 basis-0 px-3.5 sm:h-12 sm:min-w-[14rem] sm:px-4",
                 )}
               >
@@ -467,9 +454,9 @@ export function CustomVideoPlayer({
                     document.addEventListener("touchend", onUp);
                   }}
                 >
-                  <div className="absolute inset-x-0 top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-white/25">
+                  <div className="absolute inset-x-0 top-1/2 h-1.5 -translate-y-1/2 overflow-hidden rounded-full bg-white/25">
                     <div
-                      className="h-1.5 rounded-full bg-white"
+                      className="h-full rounded-full bg-white"
                       style={{ width: `${progressPercent}%` }}
                     />
                   </div>
@@ -482,7 +469,6 @@ export function CustomVideoPlayer({
                 </div>
               </div>
 
-              {/* { Fullscreen / Exit } — toggles container fullscreen */}
               <button
                 type="button"
                 onClick={toggleFullscreen}

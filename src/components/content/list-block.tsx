@@ -22,7 +22,7 @@ export function ListBlock({
             key={`${item}-${index}`}
             className="grid grid-cols-[2.25rem_minmax(0,1fr)] gap-4 py-4 sm:grid-cols-[2.75rem_minmax(0,1fr)] sm:gap-5"
           >
-            <span className="pt-1 text-[0.62rem] font-medium uppercase tracking-[0.24em] text-white/30 ml-3">
+            <span className="pt-1 text-[0.62rem] font-medium uppercase tracking-[0.24em] text-white/30">
               {String(index + 1).padStart(2, "0")}
             </span>
             <p className="text-base leading-8 text-white/64 sm:text-lg">
@@ -42,7 +42,7 @@ export function ListBlock({
           className="grid grid-cols-[0.75rem_minmax(0,1fr)] gap-4 py-4 sm:grid-cols-[1rem_minmax(0,1fr)] sm:gap-5"
         >
           <span
-            className="mt-[0.82rem] size-1.5 rounded-full bg-white/34 ml-3"
+            className="mt-[0.82rem] size-1.5 rounded-full bg-white/34"
             aria-hidden="true"
           />
           <p className="text-base leading-8 text-white/64 sm:text-lg">

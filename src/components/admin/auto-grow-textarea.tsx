@@ -207,10 +207,7 @@ export function AutoGrowTextarea({
 
   const handleSelect = () => {
     if (isMouseDownRef.current) return;
-    if (
-      lastMousePosRef.current &&
-      Date.now() - mouseDownTimeRef.current < 300
-    ) {
+    if (lastMousePosRef.current && Date.now() - mouseDownTimeRef.current < 300) {
       return;
     }
     updateToolbarPosition(false);
@@ -219,14 +216,7 @@ export function AutoGrowTextarea({
   const handleKeyUp = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     const isSelectionKey =
       e.shiftKey ||
-      [
-        "ArrowLeft",
-        "ArrowRight",
-        "ArrowUp",
-        "ArrowDown",
-        "Home",
-        "End",
-      ].includes(e.key);
+      ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].includes(e.key);
 
     if (!isSelectionKey) {
       const el = ref.current;
@@ -266,21 +256,21 @@ export function AutoGrowTextarea({
   };
 
   const toolbarPortal =
-    typeof document !== "undefined" && showToolbar && selectionInfo.rect
-      ? createPortal(
-          <TextFormatToolbar
-            textareaRef={ref}
-            visible={showToolbar}
-            selectionRect={{
-              top: selectionInfo.rect.top,
-              left: selectionInfo.rect.left,
-              width: selectionInfo.rect.width,
-            }}
-            onFormat={handleFormat}
-          />,
-          document.body,
-        )
-      : null;
+    typeof document !== "undefined" && showToolbar && selectionInfo.rect ? (
+      createPortal(
+        <TextFormatToolbar
+          textareaRef={ref}
+          visible={showToolbar}
+          selectionRect={{
+            top: selectionInfo.rect.top,
+            left: selectionInfo.rect.left,
+            width: selectionInfo.rect.width,
+          }}
+          onFormat={handleFormat}
+        />,
+        document.body,
+      )
+    ) : null;
 
   return (
     <div className="relative w-full flex-1 min-w-0">
