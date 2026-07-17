@@ -14,6 +14,7 @@ import { MobileSectionNav } from "@/components/nav/mobile-section-nav";
 import { SideNavRail } from "@/components/nav/side-nav-rail";
 import { HeroMediaPreview } from "@/components/ui/hero-media-preview";
 import { NextEntryCard } from "@/components/content/next-entry-card";
+import { ArticleAITools } from "@/components/content/article-ai-bar";
 import { BlockRenderer } from "@/components/content/block-renderer";
 import { BlockEditor } from "@/components/editor/block-editor";
 import { MediaAssetField } from "@/components/editor/media-asset-field";
@@ -232,6 +233,10 @@ export function BlogDetailShell({
                 <h1 className="font-heading max-w-5xl text-balance text-5xl leading-none text-white sm:text-7xl">
                   {blog.title}
                 </h1>
+                <ArticleAITools
+                  blocks={blog.contentBlocks}
+                  title={blog.title}
+                />
                 <p className="max-w-3xl text-balance text-lg leading-8 text-white/58">
                   {blog.excerpt}
                 </p>

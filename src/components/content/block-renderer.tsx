@@ -14,7 +14,6 @@ import { ListBlock } from "./list-block";
 import { StepperBlock } from "./stepper-block";
 import { LinkBlock } from "./link-block";
 import { InlineContentRenderer } from "./inline-content-renderer";
-import { ArticleAITools } from "./article-ai-bar";
 
 function decodeHtml(input: string) {
   return input
@@ -249,7 +248,7 @@ function VideoBlock({ block }: { block: ContentBlock }) {
   );
 }
 
-export function BlockRenderer({ blocks, isRoot = true }: { blocks: ContentBlock[]; isRoot?: boolean }) {
+export function BlockRenderer({ blocks }: { blocks: ContentBlock[] }) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const allImages = blocks.flatMap((block) => {
@@ -304,13 +303,8 @@ export function BlockRenderer({ blocks, isRoot = true }: { blocks: ContentBlock[
 
   let imageBlockIndex = -1;
 
-  // Extract title from first heading for AI bar
-  const firstHeading = blocks.find((b) => b.type === "heading");
-  const title = firstHeading ? String(firstHeading.data?.text ?? "") : undefined;
-
   return (
     <div className="space-y-10">
-      {isRoot ? <ArticleAITools blocks={blocks} title={title} /> : null}
       {blocks.map((block) => {
         switch (block.type) {
           case "heading": {
@@ -415,7 +409,11 @@ export function BlockRenderer({ blocks, isRoot = true }: { blocks: ContentBlock[
                   caption?: string;
                 }>)
               : [];
-            const validImages = images.filter((img) => img.url) as Array<{ url: string; alt?: string; caption?: string }>;
+            const validImages = images.filter((img) => img.url) as Array<{
+              url: string;
+              alt?: string;
+              caption?: string;
+            }>;
             if (!validImages.length) return null;
 
             const blockIndex = blocks.findIndex((b) => b.id === block.id);
@@ -426,7 +424,9 @@ export function BlockRenderer({ blocks, isRoot = true }: { blocks: ContentBlock[
                 const u = String(b.data?.url ?? "");
                 if (u) startIdx += 1;
               } else if (b.type === "gallery") {
-                const imgs = Array.isArray(b.data?.images) ? (b.data.images as Array<{ url?: string }>) : [];
+                const imgs = Array.isArray(b.data?.images)
+                  ? (b.data.images as Array<{ url?: string }>)
+                  : [];
                 startIdx += imgs.filter((im) => im.url).length;
               }
             }
@@ -437,13 +437,25 @@ export function BlockRenderer({ blocks, isRoot = true }: { blocks: ContentBlock[
               const img = validImages[0];
               return (
                 <figure key={block.id} className="space-y-3">
-                  <button type="button" onClick={() => openAt(0)} className="group block w-full text-left">
+                  <button
+                    type="button"
+                    onClick={() => openAt(0)}
+                    className="group block w-full text-left"
+                  >
                     <div className="relative overflow-hidden rounded-[1.8rem] border border-white/10 bg-white/[0.02]">
-                      <img src={img.url} alt={img.alt ?? ""} className="aspect-[16/10] w-full object-cover transition-transform duration-700 group-hover:scale-[1.02]" />
+                      <img
+                        src={img.url}
+                        alt={img.alt ?? ""}
+                        className="aspect-[16/10] w-full object-cover transition-transform duration-700 group-hover:scale-[1.02]"
+                      />
                       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
                     </div>
                   </button>
-                  {img.caption ? <figcaption className="text-sm text-white/44">{img.caption}</figcaption> : null}
+                  {img.caption ? (
+                    <figcaption className="text-sm text-white/44">
+                      {img.caption}
+                    </figcaption>
+                  ) : null}
                 </figure>
               );
             }
@@ -452,13 +464,25 @@ export function BlockRenderer({ blocks, isRoot = true }: { blocks: ContentBlock[
               return (
                 <div key={block.id} className="space-y-3">
                   <div className="relative overflow-hidden rounded-[1.8rem] border border-white/10 bg-black">
-                    <button type="button" onClick={() => openAt(0)} className="group block w-full text-left">
-                      <img src={validImages[0].url} alt={validImages[0].alt ?? ""} className="aspect-[16/9] w-full object-cover transition-transform duration-700 group-hover:scale-[1.02]" />
+                    <button
+                      type="button"
+                      onClick={() => openAt(0)}
+                      className="group block w-full text-left"
+                    >
+                      <img
+                        src={validImages[0].url}
+                        alt={validImages[0].alt ?? ""}
+                        className="aspect-[16/9] w-full object-cover transition-transform duration-700 group-hover:scale-[1.02]"
+                      />
                     </button>
                     {/* Floating thumbnails inside main box */}
                     <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between gap-3">
                       <div className="flex-1">
-                        {validImages[0].caption ? <p className="text-sm text-white/80 line-clamp-1 drop-shadow">{validImages[0].caption}</p> : null}
+                        {validImages[0].caption ? (
+                          <p className="text-sm text-white/80 line-clamp-1 drop-shadow">
+                            {validImages[0].caption}
+                          </p>
+                        ) : null}
                       </div>
                       <div className="flex gap-2">
                         {validImages.slice(1).map((img, idx) => (
@@ -468,7 +492,11 @@ export function BlockRenderer({ blocks, isRoot = true }: { blocks: ContentBlock[
                             onClick={() => openAt(idx + 1)}
                             className="group/thumb relative size-14 shrink-0 overflow-hidden rounded-xl border border-white/20 bg-black/40 backdrop-blur-md transition-all hover:scale-105 hover:border-white/30"
                           >
-                            <img src={img.url} alt={img.alt ?? ""} className="size-full object-cover" />
+                            <img
+                              src={img.url}
+                              alt={img.alt ?? ""}
+                              className="size-full object-cover"
+                            />
                           </button>
                         ))}
                       </div>
@@ -490,8 +518,16 @@ export function BlockRenderer({ blocks, isRoot = true }: { blocks: ContentBlock[
             return (
               <div key={block.id} className="space-y-3">
                 <div className="relative overflow-hidden rounded-[1.8rem] border border-white/10 bg-black">
-                  <button type="button" onClick={() => openAt(0)} className="group block w-full text-left">
-                    <img src={first.url} alt={first.alt ?? ""} className="aspect-[16/10] w-full object-cover transition-transform duration-700 group-hover:scale-[1.02]" />
+                  <button
+                    type="button"
+                    onClick={() => openAt(0)}
+                    className="group block w-full text-left"
+                  >
+                    <img
+                      src={first.url}
+                      alt={first.alt ?? ""}
+                      className="aspect-[16/10] w-full object-cover transition-transform duration-700 group-hover:scale-[1.02]"
+                    />
                     <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
                   </button>
 
@@ -499,14 +535,21 @@ export function BlockRenderer({ blocks, isRoot = true }: { blocks: ContentBlock[
                   <div className="absolute bottom-0 left-0 right-0 p-3">
                     <div className="flex items-end justify-between gap-3">
                       <div className="min-w-0 flex-1">
-                        {first.caption ? <p className="text-sm text-white/90 drop-shadow line-clamp-1">{first.caption}</p> : null}
-                        <p className="mt-1 text-[11px] text-white/60">{validImages.length} photos • click to expand</p>
+                        {first.caption ? (
+                          <p className="text-sm text-white/90 drop-shadow line-clamp-1">
+                            {first.caption}
+                          </p>
+                        ) : null}
+                        <p className="mt-1 text-[11px] text-white/60">
+                          {validImages.length} photos • click to expand
+                        </p>
                       </div>
 
                       <div className="flex shrink-0 items-center gap-2 rounded-full border border-white/10 bg-black/50 p-1 backdrop-blur-xl">
                         {thumbs.map((img, idx) => {
                           const actualIndex = idx + 1;
-                          const isLastWithMore = idx === thumbs.length - 1 && remainingCount > 0;
+                          const isLastWithMore =
+                            idx === thumbs.length - 1 && remainingCount > 0;
                           return (
                             <button
                               key={`float-thumb-${idx}`}
@@ -514,10 +557,16 @@ export function BlockRenderer({ blocks, isRoot = true }: { blocks: ContentBlock[
                               onClick={() => openAt(actualIndex)}
                               className="group/thumb relative size-11 shrink-0 overflow-hidden rounded-full border border-white/15 bg-black/40 transition-all hover:scale-110 hover:border-white/30"
                             >
-                              <img src={img.url} alt={img.alt ?? ""} className="size-full object-cover" />
+                              <img
+                                src={img.url}
+                                alt={img.alt ?? ""}
+                                className="size-full object-cover"
+                              />
                               {isLastWithMore ? (
                                 <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-[2px]">
-                                  <span className="text-[11px] font-medium text-white">+{remainingCount + 1}</span>
+                                  <span className="text-[11px] font-medium text-white">
+                                    +{remainingCount + 1}
+                                  </span>
                                 </div>
                               ) : null}
                             </button>
@@ -617,10 +666,10 @@ export function BlockRenderer({ blocks, isRoot = true }: { blocks: ContentBlock[
                 data-columns-container
               >
                 <div className="space-y-10">
-                  <BlockRenderer blocks={leftBlocks} isRoot={false} />
+                  <BlockRenderer blocks={leftBlocks} />
                 </div>
                 <div className="space-y-10">
-                  <BlockRenderer blocks={rightBlocks} isRoot={false} />
+                  <BlockRenderer blocks={rightBlocks} />
                 </div>
               </div>
             );

@@ -16,6 +16,7 @@ import { MobileSectionNav } from "@/components/nav/mobile-section-nav";
 import { SideNavRail } from "@/components/nav/side-nav-rail";
 import { HeroMediaPreview } from "@/components/ui/hero-media-preview";
 import { NextEntryCard } from "@/components/content/next-entry-card";
+import { ArticleAITools } from "@/components/content/article-ai-bar";
 import { BlockRenderer } from "@/components/content/block-renderer";
 import { BlockEditor } from "@/components/editor/block-editor";
 import { MediaAssetField } from "@/components/editor/media-asset-field";
@@ -254,6 +255,12 @@ export function ProjectDetailShell({
                   <h1 className="font-heading mt-4 max-w-5xl text-balance text-5xl leading-none text-white sm:text-7xl">
                     {project.title}
                   </h1>
+                  <div className="mt-6 max-w-3xl">
+                    <ArticleAITools
+                      blocks={project.contentBlocks}
+                      title={project.title}
+                    />
+                  </div>
                   <p className="mt-6 max-w-3xl text-balance text-lg leading-8 text-white/58">
                     {project.summary}
                   </p>
