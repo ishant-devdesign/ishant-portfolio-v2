@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   BriefcaseBusiness,
   CalendarRange,
@@ -16,6 +16,8 @@ import { MobileSectionNav } from "@/components/nav/mobile-section-nav";
 import { SideNavRail } from "@/components/nav/side-nav-rail";
 import { HeroMediaPreview } from "@/components/ui/hero-media-preview";
 import { NextEntryCard } from "@/components/content/next-entry-card";
+import { ArticleAITools } from "@/components/content/article-ai-bar";
+import { ArticleReader } from "@/components/reader/article-reader";
 import { BlockRenderer } from "@/components/content/block-renderer";
 import { BlockEditor } from "@/components/editor/block-editor";
 import { MediaAssetField } from "@/components/editor/media-asset-field";
@@ -49,6 +51,7 @@ export function ProjectDetailShell({
 }) {
   const { isAllowedAdmin, viewMode } = useAdminSession();
   const isEditing = isAllowedAdmin && viewMode === "admin";
+  const articleRef = useRef<HTMLElement | null>(null);
   const [project, setProject] = useState<Project>(
     initialProject ?? createEmptyProject(),
   );
@@ -149,7 +152,10 @@ export function ProjectDetailShell({
   return (
     <>
       <SideNavRail sections={sections} />
-      <main className="mx-auto w-full max-w-[1300px] px-5 pb-24 sm:px-8 lg:px-10 xl:pr-32 2xl:pr-40">
+      <main
+        ref={articleRef}
+        className="mx-auto w-full max-w-[1300px] px-5 pb-24 sm:px-8 lg:px-10 xl:pr-32 2xl:pr-40"
+      >
         <MobileSectionNav sections={sections} />
 
         {isEditing ? (
@@ -251,12 +257,29 @@ export function ProjectDetailShell({
                   <p className="text-[0.66rem] uppercase tracking-[0.36em] text-white/30">
                     {project.yearLabel}
                   </p>
-                  <h1 className="font-heading mt-4 max-w-5xl text-balance text-5xl leading-none text-white sm:text-7xl">
+                  <h1
+                    data-tts-read
+                    className="font-heading mt-4 max-w-5xl text-balance text-5xl leading-none text-white sm:text-7xl"
+                  >
                     {project.title}
                   </h1>
-                  <p className="mt-6 max-w-3xl text-balance text-lg leading-8 text-white/58">
+                  <div className="mt-6 max-w-3xl">
+                    <ArticleAITools
+                      blocks={project.contentBlocks}
+                      title={project.title}
+                    />
+                  </div>
+                  <p
+                    data-tts-read
+                    className="mt-6 max-w-3xl text-balance text-lg leading-8 text-white/58"
+                  >
                     {project.summary}
                   </p>
+                  {!isEditing ? (
+                    <div className="mt-6">
+                      <ArticleReader containerRef={articleRef} />
+                    </div>
+                  ) : null}
                 </>
               )}
             </RevealInView>
@@ -435,7 +458,7 @@ export function ProjectDetailShell({
               mediaBucket="project-media"
             />
           ) : (
-            <div className="space-y-10">
+            <div data-tts-read-root className="space-y-10">
               {project.contentBlocks.map((block, index) => {
                 const isHeading = block.type === "heading";
                 const sectionId = isHeading

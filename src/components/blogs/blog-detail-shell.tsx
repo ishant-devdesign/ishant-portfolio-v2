@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   CalendarRange,
   ChevronLeft,
@@ -14,6 +14,8 @@ import { MobileSectionNav } from "@/components/nav/mobile-section-nav";
 import { SideNavRail } from "@/components/nav/side-nav-rail";
 import { HeroMediaPreview } from "@/components/ui/hero-media-preview";
 import { NextEntryCard } from "@/components/content/next-entry-card";
+import { ArticleAITools } from "@/components/content/article-ai-bar";
+import { ArticleReader } from "@/components/reader/article-reader";
 import { BlockRenderer } from "@/components/content/block-renderer";
 import { BlockEditor } from "@/components/editor/block-editor";
 import { MediaAssetField } from "@/components/editor/media-asset-field";
@@ -50,6 +52,7 @@ export function BlogDetailShell({
 }) {
   const { isAllowedAdmin, viewMode } = useAdminSession();
   const isEditing = isAllowedAdmin && viewMode === "admin";
+  const articleRef = useRef<HTMLElement | null>(null);
   const [blog, setBlog] = useState<Blog>(initialBlog ?? createEmptyBlog());
   const [saveState, setSaveState] = useState<
     "idle" | "saving" | "saved" | "error"
@@ -145,7 +148,10 @@ export function BlogDetailShell({
   return (
     <>
       <SideNavRail sections={sections} />
-      <main className="mx-auto w-full max-w-[1100px] px-5 pb-24 sm:px-8 lg:px-10 xl:pr-32 2xl:pr-40">
+      <main
+        ref={articleRef}
+        className="mx-auto w-full max-w-[1100px] px-5 pb-24 sm:px-8 lg:px-10 xl:pr-32 2xl:pr-40"
+      >
         <MobileSectionNav sections={sections} />
 
         {isEditing ? (
@@ -229,12 +235,20 @@ export function BlogDetailShell({
               </div>
             ) : (
               <>
-                <h1 className="font-heading max-w-5xl text-balance text-5xl leading-none text-white sm:text-7xl">
+                <h1
+                  data-tts-read
+                  className="font-heading max-w-5xl text-balance text-5xl leading-none text-white sm:text-7xl"
+                >
                   {blog.title}
                 </h1>
-                <p className="max-w-3xl text-balance text-lg leading-8 text-white/58">
+                <ArticleAITools blocks={blog.contentBlocks} title={blog.title} />
+                <p
+                  data-tts-read
+                  className="max-w-3xl text-balance text-lg leading-8 text-white/58"
+                >
                   {blog.excerpt}
                 </p>
+                <ArticleReader containerRef={articleRef} />
               </>
             )}
 
@@ -357,7 +371,7 @@ export function BlogDetailShell({
               mediaBucket="blog-media"
             />
           ) : (
-            <div className="space-y-10">
+            <div data-tts-read-root className="space-y-10">
               {blog.contentBlocks.map((block, index) => {
                 const isHeading = block.type === "heading";
                 const sectionId = isHeading

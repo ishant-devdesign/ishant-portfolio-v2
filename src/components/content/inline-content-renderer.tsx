@@ -156,9 +156,9 @@ function renderWrapped(type: FormatType, children: ReactNode[], key: string): Re
         </mark>
       );
     case "pop":
-      return <PopCelebration key={key}>{content}</PopCelebration>;
+      return <PopCelebration key={key}>{children}</PopCelebration>;
     case "wavy":
-      return <WavyCelebration key={key}>{content}</WavyCelebration>;
+      return <WavyCelebration key={key}>{children}</WavyCelebration>;
     default:
       return <span key={key}>{content}</span>;
   }

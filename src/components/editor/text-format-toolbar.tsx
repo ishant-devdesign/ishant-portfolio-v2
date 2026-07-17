@@ -107,14 +107,14 @@ export function TextFormatToolbar({
 
           <div className="mx-0.5 h-4 w-px bg-white/10" />
 
-          <div className="flex items-center gap-0.5">
+          <div className="flex items-center gap-0.5 rounded-full bg-white/[0.04] p-0.5">
             {celebrateOptions.map((opt) => (
               <div key={opt.format} className="relative group">
                 <button
                   data-cursor="true"
                   onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); onFormat(opt.format); }}
-                  className="inline-flex size-8 items-center justify-center rounded-full bg-white/[0.06] border border-white/10 text-white/70 hover:bg-amber-200/10 hover:border-amber-200/20 hover:text-amber-100 transition-colors"
+                  className="inline-flex size-8 items-center justify-center rounded-full text-white/60 hover:bg-amber-200/10 hover:text-amber-100 transition-colors"
                   aria-label={opt.label}
                 >
                   {opt.icon}

@@ -14,7 +14,6 @@ import { ListBlock } from "./list-block";
 import { StepperBlock } from "./stepper-block";
 import { LinkBlock } from "./link-block";
 import { InlineContentRenderer } from "./inline-content-renderer";
-import { ArticleAITools } from "./article-ai-bar";
 
 function decodeHtml(input: string) {
   return input
@@ -225,7 +224,7 @@ function VideoBlock({ block }: { block: ContentBlock }) {
   if (!url) return null;
 
   return (
-    <figure className="space-y-3">
+    <figure data-tts-skip className="space-y-3">
       {isYouTube && videoId ? (
         <div className="rounded-[1.8rem] border border-white/10 bg-black">
           <iframe
@@ -249,7 +248,7 @@ function VideoBlock({ block }: { block: ContentBlock }) {
   );
 }
 
-export function BlockRenderer({ blocks, isRoot = true }: { blocks: ContentBlock[]; isRoot?: boolean }) {
+export function BlockRenderer({ blocks }: { blocks: ContentBlock[] }) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const allImages = blocks.flatMap((block) => {
@@ -304,13 +303,8 @@ export function BlockRenderer({ blocks, isRoot = true }: { blocks: ContentBlock[
 
   let imageBlockIndex = -1;
 
-  // Extract title from first heading for AI bar
-  const firstHeading = blocks.find((b) => b.type === "heading");
-  const title = firstHeading ? String(firstHeading.data?.text ?? "") : undefined;
-
   return (
     <div className="space-y-10">
-      {isRoot ? <ArticleAITools blocks={blocks} title={title} /> : null}
       {blocks.map((block) => {
         switch (block.type) {
           case "heading": {
@@ -450,7 +444,7 @@ export function BlockRenderer({ blocks, isRoot = true }: { blocks: ContentBlock[
 
             if (validImages.length === 2) {
               return (
-                <div key={block.id} className="space-y-3">
+                <div key={block.id} data-tts-skip className="space-y-3">
                   <div className="relative overflow-hidden rounded-[1.8rem] border border-white/10 bg-black">
                     <button type="button" onClick={() => openAt(0)} className="group block w-full text-left">
                       <img src={validImages[0].url} alt={validImages[0].alt ?? ""} className="aspect-[16/9] w-full object-cover transition-transform duration-700 group-hover:scale-[1.02]" />
@@ -488,7 +482,7 @@ export function BlockRenderer({ blocks, isRoot = true }: { blocks: ContentBlock[
             const remainingCount = validImages.length - 1 - thumbs.length;
 
             return (
-              <div key={block.id} className="space-y-3">
+              <div key={block.id} data-tts-skip className="space-y-3">
                 <div className="relative overflow-hidden rounded-[1.8rem] border border-white/10 bg-black">
                   <button type="button" onClick={() => openAt(0)} className="group block w-full text-left">
                     <img src={first.url} alt={first.alt ?? ""} className="aspect-[16/10] w-full object-cover transition-transform duration-700 group-hover:scale-[1.02]" />
@@ -617,10 +611,10 @@ export function BlockRenderer({ blocks, isRoot = true }: { blocks: ContentBlock[
                 data-columns-container
               >
                 <div className="space-y-10">
-                  <BlockRenderer blocks={leftBlocks} isRoot={false} />
+                  <BlockRenderer blocks={leftBlocks} />
                 </div>
                 <div className="space-y-10">
-                  <BlockRenderer blocks={rightBlocks} isRoot={false} />
+                  <BlockRenderer blocks={rightBlocks} />
                 </div>
               </div>
             );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link2, Share2 } from "lucide-react";
 
 function ChatGPTIcon({ className = "size-4" }: { className?: string }) {
@@ -33,19 +33,8 @@ const AI_PROVIDERS: AIProvider[] = [
   { id: "grok", label: "Grok", icon: <GrokIcon />, getUrl: (url) => `https://grok.com/?q=${encodeURIComponent(`Read ${url}`)}` },
 ];
 
-let globalBarMounted = false;
-
 export function ArticleAITools({ blocks, title, url }: { blocks: any[]; title?: string; url?: string }) {
   const [copied, setCopied] = useState<string | null>(null);
-  const [isPrimary, setIsPrimary] = useState(false);
-
-  useEffect(() => {
-    if (!globalBarMounted) {
-      globalBarMounted = true;
-      setIsPrimary(true);
-      return () => { globalBarMounted = false; };
-    }
-  }, []);
 
   const currentUrl = url || (typeof window !== "undefined" ? window.location.href : "");
 
@@ -68,11 +57,10 @@ export function ArticleAITools({ blocks, title, url }: { blocks: any[]; title?: 
     setTimeout(() => setCopied(null), 2000);
   };
 
-  if (!isPrimary && typeof window !== "undefined") return null;
   if (blocks.length === 0) return null;
 
   return (
-    <div className="my-6 flex flex-wrap items-center gap-2 rounded-[1.2rem] border border-white/[0.08] bg-white/[0.02] px-4 py-3 backdrop-blur-sm">
+    <div className="flex flex-wrap items-center gap-2 rounded-[1.2rem] border border-white/[0.08] bg-white/[0.02] px-4 py-3 backdrop-blur-sm">
       <div className="flex items-center gap-2">
         <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-white/40">Ask AI</span>
         <span className="hidden sm:inline text-[11px] text-white/25">• link only</span>

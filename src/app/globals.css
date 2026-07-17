@@ -286,3 +286,21 @@ a {
     background: rgba(255, 255, 255, 0.35);
   }
 }
+
+/* ------------------------------------------------------------------------ */
+/* Article text-to-speech reader highlights (CSS Custom Highlight API)       */
+/* ------------------------------------------------------------------------ */
+
+::highlight(tts-word) {
+  background-color: rgba(250, 204, 21, 0.28);
+  color: #ffffff;
+  border-radius: 3px;
+  -webkit-text-decoration: underline rgba(250, 204, 21, 0.55) 2px;
+  text-decoration: underline rgba(250, 204, 21, 0.55) 2px;
+  text-underline-offset: 3px;
+}
+
+::highlight(tts-segment) {
+  background-color: rgba(250, 204, 21, 0.14);
+  border-radius: 6px;
+}
