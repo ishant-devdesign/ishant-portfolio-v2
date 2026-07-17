@@ -241,11 +241,11 @@ export function BlogDetailShell({
                 >
                   {blog.title}
                 </h1>
-                <ArticleAITools blocks={blog.contentBlocks} title={blog.title} />
-                <p
-                  data-tts-read
-                  className="max-w-3xl text-balance text-lg leading-8 text-white/58"
-                >
+                <ArticleAITools
+                  blocks={blog.contentBlocks}
+                  title={blog.title}
+                />
+                <p className="max-w-3xl text-balance text-lg leading-8 text-white/58">
                   {blog.excerpt}
                 </p>
                 <ArticleReader containerRef={articleRef} />

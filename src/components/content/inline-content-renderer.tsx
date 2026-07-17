@@ -31,7 +31,10 @@ const MARKERS: MarkerDef[] = [
  * Classic static: bold, italic, code, highlight
  * Animated once: pop (jump + dots + gradient final), wavy (organic pen, ease [1,0,0,1])
  */
-export function InlineContentRenderer({ text, className }: InlineContentRendererProps) {
+export function InlineContentRenderer({
+  text,
+  className,
+}: InlineContentRendererProps) {
   if (!text) return null;
   const segments = parseNested(text, 0);
   return (
@@ -57,7 +60,11 @@ function parseNested(input: string, depth: number): ReactNode[] {
     for (const def of MARKERS) {
       const idx = findOpen(input, def, pos);
       if (idx !== -1) {
-        if (!earliest || idx < earliest.index || (idx === earliest.index && def.open.length > earliest.def.open.length)) {
+        if (
+          !earliest ||
+          idx < earliest.index ||
+          (idx === earliest.index && def.open.length > earliest.def.open.length)
+        ) {
           earliest = { def, index: idx };
         }
       }
@@ -88,8 +95,12 @@ function parseNested(input: string, depth: number): ReactNode[] {
       continue;
     }
 
-    const innerNodes: ReactNode[] = def.allowNesting ? parseNested(innerContent, depth + 1) : [innerContent];
-    result.push(renderWrapped(def.type, innerNodes, `${def.type}-${openIdx}-${depth}`));
+    const innerNodes: ReactNode[] = def.allowNesting
+      ? parseNested(innerContent, depth + 1)
+      : [innerContent];
+    result.push(
+      renderWrapped(def.type, innerNodes, `${def.type}-${openIdx}-${depth}`),
+    );
     pos = closeIdx + def.close.length;
   }
 
@@ -125,8 +136,18 @@ function findSingleStarClose(text: string, from: number): number {
   return -1;
 }
 
-function renderWrapped(type: FormatType, children: ReactNode[], key: string): ReactNode {
-  const content = <>{children.map((c, i) => <Fragment key={i}>{c}</Fragment>)}</>;
+function renderWrapped(
+  type: FormatType,
+  children: ReactNode[],
+  key: string,
+): ReactNode {
+  const content = (
+    <>
+      {children.map((c, i) => (
+        <Fragment key={i}>{c}</Fragment>
+      ))}
+    </>
+  );
   switch (type) {
     case "bold":
       return (
@@ -151,7 +172,10 @@ function renderWrapped(type: FormatType, children: ReactNode[], key: string): Re
       );
     case "highlight":
       return (
-        <mark key={key} className="rounded-[0.3em] bg-amber-200/20 px-1 py-0.5 text-amber-100/90">
+        <mark
+          key={key}
+          className="rounded-[0.3em] bg-amber-200/20 px-1 py-0.5 text-amber-100/90"
+        >
           {content}
         </mark>
       );

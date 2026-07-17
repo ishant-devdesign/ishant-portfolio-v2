@@ -27,15 +27,34 @@ type Dot = {
 };
 
 const DOT_STYLES = [
-  { bg: "radial-gradient(circle at 32% 28%, #fef08a 0%, #facc15 38%, #eab308 100%)", shadow: "0 0 10px rgba(250,204,21,0.6)" },
-  { bg: "radial-gradient(circle at 32% 28%, #fed7aa 0%, #fb923c 42%, #ea580c 100%)", shadow: "0 0 10px rgba(251,146,60,0.6)" },
-  { bg: "radial-gradient(circle at 32% 28%, #fbcfe8 0%, #ec4899 45%, #be185d 100%)", shadow: "0 0 10px rgba(236,72,153,0.6)" },
-  { bg: "radial-gradient(circle at 32% 28%, #a5f3fc 0%, #06b6d4 45%, #0891b2 100%)", shadow: "0 0 10px rgba(6,182,214,0.55)" },
-  { bg: "radial-gradient(circle at 32% 28%, #c4b5fd 0%, #a855f7 48%, #7e22ce 100%)", shadow: "0 0 10px rgba(168,85,247,0.55)" },
-  { bg: "radial-gradient(circle at 32% 28%, #bbf7d0 0%, #4ade80 45%, #16a34a 100%)", shadow: "0 0 10px rgba(74,222,128,0.5)" },
+  {
+    bg: "radial-gradient(circle at 32% 28%, #fef08a 0%, #facc15 38%, #eab308 100%)",
+    shadow: "0 0 10px rgba(250,204,21,0.6)",
+  },
+  {
+    bg: "radial-gradient(circle at 32% 28%, #fed7aa 0%, #fb923c 42%, #ea580c 100%)",
+    shadow: "0 0 10px rgba(251,146,60,0.6)",
+  },
+  {
+    bg: "radial-gradient(circle at 32% 28%, #fbcfe8 0%, #ec4899 45%, #be185d 100%)",
+    shadow: "0 0 10px rgba(236,72,153,0.6)",
+  },
+  {
+    bg: "radial-gradient(circle at 32% 28%, #a5f3fc 0%, #06b6d4 45%, #0891b2 100%)",
+    shadow: "0 0 10px rgba(6,182,214,0.55)",
+  },
+  {
+    bg: "radial-gradient(circle at 32% 28%, #c4b5fd 0%, #a855f7 48%, #7e22ce 100%)",
+    shadow: "0 0 10px rgba(168,85,247,0.55)",
+  },
+  {
+    bg: "radial-gradient(circle at 32% 28%, #bbf7d0 0%, #4ade80 45%, #16a34a 100%)",
+    shadow: "0 0 10px rgba(74,222,128,0.5)",
+  },
 ];
 
-const GRADIENT = "linear-gradient(90deg, #06b6d4 0%, #facc15 22%, #fb923c 42%, #f43f5e 68%, #a855f7 88%, #ec4899 100%)";
+const GRADIENT =
+  "linear-gradient(90deg, #06b6d4 0%, #facc15 22%, #fb923c 42%, #f43f5e 68%, #a855f7 88%, #ec4899 100%)";
 
 export function PopCelebration({ children }: Props) {
   const ref = useRef<HTMLSpanElement>(null);
@@ -129,7 +148,9 @@ export function PopCelebration({ children }: Props) {
                     backgroundClip: "text",
                   }}
                   initial={{ y: 0, scale: 1 }}
-                  animate={isInView ? { y: [0, -12, 0], scale: [1, 1.18, 1] } : {}}
+                  animate={
+                    isInView ? { y: [0, -12, 0], scale: [1, 1.18, 1] } : {}
+                  }
                   transition={{
                     delay: l.delay,
                     duration: 0.46,
@@ -156,7 +177,12 @@ export function PopCelebration({ children }: Props) {
                   initial={{ x: 0, y: 0, scale: 0, opacity: 0 }}
                   animate={
                     isInView
-                      ? { x: d.x, y: d.y, scale: [0, 1.2, 0], opacity: [0, 1, 0] }
+                      ? {
+                          x: d.x,
+                          y: d.y,
+                          scale: [0, 1.2, 0],
+                          opacity: [0, 1, 0],
+                        }
                       : { x: 0, y: 0, scale: 0, opacity: 0 }
                   }
                   transition={{
@@ -199,11 +225,18 @@ function generateWavyPath() {
   for (let i = 1; i <= segments; i++) {
     const t = i / segments;
     const x = t * 100;
-    const freqBase = 2.5 + Math.sin(t * 3.2 + basePhase * 0.7) * 1.2 + Math.random() * 0.8;
-    const ampEnvelope = 2.0 + Math.sin(t * Math.PI * 1.8 + basePhase) * 1.1 + Math.sin(t * Math.PI * 0.7) * 0.8;
+    const freqBase =
+      2.5 + Math.sin(t * 3.2 + basePhase * 0.7) * 1.2 + Math.random() * 0.8;
+    const ampEnvelope =
+      2.0 +
+      Math.sin(t * Math.PI * 1.8 + basePhase) * 1.1 +
+      Math.sin(t * Math.PI * 0.7) * 0.8;
     const amp = ampEnvelope + (Math.random() - 0.5) * 0.9;
     const phaseJitter = (Math.random() - 0.5) * 0.8 + basePhase;
-    const y = 5 + Math.sin(t * freqBase + phaseJitter) * amp + (Math.random() - 0.5) * 0.4;
+    const y =
+      5 +
+      Math.sin(t * freqBase + phaseJitter) * amp +
+      (Math.random() - 0.5) * 0.4;
     const prevX = ((i - 1) / segments) * 100;
     const cx = (prevX + x) / 2 + (Math.random() - 0.5) * 0.6;
     const cy = y + (Math.random() - 0.5) * 0.5;
@@ -286,7 +319,12 @@ export function WavyCelebration({ children }: Props) {
           key={i}
           aria-hidden
           className="pointer-events-none absolute"
-          style={{ left: line.left, top: line.top, width: line.width, height: 8 }}
+          style={{
+            left: line.left,
+            top: line.top,
+            width: line.width,
+            height: 8,
+          }}
         >
           <motion.svg
             className="block size-full overflow-visible"
