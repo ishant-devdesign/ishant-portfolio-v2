@@ -1,10 +1,34 @@
 /**
  * Zero-DOM-mutation highlighting via the CSS Custom Highlight API.
- * Ranges are styled through ::highlight() rules in globals.css.
+ * The ::highlight() rules are injected at runtime (not in globals.css)
+ * because build-time CSS optimizers don't parse that pseudo-element yet.
  */
 
 export const TTS_WORD_HIGHLIGHT = "tts-word";
 export const TTS_SEGMENT_HIGHLIGHT = "tts-segment";
+
+let stylesInjected = false;
+
+function ensureHighlightStyles(): void {
+  if (stylesInjected || typeof document === "undefined") return;
+  stylesInjected = true;
+  const style = document.createElement("style");
+  style.dataset.ttsHighlights = "true";
+  style.textContent = `
+::highlight(${TTS_WORD_HIGHLIGHT}) {
+  background-color: rgba(250, 204, 21, 0.28);
+  color: #ffffff;
+  border-radius: 3px;
+  text-decoration: underline rgba(250, 204, 21, 0.55) 2px;
+  text-underline-offset: 3px;
+}
+::highlight(${TTS_SEGMENT_HIGHLIGHT}) {
+  background-color: rgba(250, 204, 21, 0.14);
+  border-radius: 6px;
+}
+`;
+  document.head.appendChild(style);
+}
 
 // Minimal structural types for the CSS Custom Highlight API (lib.dom may not
 // include them yet in all TS versions).
@@ -36,6 +60,7 @@ function setNamedHighlight(name: string, ranges: Range[]): void {
   const registry = getHighlightRegistry();
   const HighlightCtor = getHighlightCtor();
   if (!registry || !HighlightCtor) return;
+  ensureHighlightStyles();
   if (ranges.length === 0) {
     registry.delete(name);
     return;

@@ -245,7 +245,10 @@ export function BlogDetailShell({
                   blocks={blog.contentBlocks}
                   title={blog.title}
                 />
-                <p className="max-w-3xl text-balance text-lg leading-8 text-white/58">
+                <p
+                  data-tts-read
+                  className="max-w-3xl text-balance text-lg leading-8 text-white/58"
+                >
                   {blog.excerpt}
                 </p>
                 <ArticleReader containerRef={articleRef} />

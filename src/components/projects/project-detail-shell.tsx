@@ -19,6 +19,7 @@ import { NextEntryCard } from "@/components/content/next-entry-card";
 import { ArticleAITools } from "@/components/content/article-ai-bar";
 import { BlockRenderer } from "@/components/content/block-renderer";
 import { BlockEditor } from "@/components/editor/block-editor";
+import { ArticleReader } from "@/components/reader/article-reader";
 import { MediaAssetField } from "@/components/editor/media-asset-field";
 import { TagSelector } from "@/components/editor/tag-selector";
 import { PublishedDatePicker } from "@/components/editor/published-date-picker";
@@ -268,7 +269,10 @@ export function ProjectDetailShell({
                       title={project.title}
                     />
                   </div>
-                  <p className="mt-6 max-w-3xl text-balance text-lg leading-8 text-white/58">
+                  <p
+                    data-tts-read
+                    className="mt-6 max-w-3xl text-balance text-lg leading-8 text-white/58"
+                  >
                     {project.summary}
                   </p>
                   {!isEditing ? (
