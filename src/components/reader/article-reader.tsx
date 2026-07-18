@@ -35,8 +35,6 @@ export function ArticleReader({
   containerRef: React.RefObject<HTMLElement | null>;
 }) {
   const reader = useArticleReader({ containerRef });
-  const inlineBarRef = useRef<HTMLDivElement>(null);
-  const [barVisible, setBarVisible] = useState(true);
   const progressTrackRef = useRef<HTMLDivElement>(null);
   const [aiNoticeOpen, setAiNoticeOpen] = useState(false);
   const aiNoticeSeenRef = useRef(false);
@@ -49,17 +47,6 @@ export function ArticleReader({
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [aiNoticeOpen]);
-
-  useEffect(() => {
-    const el = inlineBarRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => setBarVisible(entry.isIntersecting),
-      { rootMargin: "-80px 0px 0px 0px" },
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
 
   const {
     status,
@@ -304,15 +291,14 @@ export function ArticleReader({
     </div>
   );
 
-  const showDock = sessionActive && !barVisible;
+  // The dock is the full command bar: visible the moment a session starts
+  // (loading/processing/playing/paused), not only after scrolling past.
+  const showDock = sessionActive;
 
   return (
     <>
       {/* ------------------------------- Inline bar ------------------------------ */}
-      <div
-        ref={inlineBarRef}
-        className="flex max-w-3xl flex-wrap items-center gap-2"
-      >
+      <div className="flex max-w-3xl flex-wrap items-center gap-2">
         {playPill}
 
         <div className={cn(pillClass, "h-11 min-w-0 px-3.5 sm:h-12")}>
@@ -377,7 +363,10 @@ export function ArticleReader({
 
             {progressPill}
 
-            <div className="hidden sm:contents">{speedPill}</div>
+            <div className="hidden sm:contents">
+              {aiBadgePill}
+              {speedPill}
+            </div>
 
             <button
               type="button"

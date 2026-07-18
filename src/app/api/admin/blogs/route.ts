@@ -3,6 +3,7 @@ import { z } from "zod";
 import { verifyAdminRequest } from "@/lib/auth/route-admin";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { slugify } from "@/lib/utils";
+import { readingTimeMinutes } from "@/lib/reading-time";
 import { revalidatePath } from "next/cache";
 
 const payloadSchema = z.object({
@@ -20,8 +21,14 @@ const payloadSchema = z.object({
 
 type AdminSupabaseClient = ReturnType<typeof createSupabaseAdminClient>;
 
-async function syncTags(adminSupabase: AdminSupabaseClient, blogId: string, tags: string[]) {
-  const normalized = [...new Set(tags.map((tag) => slugify(tag)).filter(Boolean))];
+async function syncTags(
+  adminSupabase: AdminSupabaseClient,
+  blogId: string,
+  tags: string[],
+) {
+  const normalized = [
+    ...new Set(tags.map((tag) => slugify(tag)).filter(Boolean)),
+  ];
   await adminSupabase.from("blog_tags").delete().eq("blog_id", blogId);
 
   for (const slug of normalized) {
@@ -53,14 +60,33 @@ export async function POST(request: NextRequest) {
   const json = await request.json();
   const parsed = payloadSchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    return NextResponse.json(
+      { error: parsed.error.flatten() },
+      { status: 400 },
+    );
   }
 
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
   const data = parsed.data;
 
   const slug = slugify(data.slug || data.title);
-  const readingMinutes = parseInt(data.readingTime, 10) || 5;
+  const readingMinutes =
+    readingTimeMinutes(data.contentBlocks) ||
+    parseInt(data.readingTime, 10) ||
+    5;
 
   // Parse "DD Mon YYYY" format (e.g., "10 Jul 2026") or single-part day format
   function parsePublishedAt(label: string): string | null {
@@ -73,7 +99,9 @@ export async function POST(request: NextRequest) {
       const day = parseInt(parts[0], 10);
       if (!isNaN(day)) {
         const today = new Date();
-        return new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), day, 12, 0, 0)).toISOString();
+        return new Date(
+          Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), day, 12, 0, 0),
+        ).toISOString();
       }
       return null;
     }
@@ -115,7 +143,10 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (error || !blog) {
-    return NextResponse.json({ error: error?.message ?? "create-failed" }, { status: 500 });
+    return NextResponse.json(
+      { error: error?.message ?? "create-failed" },
+      { status: 500 },
+    );
   }
 
   await syncTags(adminCheck.adminSupabase, blog.id, parsed.data.tags);

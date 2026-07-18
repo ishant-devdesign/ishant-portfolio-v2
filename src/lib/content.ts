@@ -9,6 +9,7 @@ import {
   type Project,
   type SiteSettings,
 } from "@/lib/site-config";
+import { readingTimeLabel } from "@/lib/reading-time";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type WorkExperienceItem = {
@@ -521,9 +522,7 @@ export async function getLiveBlogs(): Promise<Blog[]> {
     publishedAt: normalizePublishedAt(row.published_at),
     publishedAtIso: normalizePublishedAtIso(row.published_at),
     publishedLabel: normalizeMonthYear(row.published_at),
-    readingTime: row.reading_time_minutes
-      ? `${row.reading_time_minutes} min`
-      : "—",
+    readingTime: readingTimeLabel(row.content_blocks, row.reading_time_minutes),
     tags:
       row.blog_tags
         ?.map((entry: { tags?: { slug?: string } }) => entry.tags?.slug)
@@ -567,9 +566,10 @@ export async function getLiveBlogBySlug(slug: string): Promise<Blog | null> {
     publishedAt: normalizePublishedAt(data.published_at),
     publishedAtIso: normalizePublishedAtIso(data.published_at),
     publishedLabel: normalizeMonthYear(data.published_at),
-    readingTime: data.reading_time_minutes
-      ? `${data.reading_time_minutes} min`
-      : "—",
+    readingTime: readingTimeLabel(
+      data.content_blocks,
+      data.reading_time_minutes,
+    ),
     tags:
       data.blog_tags
         ?.map((entry: { tags?: { slug?: string } }) => entry.tags?.slug)

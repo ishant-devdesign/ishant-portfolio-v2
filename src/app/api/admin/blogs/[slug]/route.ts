@@ -3,6 +3,7 @@ import { z } from "zod";
 import { verifyAdminRequest } from "@/lib/auth/route-admin";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { slugify } from "@/lib/utils";
+import { readingTimeMinutes } from "@/lib/reading-time";
 import { revalidatePath } from "next/cache";
 
 const payloadSchema = z.object({
@@ -24,14 +25,19 @@ type UploadedAsset = {
   path: string;
 };
 
-function extractUploadedAsset(url: string, bucket: string): UploadedAsset | null {
+function extractUploadedAsset(
+  url: string,
+  bucket: string,
+): UploadedAsset | null {
   try {
     const parsed = new URL(url);
     const marker = `/storage/v1/object/public/${bucket}/`;
     const index = parsed.pathname.indexOf(marker);
     if (index === -1) return null;
 
-    const path = decodeURIComponent(parsed.pathname.slice(index + marker.length));
+    const path = decodeURIComponent(
+      parsed.pathname.slice(index + marker.length),
+    );
     if (!path) return null;
 
     return { bucket, path };
@@ -40,7 +46,11 @@ function extractUploadedAsset(url: string, bucket: string): UploadedAsset | null
   }
 }
 
-function collectUploadedAssetPaths(value: unknown, bucket: string, paths = new Set<string>()) {
+function collectUploadedAssetPaths(
+  value: unknown,
+  bucket: string,
+  paths = new Set<string>(),
+) {
   if (typeof value === "string") {
     const asset = extractUploadedAsset(value, bucket);
     if (asset) paths.add(asset.path);
@@ -53,7 +63,9 @@ function collectUploadedAssetPaths(value: unknown, bucket: string, paths = new S
   }
 
   if (value && typeof value === "object") {
-    Object.values(value).forEach((item) => collectUploadedAssetPaths(item, bucket, paths));
+    Object.values(value).forEach((item) =>
+      collectUploadedAssetPaths(item, bucket, paths),
+    );
   }
 
   return paths;
@@ -67,14 +79,25 @@ async function deleteUploadedAssets(
   const uniquePaths = [...new Set([...paths].filter(Boolean))];
   if (uniquePaths.length === 0) return;
 
-  const { error } = await adminSupabase.storage.from(bucket).remove(uniquePaths);
+  const { error } = await adminSupabase.storage
+    .from(bucket)
+    .remove(uniquePaths);
   if (error) {
-    console.error(`[${bucket}] storage remove failed`, { paths: uniquePaths, error: error.message });
+    console.error(`[${bucket}] storage remove failed`, {
+      paths: uniquePaths,
+      error: error.message,
+    });
   }
 }
 
-async function syncTags(adminSupabase: AdminSupabaseClient, blogId: string, tags: string[]) {
-  const normalized = [...new Set(tags.map((tag) => slugify(tag)).filter(Boolean))];
+async function syncTags(
+  adminSupabase: AdminSupabaseClient,
+  blogId: string,
+  tags: string[],
+) {
+  const normalized = [
+    ...new Set(tags.map((tag) => slugify(tag)).filter(Boolean)),
+  ];
   await adminSupabase.from("blog_tags").delete().eq("blog_id", blogId);
 
   for (const slug of normalized) {
@@ -110,29 +133,57 @@ export async function PATCH(
   const json = await request.json();
   const parsed = payloadSchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    return NextResponse.json(
+      { error: parsed.error.flatten() },
+      { status: 400 },
+    );
   }
 
   const data = parsed.data;
 
-  const { data: existing, error: existingError } = await adminCheck.adminSupabase
-    .from("blogs")
-    .select("id, cover_image_url, content_blocks")
-    .eq("slug", slug)
-    .maybeSingle();
+  const { data: existing, error: existingError } =
+    await adminCheck.adminSupabase
+      .from("blogs")
+      .select("id, cover_image_url, content_blocks")
+      .eq("slug", slug)
+      .maybeSingle();
 
   if (existingError || !existing?.id) {
     return NextResponse.json({ error: "blog-not-found" }, { status: 404 });
   }
 
-  const previousPaths = collectUploadedAssetPaths([existing.cover_image_url, existing.content_blocks], "blog-media");
-  const nextPaths = collectUploadedAssetPaths([data.heroImage, data.contentBlocks], "blog-media");
-  const removedPaths = [...previousPaths].filter((path) => !nextPaths.has(path));
+  const previousPaths = collectUploadedAssetPaths(
+    [existing.cover_image_url, existing.content_blocks],
+    "blog-media",
+  );
+  const nextPaths = collectUploadedAssetPaths(
+    [data.heroImage, data.contentBlocks],
+    "blog-media",
+  );
+  const removedPaths = [...previousPaths].filter(
+    (path) => !nextPaths.has(path),
+  );
 
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
 
   const nextSlug = slugify(data.title);
-  const readingMinutes = parseInt(data.readingTime, 10) || 5;
+  const readingMinutes =
+    readingTimeMinutes(data.contentBlocks) ||
+    parseInt(data.readingTime, 10) ||
+    5;
 
   // Parse "DD Mon YYYY" format (e.g., "10 Jul 2026")
   function parsePublishedAt(label: string): string | null {
@@ -145,7 +196,9 @@ export async function PATCH(
       const day = parseInt(parts[0], 10);
       if (!isNaN(day)) {
         const today = new Date();
-        return new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), day, 12, 0, 0)).toISOString();
+        return new Date(
+          Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), day, 12, 0, 0),
+        ).toISOString();
       }
       return null;
     }
@@ -190,7 +243,11 @@ export async function PATCH(
   }
 
   await syncTags(adminCheck.adminSupabase, existing.id, data.tags);
-  await deleteUploadedAssets(adminCheck.adminSupabase, "blog-media", removedPaths);
+  await deleteUploadedAssets(
+    adminCheck.adminSupabase,
+    "blog-media",
+    removedPaths,
+  );
   revalidatePath("/sitemap.xml");
 
   return NextResponse.json({ ok: true, slug: nextSlug });
@@ -205,17 +262,21 @@ export async function DELETE(
 
   const { slug } = await context.params;
 
-  const { data: existing, error: existingError } = await adminCheck.adminSupabase
-    .from("blogs")
-    .select("id, slug, cover_image_url, content_blocks")
-    .eq("slug", slug)
-    .maybeSingle();
+  const { data: existing, error: existingError } =
+    await adminCheck.adminSupabase
+      .from("blogs")
+      .select("id, slug, cover_image_url, content_blocks")
+      .eq("slug", slug)
+      .maybeSingle();
 
   if (existingError || !existing?.id) {
     return NextResponse.json({ error: "blog-not-found" }, { status: 404 });
   }
 
-  const removedPaths = collectUploadedAssetPaths([existing.cover_image_url, existing.content_blocks], "blog-media");
+  const removedPaths = collectUploadedAssetPaths(
+    [existing.cover_image_url, existing.content_blocks],
+    "blog-media",
+  );
 
   const { error } = await adminCheck.adminSupabase
     .from("blogs")
@@ -226,7 +287,11 @@ export async function DELETE(
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  await deleteUploadedAssets(adminCheck.adminSupabase, "blog-media", removedPaths);
+  await deleteUploadedAssets(
+    adminCheck.adminSupabase,
+    "blog-media",
+    removedPaths,
+  );
   revalidatePath("/sitemap.xml");
 
   return NextResponse.json({ ok: true, slug: existing.slug });

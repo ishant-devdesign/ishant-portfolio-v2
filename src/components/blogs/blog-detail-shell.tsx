@@ -26,6 +26,7 @@ import { useAdminSession } from "@/components/admin/admin-session-provider";
 import { buttonClasses } from "@/components/ui/button";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { BLOG_BLOCK_TYPES, createEmptyBlog } from "@/lib/editor";
+import { readingTimeLabel } from "@/lib/reading-time";
 import type { Blog, HomeSectionItem } from "@/lib/site-config";
 import { slugify } from "@/lib/utils";
 
@@ -109,7 +110,10 @@ export function BlogDetailShell({
       const payload = {
         title: blog.title,
         excerpt: blog.excerpt,
-        readingTime: blog.readingTime,
+        readingTime: readingTimeLabel(
+          blog.contentBlocks,
+          Number.parseInt(blog.readingTime, 10) || 5,
+        ),
         tags: blog.tags,
         featured: blog.featured,
         status: nextStatus ?? blog.status,
@@ -292,20 +296,18 @@ export function BlogDetailShell({
                       Reading time
                     </p>
                   </div>
-                  {isEditing ? (
-                    <AutoGrowTextarea
-                      value={blog.readingTime}
-                      onChange={(value) =>
-                        setBlog((c) => ({ ...c, readingTime: value }))
-                      }
-                      placeholder="Reading time (e.g., 5 min read)"
-                      className="mt-2 min-h-[1lh] w-full resize-none overflow-hidden bg-transparent text-sm leading-6 text-white/72 outline-none"
-                    />
-                  ) : (
-                    <p className="mt-2 text-sm leading-6 text-white/72">
-                      {blog.readingTime}
-                    </p>
-                  )}
+                  <p className="mt-2 text-sm leading-6 text-white/72">
+                    {readingTimeLabel(
+                      blog.contentBlocks,
+                      Number.parseInt(blog.readingTime, 10) || null,
+                    )}
+                    {isEditing ? (
+                      <span className="text-white/30">
+                        {" "}
+                        · auto-calculated from content
+                      </span>
+                    ) : null}
+                  </p>
                 </div>
                 <div className="py-4">
                   <div className="flex items-center gap-2 text-white/28">
