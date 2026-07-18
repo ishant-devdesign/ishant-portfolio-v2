@@ -16,6 +16,10 @@ import { getAdminContext } from "@/lib/auth/admin";
 import { cn } from "@/lib/utils";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
+/** Canonical production origin — the single source for every SEO URL. */
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://ishant-devdesign.vercel.app";
+
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
 const robotoFlex = Roboto_Flex({
@@ -45,11 +49,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://ishant-devdesign.vercel.app",
-  ),
+  metadataBase: new URL(SITE_URL),
 
-  applicationName: "Ishant Kumar Portfolio",
+  applicationName: "Ishant Kumar",
 
   title: {
     default: "Ishant Kumar — Frontend Engineer & UI Designer",
@@ -117,7 +119,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: process.env.NEXT_PUBLIC_SITE_URL,
+    url: SITE_URL,
     title: "Ishant Kumar — Frontend Engineer & UI Designer",
     description:
       "Frontend Engineer specializing in React, Next.js, TypeScript, and modern UI systems.",
@@ -198,8 +200,7 @@ export default async function RootLayout({
     getAdminContext(),
   ]);
 
-  const baseUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://ishant-devdesign.vercel.app";
+  const baseUrl = SITE_URL;
 
   // Build social profile URLs array for Person schema
   const socialUrls = [
@@ -242,7 +243,7 @@ export default async function RootLayout({
     "@type": "WebSite",
     "@id": `${baseUrl}#website`,
     name: siteSettings.siteName,
-    alternateName: "Ishant Kumar Portfolio",
+    alternateName: "Ishant",
     url: baseUrl,
     description: siteSettings.heroSubheading,
     inLanguage: "en-US",

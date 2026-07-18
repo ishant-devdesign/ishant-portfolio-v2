@@ -1,18 +1,21 @@
 import { SiteShell } from "@/components/layout/site-shell";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { CertificationsPageShell } from "@/components/certifications/certifications-page-shell";
-import { StructuredData } from "@/components/seo/structured-data";
 import { getLiveCertifications } from "@/lib/content";
 
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Certifications — Ishant Kumar",
-  description: "Professional certifications and credentials in frontend development and UI/UX design.",
+  title: "Certifications",
+  description:
+    "Professional certifications and credentials in frontend development and UI/UX design.",
   openGraph: {
-    title: "Certifications — Ishant Kumar",
-    description: "Professional certifications and credentials in frontend development and UI/UX design.",
+    title: "Certifications",
+    description:
+      "Professional certifications and credentials in frontend development and UI/UX design.",
     type: "website",
+    url: "/certifications",
+    siteName: "Ishant Kumar",
     images: [
       {
         url: "/og-image.png",
@@ -24,8 +27,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Certifications — Ishant Kumar",
-    description: "Professional certifications and credentials in frontend development and UI/UX design.",
+    title: "Certifications",
+    description:
+      "Professional certifications and credentials in frontend development and UI/UX design.",
     images: ["/og-image.png"],
   },
 };
@@ -35,12 +39,6 @@ export default async function CertificationsPage() {
 
   return (
     <SiteShell>
-      <StructuredData
-        type="webSite"
-        title="Certifications — Ishant Kumar"
-        description="Professional certifications and credentials in frontend development and UI/UX design."
-        url="/certifications"
-      />
       <CertificationsPageShell certifications={certifications} />
       <SiteFooter />
     </SiteShell>

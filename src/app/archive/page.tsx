@@ -1,18 +1,21 @@
 import { SiteShell } from "@/components/layout/site-shell";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { ArchivePageShell } from "@/components/archive/archive-page-shell";
-import { StructuredData } from "@/components/seo/structured-data";
 import { getLiveCreativeArchive } from "@/lib/content";
 
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Creative Archive — Ishant Kumar",
-  description: "A visual record of creative work spanning branding, illustration, motion graphics, 3D, and design experiments.",
+  title: "Creative Archive",
+  description:
+    "A visual record of creative work spanning branding, illustration, motion graphics, 3D, and design experiments.",
   openGraph: {
-    title: "Creative Archive — Ishant Kumar",
-    description: "A visual record of creative work spanning branding, illustration, motion graphics, 3D, and design experiments.",
+    title: "Creative Archive",
+    description:
+      "A visual record of creative work spanning branding, illustration, motion graphics, 3D, and design experiments.",
     type: "website",
+    url: "/archive",
+    siteName: "Ishant Kumar",
     images: [
       {
         url: "/og-image.png",
@@ -24,8 +27,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Creative Archive — Ishant Kumar",
-    description: "A visual record of creative work spanning branding, illustration, motion graphics, 3D, and design experiments.",
+    title: "Creative Archive",
+    description:
+      "A visual record of creative work spanning branding, illustration, motion graphics, 3D, and design experiments.",
     images: ["/og-image.png"],
   },
 };
@@ -38,12 +42,6 @@ export default async function ArchivePage() {
 
   return (
     <SiteShell>
-      <StructuredData
-        type="webSite"
-        title="Creative Archive — Ishant Kumar"
-        description="A visual record of creative work spanning branding, illustration, motion graphics, 3D, and design experiments."
-        url="/archive"
-      />
       <ArchivePageShell initialItems={items} initialBlocks={blocks} />
       <SiteFooter />
     </SiteShell>
