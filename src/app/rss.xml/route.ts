@@ -2,7 +2,8 @@ import { getLiveBlogs } from "@/lib/content";
 
 export const revalidate = 3600;
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://ishant-devdesign.vercel.app";
+const baseUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://ishant-devdesign.vercel.app";
 
 export async function GET() {
   const blogs = await getLiveBlogs();
