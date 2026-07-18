@@ -146,6 +146,10 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       {
+        url: "/favicon.ico",
+        sizes: "any",
+      },
+      {
         url: "/favicon.svg",
         type: "image/svg+xml",
       },
@@ -166,7 +170,7 @@ export const metadata: Metadata = {
       },
     ],
 
-    shortcut: "/favicon.svg",
+    shortcut: "/favicon.ico",
 
     apple: "/apple-touch-icon.png",
   },
@@ -194,7 +198,8 @@ export default async function RootLayout({
     getAdminContext(),
   ]);
 
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://ishant-devdesign.vercel.app";
+  const baseUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://ishant-devdesign.vercel.app";
 
   // Build social profile URLs array for Person schema
   const socialUrls = [
@@ -204,7 +209,9 @@ export default async function RootLayout({
     siteSettings.instagramUrl,
     siteSettings.dribbbleUrl,
     siteSettings.behanceUrl,
-  ].filter((url): url is string => Boolean(url && url.trim() && url.trim() !== "#"));
+  ].filter((url): url is string =>
+    Boolean(url && url.trim() && url.trim() !== "#"),
+  );
 
   const personSchema = {
     "@context": "https://schema.org",
@@ -213,8 +220,43 @@ export default async function RootLayout({
     name: siteSettings.siteName,
     url: baseUrl,
     description: siteSettings.heroSubheading,
+    jobTitle: siteSettings.roleLabel,
+    image: `${baseUrl}/og-image.png`,
+    knowsAbout: [
+      "Frontend Development",
+      "React",
+      "Next.js",
+      "TypeScript",
+      "JavaScript",
+      "UI Design",
+      "UX Design",
+      "Tailwind CSS",
+      "Web Performance",
+      "Accessibility",
+    ],
     sameAs: socialUrls,
   };
+
+  const websiteSchema = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "@id": `${baseUrl}#website`,
+    name: siteSettings.siteName,
+    alternateName: "Ishant Kumar Portfolio",
+    url: baseUrl,
+    description: siteSettings.heroSubheading,
+    inLanguage: "en-US",
+    publisher: { "@id": `${baseUrl}#person` },
+  };
+
+  const twitterHandle = (() => {
+    const url = siteSettings.twitterUrl?.trim();
+    if (!url) return undefined;
+    const match = url.match(/(?:twitter\.com|x\.com)\/(@?[\w]+)/i);
+    if (!match) return undefined;
+    const handle = match[1].replace(/^@/, "");
+    return handle ? `@${handle}` : undefined;
+  })();
 
   return (
     <html
@@ -235,12 +277,19 @@ export default async function RootLayout({
           name="google-site-verification"
           content="yb5Bk1bP-DkPPiMJKJ5nsJl8I8uZgaKm5RzmZlZcFiY"
         />
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        {twitterHandle ? (
+          <>
+            <meta name="twitter:site" content={twitterHandle} />
+            <meta name="twitter:creator" content={twitterHandle} />
+          </>
+        ) : null}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(personSchema) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
         />
       </head>
       <body className="min-h-full bg-[#050505] font-sans text-white antialiased">

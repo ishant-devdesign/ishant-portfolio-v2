@@ -418,23 +418,21 @@ export function ArticleReader({
                   transition={{ duration: 0.15 }}
                   className="relative z-[1] mx-4 w-full max-w-md rounded-[1.8rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.02))] bg-neutral-950 p-6"
                 >
-                  <div className="flex items-start gap-4">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-amber-200/15 bg-amber-200/10 text-amber-100">
+                  <div>
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-amber-200/15 bg-amber-200/10 text-amber-100">
                       <Sparkles className="size-5" />
                     </div>
-                    <div className="flex-1">
-                      <h3 className="text-lg font-medium text-white">
-                        AI voice runs on your device
-                      </h3>
-                      <p className="mt-2 text-sm leading-6 text-white/64">
-                        This voice is generated entirely in your browser — the
-                        first run downloads the model (cached afterwards), and
-                        while sections are being processed the tab can lag or
-                        feel heavy. That&apos;s normal: reading starts as soon
-                        as the first few sections are ready, and the rest keep
-                        processing in the background.
-                      </p>
-                    </div>
+                    <h3 className="mt-4 text-lg font-medium text-white">
+                      AI voice runs on your device
+                    </h3>
+                    <p className="mt-2 text-sm leading-6 text-white/64">
+                      This voice is generated entirely in your browser — the
+                      first run downloads the model (cached afterwards), and
+                      while sections are being processed the tab can lag or feel
+                      heavy. That&apos;s normal: reading starts as soon as the
+                      first few sections are ready, and the rest keep processing
+                      in the background.
+                    </p>
                   </div>
 
                   <div className="mt-6 flex justify-end">

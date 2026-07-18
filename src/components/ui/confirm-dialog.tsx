@@ -1,6 +1,13 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle } from "lucide-react";
@@ -17,7 +24,9 @@ type ConfirmDialogContextValue = {
   confirm: (options: ConfirmOptions) => Promise<boolean>;
 };
 
-const ConfirmDialogContext = createContext<ConfirmDialogContextValue | null>(null);
+const ConfirmDialogContext = createContext<ConfirmDialogContextValue | null>(
+  null,
+);
 
 export function useConfirm() {
   const context = useContext(ConfirmDialogContext);
@@ -87,16 +96,18 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: 10 }}
                   transition={{ duration: 0.15 }}
-                  className="relative z-[1] mx-4 w-full max-w-md rounded-[1.8rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.02))] p-6"
+                  className="relative z-[1] mx-4 w-full max-w-md rounded-[1.8rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.02))] bg-neutral-950 p-6"
                 >
-                  <div className="flex items-start gap-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-rose-300">
+                  <div>
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-rose-300/15 bg-rose-300/10 text-rose-300">
                       <AlertTriangle className="size-5" />
                     </div>
-                    <div className="flex-1">
-                      <h3 className="text-lg font-medium text-white">{options.title}</h3>
-                      <p className="mt-2 text-sm leading-6 text-white/64">{options.message}</p>
-                    </div>
+                    <h3 className="mt-4 text-lg font-medium text-white">
+                      {options.title}
+                    </h3>
+                    <p className="mt-2 text-sm leading-6 text-white/64">
+                      {options.message}
+                    </p>
                   </div>
 
                   <div className="mt-6 flex justify-end gap-2">

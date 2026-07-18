@@ -3,14 +3,23 @@ import { SiteShell } from "@/components/layout/site-shell";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { ProjectDetailShell } from "@/components/projects/project-detail-shell";
 import { StructuredData } from "@/components/seo/structured-data";
-import { getLiveProjectBySlug, getLiveProjects, getLiveTagSuggestions } from "@/lib/content";
+import {
+  getLiveProjectBySlug,
+  getLiveProjects,
+  getLiveTagSuggestions,
+} from "@/lib/content";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://ishant-devdesign.vercel.app";
+const baseUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://ishant-devdesign.vercel.app";
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
   const { slug } = await params;
   const project = await getLiveProjectBySlug(slug);
 
@@ -25,12 +34,19 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title: `${project.title} — Ishant Kumar`,
     description: project.summary,
+    keywords: project.tags,
     openGraph: {
       title: project.title,
       description: project.summary,
-      images: [{ url: ogImage }],
+      images: [{ url: ogImage, alt: project.title }],
       type: "article",
       ...(project.publishedAtIso && { publishedTime: project.publishedAtIso }),
+      ...(project.updatedAt && {
+        modifiedTime: project.updatedAt.toISOString(),
+      }),
+      authors: [baseUrl],
+      section: "Projects",
+      tags: project.tags,
     },
     twitter: {
       card: "summary_large_image",
@@ -58,8 +74,12 @@ export default async function ProjectDetailPage({
 
   if (!project) notFound();
 
-  const publishedProjects = projects.filter((item) => item.status === "published");
-  const currentIndex = publishedProjects.findIndex((item) => item.slug === project.slug);
+  const publishedProjects = projects.filter(
+    (item) => item.status === "published",
+  );
+  const currentIndex = publishedProjects.findIndex(
+    (item) => item.slug === project.slug,
+  );
   const nextProject =
     currentIndex >= 0 && currentIndex < publishedProjects.length - 1
       ? {
@@ -79,16 +99,32 @@ export default async function ProjectDetailPage({
   return (
     <SiteShell>
       <StructuredData
+        type="breadcrumb"
+        title={project.title}
+        description={project.summary}
+        url={`/projects/${slug}`}
+        crumbs={[
+          { name: "Home", url: "/" },
+          { name: "Projects", url: "/projects" },
+          { name: project.title, url: `/projects/${slug}` },
+        ]}
+      />
+      <StructuredData
         type="creativeWork"
         title={project.title}
         description={project.summary}
         image={ogImage}
         datePublished={project.publishedAtIso || undefined}
+        dateModified={project.updatedAt?.toISOString()}
         tags={project.tags}
         url={`/projects/${slug}`}
         personId={`${baseUrl}#person`}
       />
-      <ProjectDetailShell project={project} nextProject={nextProject} tagSuggestions={tagSuggestions} />
+      <ProjectDetailShell
+        project={project}
+        nextProject={nextProject}
+        tagSuggestions={tagSuggestions}
+      />
       <SiteFooter />
     </SiteShell>
   );

@@ -42,6 +42,7 @@ export async function generateMetadata(): Promise<Metadata> {
       images: ["/og-image.png"],
     },
     alternates: {
+      canonical: "/",
       types: {
         "application/rss+xml": `${process.env.NEXT_PUBLIC_SITE_URL || "https://ishant-devdesign.vercel.app"}/rss.xml`,
       },
@@ -72,7 +73,8 @@ export default async function Page() {
     getLiveHomeToolsContent(),
   ]);
 
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://ishant-devdesign.vercel.app";
+  const baseUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://ishant-devdesign.vercel.app";
 
   return (
     <SiteShell>

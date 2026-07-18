@@ -7,10 +7,12 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Blog — Ishant Kumar",
-  description: "Thoughts on frontend development, UI/UX design, and building thoughtful digital experiences.",
+  description:
+    "Thoughts on frontend development, UI/UX design, and building thoughtful digital experiences.",
   openGraph: {
     title: "Blog — Ishant Kumar",
-    description: "Thoughts on frontend development, UI/UX design, and building thoughtful digital experiences.",
+    description:
+      "Thoughts on frontend development, UI/UX design, and building thoughtful digital experiences.",
     type: "website",
     images: [
       {
@@ -24,21 +26,31 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Blog — Ishant Kumar",
-    description: "Thoughts on frontend development, UI/UX design, and building thoughtful digital experiences.",
+    description:
+      "Thoughts on frontend development, UI/UX design, and building thoughtful digital experiences.",
     images: ["/og-image.png"],
+  },
+  alternates: {
+    canonical: "/blogs",
   },
 };
 
 export default async function BlogsPage() {
   const blogs = await getLiveBlogs();
+  const published = blogs.filter((blog) => blog.status === "published");
 
   return (
     <SiteShell>
       <StructuredData
-        type="webSite"
+        type="collectionPage"
         title="Blog — Ishant Kumar"
         description="Thoughts on frontend development, UI/UX design, and building thoughtful digital experiences."
         url="/blogs"
+        items={published.map((blog) => ({
+          name: blog.title,
+          url: `/blogs/${blog.slug}`,
+          ...(blog.heroImage ? { image: blog.heroImage } : {}),
+        }))}
       />
       <BlogsArchivePage blogs={blogs} />
       <SiteFooter />
