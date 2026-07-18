@@ -6,7 +6,7 @@ import { getLiveBlogs } from "@/lib/content";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Blog — Ishant Kumar",
+  title: "Blog",
   description:
     "Thoughts on frontend development, UI/UX design, and building thoughtful digital experiences.",
   openGraph: {

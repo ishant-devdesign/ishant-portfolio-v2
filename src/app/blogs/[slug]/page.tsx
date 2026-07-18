@@ -32,7 +32,7 @@ export async function generateMetadata({
     : `${baseUrl}/og-image.png`;
 
   return {
-    title: `${blog.title} — Ishant Kumar`,
+    title: blog.title,
     description: blog.excerpt,
     keywords: blog.tags,
     openGraph: {
