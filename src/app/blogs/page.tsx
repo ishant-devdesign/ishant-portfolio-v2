@@ -14,6 +14,8 @@ export const metadata: Metadata = {
     description:
       "Thoughts on frontend development, UI/UX design, and building thoughtful digital experiences.",
     type: "website",
+    url: "/blogs",
+    siteName: "Ishant Kumar",
     images: [
       {
         url: "/og-image.png",
@@ -32,6 +34,9 @@ export const metadata: Metadata = {
   },
   alternates: {
     canonical: "/blogs",
+    types: {
+      "application/rss+xml": `${process.env.NEXT_PUBLIC_SITE_URL || "https://ishant-devdesign.vercel.app"}/rss.xml`,
+    },
   },
 };
 

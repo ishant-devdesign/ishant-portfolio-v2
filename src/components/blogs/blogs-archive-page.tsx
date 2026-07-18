@@ -9,6 +9,7 @@ import type { Blog } from "@/lib/site-config";
 import { MockMedia } from "@/components/ui/mock-media";
 import { cn } from "@/lib/utils";
 import { ChevronLeft } from "lucide-react";
+import { RssSubscribeButton } from "@/components/content/rss-subscribe-button";
 
 export function BlogsArchivePage({ blogs }: { blogs: Blog[] }) {
   const [activeTag, setActiveTag] = useState("all");
@@ -52,9 +53,12 @@ export function BlogsArchivePage({ blogs }: { blogs: Blog[] }) {
           >
             <ChevronLeft size={24} /> Back to home
           </Link>
-          <p className="text-[0.68rem] uppercase tracking-[0.36em] text-white/34">
-            00 / Blogs
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <p className="text-[0.68rem] uppercase tracking-[0.36em] text-white/34">
+              00 / Blogs
+            </p>
+            <RssSubscribeButton />
+          </div>
 
           <h1 className="font-heading mt-5 text-balance text-5xl leading-none text-white sm:text-7xl">
             Writing from inside the work, not around it.

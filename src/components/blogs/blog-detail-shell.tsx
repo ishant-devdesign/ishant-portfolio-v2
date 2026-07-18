@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
-import { CalendarRange, ChevronLeft, Clock, Tags, Trash2 } from "lucide-react";
+import {
+  CalendarRange,
+  ChevronLeft,
+  Clock,
+  Sparkles,
+  Tags,
+  Trash2,
+} from "lucide-react";
 import { RevealInView } from "@/components/motion/reveal-in-view";
 import { MobileSectionNav } from "@/components/nav/mobile-section-nav";
 import { SideNavRail } from "@/components/nav/side-nav-rail";
@@ -240,10 +247,6 @@ export function BlogDetailShell({
                 >
                   {blog.title}
                 </h1>
-                <ArticleAITools
-                  blocks={blog.contentBlocks}
-                  title={blog.title}
-                />
                 <p
                   data-tts-read
                   className="max-w-3xl text-balance text-lg leading-8 text-white/58"
@@ -310,6 +313,18 @@ export function BlogDetailShell({
                     </div>
                   )}
                 </MetaTile>
+                {!isEditing && blog.contentBlocks.length > 0 ? (
+                  <MetaTile
+                    icon={Sparkles}
+                    label="Ask AI"
+                    className="sm:col-span-2"
+                  >
+                    <ArticleAITools
+                      blocks={blog.contentBlocks}
+                      title={blog.title}
+                    />
+                  </MetaTile>
+                ) : null}
               </div>
               {isEditing ? (
                 <div className="mt-5 border-t border-white/8 pt-4">

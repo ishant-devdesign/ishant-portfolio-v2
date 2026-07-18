@@ -7,6 +7,7 @@ import {
   CalendarRange,
   ChevronLeft,
   FolderKanban,
+  Sparkles,
   Tags,
   Trash2,
 } from "lucide-react";
@@ -263,12 +264,6 @@ export function ProjectDetailShell({
                   >
                     {project.title}
                   </h1>
-                  <div className="mt-6 max-w-3xl">
-                    <ArticleAITools
-                      blocks={project.contentBlocks}
-                      title={project.title}
-                    />
-                  </div>
                   <p
                     data-tts-read
                     className="mt-6 max-w-3xl text-balance text-lg leading-8 text-white/58"
@@ -359,6 +354,18 @@ export function ProjectDetailShell({
                       </div>
                     )}
                   </MetaTile>
+                  {!isEditing && project.contentBlocks.length > 0 ? (
+                    <MetaTile
+                      icon={Sparkles}
+                      label="Ask AI"
+                      className="sm:col-span-2"
+                    >
+                      <ArticleAITools
+                        blocks={project.contentBlocks}
+                        title={project.title}
+                      />
+                    </MetaTile>
+                  ) : null}
                 </div>
                 {isEditing ? (
                   <div className="mt-5 space-y-4 border-t border-white/8 pt-4">

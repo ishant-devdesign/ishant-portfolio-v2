@@ -93,6 +93,11 @@ export const metadata: Metadata = {
 
   alternates: {
     canonical: "/",
+    types: {
+      "application/rss+xml": [
+        { url: `${SITE_URL}/rss.xml`, title: "Ishant Kumar — Blog RSS" },
+      ],
+    },
   },
 
   referrer: "origin-when-cross-origin",

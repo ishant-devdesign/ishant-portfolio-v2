@@ -40,6 +40,8 @@ export async function generateMetadata({
       description: blog.excerpt,
       images: [{ url: ogImage, alt: blog.title }],
       type: "article",
+      url: `/blogs/${slug}`,
+      siteName: "Ishant Kumar",
       ...(blog.publishedAtIso && { publishedTime: blog.publishedAtIso }),
       ...(blog.updatedAt && { modifiedTime: blog.updatedAt.toISOString() }),
       authors: [baseUrl],
@@ -54,6 +56,9 @@ export async function generateMetadata({
     },
     alternates: {
       canonical: `/blogs/${slug}`,
+      types: {
+        "application/rss+xml": `${baseUrl}/rss.xml`,
+      },
     },
   };
 }

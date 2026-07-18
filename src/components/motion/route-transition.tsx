@@ -622,7 +622,7 @@ export function RouteTransition() {
           <RouteTransitionLogo />
 
           <motion.div
-            className="relative z-10 px-8 text-center"
+            className="relative z-10 w-full max-w-5xl px-8 text-center"
             initial={{
               opacity: 0,
               y: 16,

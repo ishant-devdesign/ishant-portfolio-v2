@@ -14,6 +14,8 @@ export const metadata: Metadata = {
     description:
       "Selected frontend projects showcasing React, Next.js, and UI/UX design work.",
     type: "website",
+    url: "/projects",
+    siteName: "Ishant Kumar",
     images: [
       {
         url: "/og-image.png",
@@ -32,6 +34,9 @@ export const metadata: Metadata = {
   },
   alternates: {
     canonical: "/projects",
+    types: {
+      "application/rss+xml": `${process.env.NEXT_PUBLIC_SITE_URL || "https://ishant-devdesign.vercel.app"}/rss.xml`,
+    },
   },
 };
 

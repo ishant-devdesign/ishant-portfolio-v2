@@ -87,7 +87,7 @@ export function ArticleAITools({
   title,
   url,
 }: {
-  blocks: any[];
+  blocks: unknown[];
   title?: string;
   url?: string;
 }) {
@@ -120,86 +120,77 @@ export function ArticleAITools({
   if (blocks.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-[1.2rem] border border-white/[0.08] bg-white/[0.02] px-4 py-3 backdrop-blur-sm">
-      <div className="flex items-center gap-2">
-        <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-white/40">
-          Ask AI
-        </span>
-        <span className="hidden sm:inline text-[11px] text-white/25">
-          • link only
-        </span>
+    <div className="flex flex-wrap items-center gap-1.5">
+      {/* Copy link */}
+      <div className="relative group">
+        <button
+          onClick={() => copyText(currentUrl, "copy-link")}
+          className="inline-flex h-8 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.06] px-3 text-[11px] font-medium text-white/70 hover:bg-white/[0.12] hover:text-white transition-colors"
+        >
+          <Link2 className="size-3.5" />
+          {copied === "copy-link" ? "Copied" : "Copy link"}
+        </button>
+        <div className="pointer-events-none absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-full bg-black/90 border border-white/10 px-2.5 py-1 text-[11px] text-white/80 group-hover:block z-50">
+          {copied === "copy-link" ? "Copied!" : "Copy link"}
+        </div>
       </div>
 
-      <div className="ml-auto flex flex-wrap items-center gap-1.5">
-        {/* Copy link */}
-        <div className="relative group">
-          <button
-            onClick={() => copyText(currentUrl, "copy-link")}
-            className="inline-flex h-8 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.06] px-3 text-[11px] font-medium text-white/70 hover:bg-white/[0.12] hover:text-white transition-colors"
-          >
-            <Link2 className="size-3.5" />
-            {copied === "copy-link" ? "Copied" : "Copy link"}
-          </button>
-          <div className="pointer-events-none absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-full bg-black/90 border border-white/10 px-2.5 py-1 text-[11px] text-white/80 group-hover:block z-50">
-            {copied === "copy-link" ? "Copied!" : "Copy link"}
-          </div>
-        </div>
-
-        {/* Share */}
-        <div className="relative group">
-          <button
-            onClick={async () => {
-              if ((navigator as any).share && currentUrl) {
-                try {
-                  await (navigator as any).share({
-                    title: title || document.title,
-                    url: currentUrl,
-                  });
-                } catch {
-                  copyText(currentUrl, "share");
-                }
-              } else {
+      {/* Share */}
+      <div className="relative group">
+        <button
+          onClick={async () => {
+            if (navigator.share && currentUrl) {
+              try {
+                await navigator.share({
+                  title: title || document.title,
+                  url: currentUrl,
+                });
+              } catch {
                 copyText(currentUrl, "share");
               }
+            } else {
+              copyText(currentUrl, "share");
+            }
+          }}
+          className="inline-flex h-8 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.06] px-3 text-[11px] font-medium text-white/70 hover:bg-white/[0.12] hover:text-white transition-colors"
+        >
+          <Share2 className="size-3.5" />
+          {copied === "share" ? "Copied" : "Share"}
+        </button>
+        <div className="pointer-events-none absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-full bg-black/90 border border-white/10 px-2.5 py-1 text-[11px] text-white/80 group-hover:block z-50">
+          {copied === "share" ? "Copied!" : "Share article"}
+        </div>
+      </div>
+
+      <div className="mx-1 h-4 w-px bg-white/10" />
+
+      {/* AI - icon only, official logos, link only */}
+      {AI_PROVIDERS.map((p) => (
+        <div key={p.id} className="relative group">
+          <button
+            onClick={() => {
+              copyText(currentUrl, p.id);
+              window.open(
+                p.getUrl(currentUrl),
+                "_blank",
+                "noopener,noreferrer",
+              );
             }}
-            className="inline-flex h-8 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.06] px-3 text-[11px] font-medium text-white/70 hover:bg-white/[0.12] hover:text-white transition-colors"
+            className="relative inline-flex size-8 items-center justify-center rounded-full border border-white/10 bg-[#1e1e1e] text-white/80 hover:bg-white/[0.12] hover:text-white hover:border-white/20 transition-all hover:scale-105 active:scale-95"
+            aria-label={p.label}
           >
-            <Share2 className="size-3.5" />
-            {copied === "share" ? "Copied" : "Share"}
+            {p.icon}
+            {copied === p.id && (
+              <span className="absolute -top-1 -right-1 size-2.5 rounded-full bg-emerald-400 border-2 border-[#1e1e1e]" />
+            )}
           </button>
-          <div className="pointer-events-none absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-full bg-black/90 border border-white/10 px-2.5 py-1 text-[11px] text-white/80 group-hover:block z-50">
-            {copied === "share" ? "Copied!" : "Share article"}
+          <div className="pointer-events-none absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-full bg-black/90 border border-white/10 px-2.5 py-1 text-[11px] font-medium text-white/90 group-hover:block z-50">
+            {copied === p.id ? "Link copied!" : p.label}
           </div>
         </div>
+      ))}
 
-        <div className="mx-1 h-4 w-px bg-white/10" />
-
-        {/* AI - icon only, official logos, link only */}
-        {AI_PROVIDERS.map((p) => (
-          <div key={p.id} className="relative group">
-            <button
-              onClick={() => {
-                copyText(currentUrl, p.id);
-                window.open(
-                  p.getUrl(currentUrl),
-                  "_blank",
-                  "noopener,noreferrer",
-                );
-              }}
-              className="relative inline-flex size-8 items-center justify-center rounded-full border border-white/10 bg-[#1e1e1e] text-white/80 hover:bg-white/[0.12] hover:text-white hover:border-white/20 transition-all hover:scale-105 active:scale-95"
-              aria-label={p.label}
-            >
-              {p.icon}
-              {copied === p.id && (
-                <span className="absolute -top-1 -right-1 size-2.5 rounded-full bg-emerald-400 border-2 border-[#1e1e1e]" />
-              )}
-            </button>
-            <div className="pointer-events-none absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-full bg-black/90 border border-white/10 px-2.5 py-1 text-[11px] font-medium text-white/90 group-hover:block z-50">
-              {copied === p.id ? "Link copied!" : p.label}
-            </div>
-          </div>
-        ))}
-      </div>
+      <span className="ml-1.5 text-[11px] text-white/25">link only</span>
     </div>
   );
 }
