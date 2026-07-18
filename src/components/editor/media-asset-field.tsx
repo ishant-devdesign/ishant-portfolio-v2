@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ImagePlus, Link2, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { buttonClasses } from "@/components/ui/button";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 
 type MediaAssetFieldProps = {
   label: string;
@@ -55,11 +55,17 @@ export function MediaAssetField({
           }),
         });
 
-        let signedData: { error?: string; signedUrl?: string; publicUrl?: string } | null = null;
+        let signedData: {
+          error?: string;
+          signedUrl?: string;
+          publicUrl?: string;
+        } | null = null;
         try {
           signedData = await signedResponse.json();
         } catch {
-          signedData = { error: `Signed URL failed (status ${signedResponse.status})` };
+          signedData = {
+            error: `Signed URL failed (status ${signedResponse.status})`,
+          };
         }
         if (!signedResponse.ok || !signedData?.signedUrl) {
           throw new Error(signedData?.error ?? "signed-url-failed");
@@ -73,7 +79,9 @@ export function MediaAssetField({
         });
 
         if (!putResponse.ok) {
-          throw new Error(`Direct upload failed (status ${putResponse.status})`);
+          throw new Error(
+            `Direct upload failed (status ${putResponse.status})`,
+          );
         }
 
         publicUrl = signedData.publicUrl || null;
@@ -113,35 +121,26 @@ export function MediaAssetField({
   return (
     <div className={cn("space-y-3", className)}>
       <div className="flex items-center justify-between gap-3">
-        <p className="text-[0.58rem] uppercase tracking-[0.28em] text-white/28">{label}</p>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => setMode("url")}
-            className={cn(
-              buttonClasses({
-                tone: mode === "url" ? "selected" : "muted",
-                size: "xs",
-              }),
-            )}
-          >
-            <Link2 className="size-3.5" />
-            URL
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode("upload")}
-            className={cn(
-              buttonClasses({
-                tone: mode === "upload" ? "selected" : "muted",
-                size: "xs",
-              }),
-            )}
-          >
-            <Upload className="size-3.5" />
-            Upload
-          </button>
-        </div>
+        <p className="text-[0.58rem] uppercase tracking-[0.28em] text-white/28">
+          {label}
+        </p>
+        <SegmentedControl
+          ariaLabel={`${label} source`}
+          value={mode}
+          onChange={setMode}
+          options={[
+            {
+              value: "url",
+              label: "URL",
+              icon: <Link2 className="size-3.5" />,
+            },
+            {
+              value: "upload",
+              label: "Upload",
+              icon: <Upload className="size-3.5" />,
+            },
+          ]}
+        />
       </div>
 
       {mode === "url" ? (
@@ -159,12 +158,16 @@ export function MediaAssetField({
             type="file"
             accept={accept}
             className="hidden"
-            onChange={(event) => void handleFile(event.target.files?.[0] ?? null)}
+            onChange={(event) =>
+              void handleFile(event.target.files?.[0] ?? null)
+            }
           />
         </label>
       )}
 
-      {value ? <p className="break-all text-xs text-white/36">{value}</p> : null}
+      {value ? (
+        <p className="break-all text-xs text-white/36">{value}</p>
+      ) : null}
       {status ? <p className="text-xs text-white/52">{status}</p> : null}
     </div>
   );

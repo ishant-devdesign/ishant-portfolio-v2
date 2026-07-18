@@ -23,9 +23,9 @@ const variantConfig: Record<CalloutVariant, VariantConfig> = {
   },
   warning: {
     label: "Warning",
-    eyebrow: "text-amber-200/64",
-    accent: "from-amber-200/45 via-amber-200/14 to-transparent",
-    marker: "border-amber-200/18 text-amber-100/54",
+    eyebrow: "text-rose-200/64",
+    accent: "from-rose-200/45 via-rose-200/14 to-transparent",
+    marker: "border-rose-200/18 text-rose-100/54",
     text: "text-white/76",
   },
   success: {
@@ -43,11 +43,12 @@ export function CalloutBlock({
   text,
 }: {
   variant?: CalloutVariant;
-  title: string;
+  title?: string;
   text: string;
 }) {
   const config = variantConfig[variant] ?? variantConfig.note;
-  const heading = title || config.label;
+  // Title is optional — when empty the variant chip is the only label.
+  const heading = (title ?? "").trim();
 
   return (
     <aside className="group relative overflow-hidden py-2 pl-5 sm:pl-7">

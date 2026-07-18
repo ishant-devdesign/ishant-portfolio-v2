@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { createPortal } from "react-dom";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 
 import {
   Plus,
@@ -90,6 +91,11 @@ const headingOptions = [
 ] as const;
 
 const calloutVariantOptions: CalloutVariant[] = ["note", "warning", "success"];
+const calloutVariantDots: Record<CalloutVariant, string> = {
+  note: "bg-white/70",
+  warning: "bg-rose-300",
+  success: "bg-emerald-300",
+};
 
 const codeLanguageOptions = [
   { label: "JavaScript", value: "javascript" },
@@ -711,7 +717,6 @@ function BlockEditorContent({
   ]);
 
   const listStyle = String(block.data?.style ?? "unordered");
-  const isUnordered = listStyle === "unordered" || listStyle === "bullet";
   const isOrdered = listStyle === "ordered" || listStyle === "numbered";
 
   return (
@@ -976,67 +981,25 @@ function BlockEditorContent({
 
         {block.type === "list" ? (
           <div className="space-y-3">
-            {/* Animated Motion List Toggle */}
+            {/* List style toggle */}
             <div className="flex items-center justify-between">
               <span className="text-xs uppercase tracking-wider font-medium text-white/40">
                 List Style
               </span>
-              <div className="relative flex items-center rounded-full bg-white/[0.04] p-1 border border-white/[0.06] shadow-inner">
-                <button
-                  type="button"
-                  onClick={() =>
-                    updateBlockHandler(block.id, (current) => ({
-                      ...current,
-                      data: { ...current.data, style: "unordered" },
-                    }))
-                  }
-                  className={cn(
-                    "relative z-10 inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition-colors select-none",
-                    isUnordered
-                      ? "text-black"
-                      : "text-white/60 hover:text-white",
-                  )}
-                >
-                  {isUnordered && (
-                    <motion.span
-                      layoutId={`list-style-pill-${block.id}`}
-                      className="absolute inset-0 rounded-full bg-white shadow-md z-[-1]"
-                      transition={{
-                        type: "spring",
-                        stiffness: 450,
-                        damping: 30,
-                      }}
-                    />
-                  )}
-                  <span>• Bullet</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    updateBlockHandler(block.id, (current) => ({
-                      ...current,
-                      data: { ...current.data, style: "ordered" },
-                    }))
-                  }
-                  className={cn(
-                    "relative z-10 inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition-colors select-none",
-                    isOrdered ? "text-black" : "text-white/60 hover:text-white",
-                  )}
-                >
-                  {isOrdered && (
-                    <motion.span
-                      layoutId={`list-style-pill-${block.id}`}
-                      className="absolute inset-0 rounded-full bg-white shadow-md z-[-1]"
-                      transition={{
-                        type: "spring",
-                        stiffness: 450,
-                        damping: 30,
-                      }}
-                    />
-                  )}
-                  <span>1. Numbered</span>
-                </button>
-              </div>
+              <SegmentedControl
+                ariaLabel="List style"
+                value={isOrdered ? "ordered" : "unordered"}
+                onChange={(style) =>
+                  updateBlockHandler(block.id, (current) => ({
+                    ...current,
+                    data: { ...current.data, style },
+                  }))
+                }
+                options={[
+                  { value: "unordered", label: "• Bullet" },
+                  { value: "ordered", label: "1. Numbered" },
+                ]}
+              />
             </div>
 
             {/* List items with exact sentence-1 vertical baseline alignment */}
@@ -1130,27 +1093,32 @@ function BlockEditorContent({
 
         {block.type === "callout" ? (
           <div className="grid gap-3">
-            <div className="flex items-center gap-1 rounded-full bg-white/[0.04] p-1 border border-white/[0.06] w-fit shadow-inner">
-              {calloutVariantOptions.map((variant) => (
-                <button
-                  key={variant}
-                  type="button"
-                  onClick={() =>
-                    updateBlockHandler(block.id, (current) => ({
-                      ...current,
-                      data: { ...current.data, variant },
-                    }))
-                  }
-                  className={cn(
-                    "rounded-full px-3.5 py-1 text-xs font-semibold capitalize transition-all select-none",
-                    (block.data?.variant as CalloutVariant) === variant
-                      ? "bg-white text-black shadow-md"
-                      : "text-white/60 hover:text-white",
-                  )}
-                >
-                  {variant}
-                </button>
-              ))}
+            <div className="flex items-center justify-between">
+              <span className="text-xs uppercase tracking-wider font-medium text-white/40">
+                Variant
+              </span>
+              <SegmentedControl
+                ariaLabel="Callout variant"
+                value={(block.data?.variant as CalloutVariant) ?? "note"}
+                onChange={(variant) =>
+                  updateBlockHandler(block.id, (current) => ({
+                    ...current,
+                    data: { ...current.data, variant },
+                  }))
+                }
+                options={calloutVariantOptions.map((variant) => ({
+                  value: variant,
+                  label: variant.charAt(0).toUpperCase() + variant.slice(1),
+                  icon: (
+                    <span
+                      className={cn(
+                        "size-2 rounded-full",
+                        calloutVariantDots[variant],
+                      )}
+                    />
+                  ),
+                }))}
+              />
             </div>
             <input
               placeholder="Callout title (optional)"

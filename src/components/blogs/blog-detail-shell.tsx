@@ -2,18 +2,13 @@
 
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
-import {
-  CalendarRange,
-  ChevronLeft,
-  Sparkles,
-  Tags,
-  Trash2,
-} from "lucide-react";
+import { CalendarRange, ChevronLeft, Clock, Tags, Trash2 } from "lucide-react";
 import { RevealInView } from "@/components/motion/reveal-in-view";
 import { MobileSectionNav } from "@/components/nav/mobile-section-nav";
 import { SideNavRail } from "@/components/nav/side-nav-rail";
 import { HeroMediaPreview } from "@/components/ui/hero-media-preview";
 import { NextEntryCard } from "@/components/content/next-entry-card";
+import { MetaTile } from "@/components/content/meta-tile";
 import { ArticleAITools } from "@/components/content/article-ai-bar";
 import { ArticleReader } from "@/components/reader/article-reader";
 import { BlockRenderer } from "@/components/content/block-renderer";
@@ -260,43 +255,29 @@ export function BlogDetailShell({
             )}
 
             <div className="max-w-3xl rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.02))] p-5">
-              <div className="flex items-center gap-3 text-white/36">
-                <Sparkles className="size-4" />
-                <p className="text-[0.65rem] uppercase tracking-[0.34em]">
+              <div className="flex items-center gap-2.5">
+                <span className="inline-block size-1.5 rounded-full bg-amber-200/70" />
+                <p className="text-[0.65rem] uppercase tracking-[0.32em] text-white/40">
                   Post metadata
                 </p>
               </div>
-              <div className="mt-5 divide-y divide-white/8">
-                <div className="py-4 first:pt-0">
-                  <div className="flex items-center gap-2 text-white/28">
-                    <CalendarRange className="size-3.5" />
-                    <p className="text-[0.58rem] uppercase tracking-[0.28em]">
-                      Published
-                    </p>
-                  </div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <MetaTile icon={CalendarRange} label="Published">
                   {isEditing ? (
-                    <div className="mt-2">
-                      <PublishedDatePicker
-                        value={blog.publishedLabel}
-                        onChange={(value) =>
-                          setBlog((c) => ({ ...c, publishedLabel: value }))
-                        }
-                      />
-                    </div>
+                    <PublishedDatePicker
+                      value={blog.publishedLabel}
+                      onChange={(value) =>
+                        setBlog((c) => ({ ...c, publishedLabel: value }))
+                      }
+                    />
                   ) : (
-                    <p className="mt-2 text-sm leading-6 text-white/72">
-                      {blog.publishedLabel}
+                    <p className="text-sm leading-6 text-white/80">
+                      {blog.publishedLabel || "—"}
                     </p>
                   )}
-                </div>
-                <div className="py-4">
-                  <div className="flex items-center gap-2 text-white/28">
-                    <CalendarRange className="size-3.5" />
-                    <p className="text-[0.58rem] uppercase tracking-[0.28em]">
-                      Reading time
-                    </p>
-                  </div>
-                  <p className="mt-2 text-sm leading-6 text-white/72">
+                </MetaTile>
+                <MetaTile icon={Clock} label="Reading time">
+                  <p className="text-sm leading-6 text-white/80">
                     {readingTimeLabel(
                       blog.contentBlocks,
                       Number.parseInt(blog.readingTime, 10) || null,
@@ -304,39 +285,31 @@ export function BlogDetailShell({
                     {isEditing ? (
                       <span className="text-white/30">
                         {" "}
-                        · auto-calculated from content
+                        · auto from content
                       </span>
                     ) : null}
                   </p>
-                </div>
-                <div className="py-4">
-                  <div className="flex items-center gap-2 text-white/28">
-                    <Tags className="size-3.5" />
-                    <p className="text-[0.58rem] uppercase tracking-[0.28em]">
-                      Tags
-                    </p>
-                  </div>
+                </MetaTile>
+                <MetaTile icon={Tags} label="Tags" className="sm:col-span-2">
                   {isEditing ? (
-                    <div className="mt-3">
-                      <TagSelector
-                        value={blog.tags}
-                        onChange={(tags) => setBlog((c) => ({ ...c, tags }))}
-                        suggestions={tagSuggestions}
-                      />
-                    </div>
+                    <TagSelector
+                      value={blog.tags}
+                      onChange={(tags) => setBlog((c) => ({ ...c, tags }))}
+                      suggestions={tagSuggestions}
+                    />
                   ) : (
-                    <div className="mt-3 flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-1.5">
                       {blog.tags.map((tag) => (
                         <span
                           key={tag}
-                          className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/42"
+                          className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-xs leading-none text-white/58"
                         >
                           {tag}
                         </span>
                       ))}
                     </div>
                   )}
-                </div>
+                </MetaTile>
               </div>
               {isEditing ? (
                 <div className="mt-5 border-t border-white/8 pt-4">
