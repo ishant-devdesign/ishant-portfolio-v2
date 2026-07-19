@@ -19,15 +19,6 @@ function escapeXmlAttribute(value: string) {
     .replace(/'/g, "&apos;");
 }
 
-function imageMimeType(url: string) {
-  const clean = url.split(/[?#]/)[0]?.toLowerCase() ?? "";
-  if (clean.endsWith(".png")) return "image/png";
-  if (clean.endsWith(".webp")) return "image/webp";
-  if (clean.endsWith(".gif")) return "image/gif";
-  if (clean.endsWith(".avif")) return "image/avif";
-  return "image/jpeg";
-}
-
 export async function GET() {
   const blogs = await getLiveBlogs();
   const publishedBlogs = blogs.filter((blog) => blog.status === "published");
@@ -65,9 +56,7 @@ export async function GET() {
       <link>${baseUrl}/blogs/${blog.slug}</link>
       <guid isPermaLink="false">${baseUrl}/blogs/${blog.slug}</guid>
       <pubDate>${blog.publishedAtIso ? new Date(blog.publishedAtIso).toUTCString() : new Date().toUTCString()}</pubDate>
-      <enclosure url="${imageUrl}" type="${imageMimeType(heroImage)}" length="0" />
       <media:content url="${imageUrl}" medium="image" />
-      <media:thumbnail url="${imageUrl}" />
       <content:encoded><![CDATA[${contentHtml}]]></content:encoded>
       ${blog.tags && blog.tags.length > 0 ? `<category><![CDATA[${blog.tags.join("]]></category><category><![CDATA[")}]]></category>` : ""}
     </item>`;
