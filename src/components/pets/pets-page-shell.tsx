@@ -17,7 +17,6 @@ import {
 import { AutoGrowTextarea } from "@/components/admin/auto-grow-textarea";
 import { useAdminSession } from "@/components/admin/admin-session-provider";
 import { RevealInView } from "@/components/motion/reveal-in-view";
-import { MobileSectionNav } from "@/components/nav/mobile-section-nav";
 import { SideNavRail } from "@/components/nav/side-nav-rail";
 import { OrderedMasonry } from "@/components/shared/ordered-masonry";
 import { buttonClasses } from "@/components/ui/button";
@@ -937,8 +936,6 @@ export function PetsPageShell({ initialPets }: { initialPets: Pet[] }) {
       <SideNavRail sections={petSections} />
 
       <main className="mx-auto w-full max-w-[1300px] px-5 pb-24 sm:px-8 lg:px-10 xl:pr-32 2xl:pr-40">
-        <MobileSectionNav sections={petSections} />
-
         <PageHero
           eyebrow="Pets"
           title="The companions behind the journey."

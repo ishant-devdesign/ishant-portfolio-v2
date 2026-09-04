@@ -28,7 +28,6 @@ import {
   type SaveState,
 } from "@/components/admin/save-status-pill";
 import { buttonClasses } from "@/components/ui/button";
-import { MobileSectionNav } from "@/components/nav/mobile-section-nav";
 import { SideNavRail } from "@/components/nav/side-nav-rail";
 import { MockMedia } from "@/components/ui/mock-media";
 import { RevealInView } from "@/components/motion/reveal-in-view";
@@ -569,8 +568,6 @@ export function HomePage({
       <SideNavRail sections={homeSections} />
 
       <div className="min-w-0">
-        <MobileSectionNav sections={homeSections} />
-
         <section
           id="intro"
           className="scroll-mt-28 border-b border-white/8 pb-18 pt-10 sm:pb-24 sm:pt-14"

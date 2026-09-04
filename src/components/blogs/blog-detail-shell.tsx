@@ -11,7 +11,6 @@ import {
   Trash2,
 } from "lucide-react";
 import { RevealInView } from "@/components/motion/reveal-in-view";
-import { MobileSectionNav } from "@/components/nav/mobile-section-nav";
 import { SideNavRail } from "@/components/nav/side-nav-rail";
 import { HeroMediaPreview } from "@/components/ui/hero-media-preview";
 import { NextEntryCard } from "@/components/content/next-entry-card";
@@ -158,8 +157,6 @@ export function BlogDetailShell({
         ref={articleRef}
         className="mx-auto w-full max-w-[1100px] px-5 pb-24 sm:px-8 lg:px-10 xl:pr-32 2xl:pr-40"
       >
-        <MobileSectionNav sections={sections} />
-
         {isEditing ? (
           <section className="mb-6 rounded-[1.6rem] border border-white/10 bg-white/[0.03] p-4 text-sm text-white/72 mt-24">
             <div className="flex flex-col items-start justify-between gap-3">

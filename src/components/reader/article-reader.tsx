@@ -334,7 +334,7 @@ export function ArticleReader({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.96 }}
             transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-            className="fixed bottom-5 left-4 right-24 z-[240] flex items-center gap-2 sm:left-1/2 sm:right-auto sm:w-[min(94vw,46rem)] sm:-translate-x-1/2"
+            className="fixed bottom-6 left-4 right-24 z-[240] flex items-center gap-2 lg:left-1/2 lg:right-auto lg:w-[min(94vw,46rem)] lg:-translate-x-1/2"
           >
             {playPill}
 

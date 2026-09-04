@@ -6,7 +6,6 @@ import { useAdminSession } from "@/components/admin/admin-session-provider";
 import { RevealInView } from "@/components/motion/reveal-in-view";
 import { MediaLightbox } from "@/components/shared/media-lightbox";
 import { MediaMasonry } from "@/components/shared/media-masonry";
-import { MobileSectionNav } from "@/components/nav/mobile-section-nav";
 import { SideNavRail } from "@/components/nav/side-nav-rail";
 import { buttonClasses } from "@/components/ui/button";
 import { useConfirm } from "@/components/ui/confirm-dialog";
@@ -581,8 +580,6 @@ export function ArchivePageShell({
       <SideNavRail sections={archiveSections} />
 
       <main className="mx-auto w-full max-w-[1300px] px-5 pb-24 sm:px-8 lg:px-10 xl:pr-32 2xl:pr-40">
-        <MobileSectionNav sections={archiveSections} />
-
         <PageHero
           eyebrow="Creative Archive"
           title="A visual record of everything that led here."
