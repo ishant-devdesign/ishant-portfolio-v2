@@ -110,7 +110,7 @@ export function ArticleReader({
         : "Preparing AI voice…";
     }
     if (status === "processing" && processing) {
-      return `Processing article… ${processing.done}/${processing.total}`;
+      return "Converting with AI voice…";
     }
     if (status === "playing") {
       return minutesLeft > 0
@@ -314,7 +314,7 @@ export function ArticleReader({
               )}
             >
               {busy && processing && status === "processing"
-                ? `Processing article… ${processing.done}/${processing.total}`
+                ? "Converting with AI voice…"
                 : statusLabel}
             </p>
           </div>
@@ -419,8 +419,8 @@ export function ArticleReader({
                       first run downloads the model (cached afterwards), and
                       while sections are being processed the tab can lag or feel
                       heavy. That&apos;s normal: reading starts as soon as the
-                      first few sections are ready, and the rest keep processing
-                      in the background.
+                      first couple of sections are ready, and the rest keeps
+                      converting in the background.
                     </p>
                   </div>
 

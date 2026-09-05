@@ -38,8 +38,8 @@ export const AUTO_VOICE_KEY = "auto";
 
 const WORDS_PER_MINUTE = 165;
 
-/** Segments pre-synthesized before speaking; the rest stream in the background */
-const UPFRONT_PROCESS_COUNT = 10;
+/** Only a tiny upfront AI buffer so playback can start quickly. */
+const INITIAL_AI_BUFFER_SEGMENTS = 2;
 
 function isKokoroVoiceKey(key: string): key is KokoroVoiceId {
   return KOKORO_VOICES.some((v) => v.id === key);
@@ -467,24 +467,28 @@ export function useArticleReader({ containerRef }: Props) {
   /* --------------------------------- actions -------------------------------- */
 
   /**
-   * AI engine: pre-synthesize the first `maxCount` segments (with live
-   * progress) before speaking. The remainder streams in the background.
+   * AI engine: pre-synthesize only the first small buffer before speaking.
+   * The remainder keeps converting in the background while playback continues.
    */
   async function processArticle(
     session: number,
-    maxCount: number,
+    startIndex: number,
+    count: number,
   ): Promise<boolean> {
     const model = modelRef.current;
     if (!model) return false;
 
-    const target = Math.min(maxCount, model.segments.length);
+    const from = Math.max(0, startIndex);
+    const to = Math.min(model.segments.length, from + count);
+    const total = Math.max(0, to - from);
+
     let done = 0;
-    for (let i = 0; i < target; i++) {
+    for (let i = from; i < to; i++) {
       if (wavCacheRef.current.has(i)) done++;
     }
-    setProcessing({ done, total: target });
+    setProcessing({ done, total });
 
-    for (let i = 0; i < target; i++) {
+    for (let i = from; i < to; i++) {
       if (sessionRef.current !== session) {
         setProcessing(null);
         return false;
@@ -494,12 +498,12 @@ export function useArticleReader({ containerRef }: Props) {
           await synthSegment(i);
         } catch {
           setProcessing(null);
-          setNotice("The AI voice failed while processing the article.");
+          setNotice("The AI voice failed while converting the article.");
           setStatus("error");
           return false;
         }
         done++;
-        setProcessing({ done, total: target });
+        setProcessing({ done, total });
       }
     }
 
@@ -552,7 +556,7 @@ export function useArticleReader({ containerRef }: Props) {
 
       if (engineRef.current === "kokoro") {
         setStatus("processing");
-        const ok = await processArticle(session, UPFRONT_PROCESS_COUNT);
+        const ok = await processArticle(session, 0, INITIAL_AI_BUFFER_SEGMENTS);
         if (!ok) return;
       }
 
@@ -560,7 +564,7 @@ export function useArticleReader({ containerRef }: Props) {
       playSegment(0, 0, session);
 
       if (engineRef.current === "kokoro") {
-        void processRemainingInBackground(session, UPFRONT_PROCESS_COUNT);
+        void processRemainingInBackground(session, INITIAL_AI_BUFFER_SEGMENTS);
       }
     };
     void begin();
@@ -725,14 +729,15 @@ export function useArticleReader({ containerRef }: Props) {
         setStatus("processing");
         const ok = await processArticle(
           session,
-          segment + UPFRONT_PROCESS_COUNT,
+          segment,
+          INITIAL_AI_BUFFER_SEGMENTS,
         );
         if (!ok) return;
         setStatus("playing");
         playSegment(segment, offset, session);
         void processRemainingInBackground(
           session,
-          segment + UPFRONT_PROCESS_COUNT,
+          segment + INITIAL_AI_BUFFER_SEGMENTS,
         );
       };
       void restartKokoro();
