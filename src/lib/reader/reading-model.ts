@@ -23,6 +23,12 @@ export type ReadSegment = {
   element: HTMLElement;
   /** flattened raw text of the element (offsets match word tokens) */
   text: string;
+  /** speech-friendly version of the text with common symbols expanded */
+  spokenText: string;
+  /** maps a raw-text offset to its equivalent offset inside spokenText */
+  rawToSpokenOffset: (offset: number) => number;
+  /** maps a spokenText offset back to the closest raw-text offset */
+  spokenToRawOffset: (offset: number) => number;
   words: WordToken[];
   /** sentence groups as [startWord, endWordInclusive] word indexes */
   sentences: Array<{ startWord: number; endWord: number }>;
@@ -35,6 +41,87 @@ export type ReadingModel = {
 
 const READABLE_SELECTOR = "h2, h3, h4, h5, p, li, blockquote";
 const SKIP_SELECTOR = "[data-tts-skip], pre, code, iframe, button, svg";
+
+const SPEECH_REPLACEMENTS = [
+  { raw: ">=", spoken: " greater than or equal to " },
+  { raw: "<=", spoken: " less than or equal to " },
+  { raw: "=>", spoken: " to " },
+  { raw: "->", spoken: " to " },
+  { raw: "→", spoken: " to " },
+  { raw: "←", spoken: " from " },
+  { raw: "↔", spoken: " back and forth with " },
+  { raw: ">", spoken: " greater than " },
+  { raw: "<", spoken: " less than " },
+  { raw: "&", spoken: " and " },
+  { raw: "+", spoken: " plus " },
+  { raw: "=", spoken: " equals " },
+  { raw: "%", spoken: " percent " },
+  { raw: "@", spoken: " at " },
+  { raw: "/", spoken: " slash " },
+  { raw: "#", spoken: " hash " },
+  { raw: "×", spoken: " times " },
+  { raw: "÷", spoken: " divided by " },
+] as const;
+
+function clampOffset(offset: number, max: number) {
+  return Math.max(0, Math.min(offset, max));
+}
+
+function matchSpeechReplacement(text: string, index: number) {
+  return SPEECH_REPLACEMENTS.find((entry) => text.startsWith(entry.raw, index));
+}
+
+function buildSpeechText(rawText: string) {
+  const rawToSpoken = new Array<number>(rawText.length + 1).fill(0);
+  const spokenToRaw: number[] = [];
+
+  let spokenText = "";
+  let rawIndex = 0;
+
+  while (rawIndex < rawText.length) {
+    rawToSpoken[rawIndex] = spokenText.length;
+
+    const replacement = matchSpeechReplacement(rawText, rawIndex);
+    if (replacement) {
+      const startRaw = rawIndex;
+      const startSpoken = spokenText.length;
+
+      for (let i = startRaw + 1; i < startRaw + replacement.raw.length; i++) {
+        rawToSpoken[i] = startSpoken;
+      }
+
+      for (const char of replacement.spoken) {
+        spokenToRaw[spokenText.length] = startRaw;
+        spokenText += char;
+      }
+
+      rawIndex += replacement.raw.length;
+      rawToSpoken[rawIndex] = spokenText.length;
+      continue;
+    }
+
+    spokenToRaw[spokenText.length] = rawIndex;
+    spokenText += rawText[rawIndex];
+    rawIndex += 1;
+    rawToSpoken[rawIndex] = spokenText.length;
+  }
+
+  spokenToRaw[spokenText.length] = rawText.length;
+
+  return {
+    spokenText,
+    rawToSpokenOffset(offset: number) {
+      return (
+        rawToSpoken[clampOffset(offset, rawText.length)] ?? spokenText.length
+      );
+    },
+    spokenToRawOffset(offset: number) {
+      return (
+        spokenToRaw[clampOffset(offset, spokenText.length)] ?? rawText.length
+      );
+    },
+  };
+}
 
 function buildSentences(words: WordToken[]): ReadSegment["sentences"] {
   const sentences: ReadSegment["sentences"] = [];
@@ -53,6 +140,9 @@ function buildSentences(words: WordToken[]): ReadSegment["sentences"] {
 
 function collectElementText(el: HTMLElement): {
   text: string;
+  spokenText: string;
+  rawToSpokenOffset: (offset: number) => number;
+  spokenToRawOffset: (offset: number) => number;
   words: WordToken[];
 } {
   const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, {
@@ -77,7 +167,15 @@ function collectElementText(el: HTMLElement): {
     text += node.textContent ?? "";
   }
 
-  if (pieces.length === 0) return { text: "", words: [] };
+  if (pieces.length === 0) {
+    return {
+      text: "",
+      spokenText: "",
+      rawToSpokenOffset: () => 0,
+      spokenToRawOffset: () => 0,
+      words: [],
+    };
+  }
 
   const locate = (offset: number) => {
     for (const piece of pieces) {
@@ -110,7 +208,15 @@ function collectElementText(el: HTMLElement): {
     words.push({ start, end, range, sentenceEnd });
   }
 
-  return { text, words };
+  const speechText = buildSpeechText(text);
+
+  return {
+    text,
+    spokenText: speechText.spokenText,
+    rawToSpokenOffset: speechText.rawToSpokenOffset,
+    spokenToRawOffset: speechText.spokenToRawOffset,
+    words,
+  };
 }
 
 export function buildReadingModel(container: HTMLElement): ReadingModel {
@@ -141,11 +247,15 @@ export function buildReadingModel(container: HTMLElement): ReadingModel {
   let totalWords = 0;
 
   for (const el of topLevel) {
-    const { text, words } = collectElementText(el);
+    const { text, spokenText, rawToSpokenOffset, spokenToRawOffset, words } =
+      collectElementText(el);
     if (words.length === 0 || text.trim().length === 0) continue;
     segments.push({
       element: el,
       text,
+      spokenText,
+      rawToSpokenOffset,
+      spokenToRawOffset,
       words,
       sentences: buildSentences(words),
     });

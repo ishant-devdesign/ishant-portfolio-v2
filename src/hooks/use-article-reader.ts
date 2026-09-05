@@ -226,7 +226,7 @@ export function useArticleReader({ containerRef }: Props) {
     if (!model) throw new Error("kokoro-not-ready");
 
     const promise = synthesizeSpeech(
-      model.segments[index].text.trim(),
+      model.segments[index].spokenText.trim(),
       voiceKeyRef.current as KokoroVoiceId,
     )
       .then((wav) => {
@@ -276,6 +276,30 @@ export function useArticleReader({ containerRef }: Props) {
     const prefix = wordPrefixRef.current[segIdx] ?? 0;
     setWordsDone(prefix + wordIdx);
   }, []);
+
+  function resolveWordIndexForOffset(
+    segment: ReadingModel["segments"][number],
+    offset: number,
+  ) {
+    const containing = segment.words.findIndex(
+      (word) => offset >= word.start && offset < word.end,
+    );
+    if (containing !== -1) return containing;
+
+    let previous = -1;
+    for (let i = 0; i < segment.words.length; i++) {
+      const word = segment.words[i];
+      if (offset < word.start) {
+        if (previous === -1) return i;
+        const previousGap = Math.max(0, offset - segment.words[previous].end);
+        const nextGap = word.start - offset;
+        return previousGap <= nextGap ? previous : i;
+      }
+      previous = i;
+    }
+
+    return previous;
+  }
 
   function stopProgressTicker() {
     if (progressTickerRef.current !== null) {
@@ -424,7 +448,10 @@ export function useArticleReader({ containerRef }: Props) {
 
     // Browser speechSynthesis engine — word-level highlighting via boundary events
     if (!speechSupported()) return;
-    const utterance = new SpeechSynthesisUtterance(segment.text.slice(offset));
+    const spokenOffset = segment.rawToSpokenOffset(offset);
+    const utterance = new SpeechSynthesisUtterance(
+      segment.spokenText.slice(spokenOffset),
+    );
     const voice = resolveBrowserVoice();
     if (voice) utterance.voice = voice;
     utterance.rate = rateRef.current;
@@ -433,13 +460,9 @@ export function useArticleReader({ containerRef }: Props) {
 
     utterance.onboundary = (event: SpeechSynthesisEvent) => {
       if (sessionRef.current !== session) return;
-      const absoluteIndex = offset + event.charIndex;
-      let wordIdx = segment.words.findIndex(
-        (w) => absoluteIndex >= w.start && absoluteIndex < w.end,
-      );
-      if (wordIdx === -1) {
-        wordIdx = segment.words.findIndex((w) => absoluteIndex < w.start);
-      }
+      const absoluteSpokenIndex = spokenOffset + event.charIndex;
+      const absoluteRawIndex = segment.spokenToRawOffset(absoluteSpokenIndex);
+      const wordIdx = resolveWordIndexForOffset(segment, absoluteRawIndex);
       if (wordIdx === -1) return;
       const word = segment.words[wordIdx];
       cursorRef.current = { segment: segIdx, offset: word.start };

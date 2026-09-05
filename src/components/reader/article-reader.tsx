@@ -198,21 +198,6 @@ export function ArticleReader({
     </button>
   );
 
-  const speedPill = (
-    <button
-      type="button"
-      onClick={cycleRate}
-      aria-label="Playback speed"
-      title="Playback speed"
-      className={cn(
-        pillClass,
-        "h-11 shrink-0 justify-center px-3 text-xs font-medium tabular-nums text-white/80 hover:text-white sm:h-12 sm:text-[0.8125rem]",
-      )}
-    >
-      {rate}×
-    </button>
-  );
-
   const voicePill = (
     <div
       className={cn(
@@ -249,11 +234,16 @@ export function ArticleReader({
   const progressPill = (
     <div
       data-cursor
-      className={cn(
-        pillClass,
-        "h-11 min-w-0 flex-1 basis-0 px-3.5 sm:h-12 sm:px-4",
-      )}
+      className={cn(pillClass, "h-11 min-w-0 flex-1 basis-0 sm:h-12 p-1 gap-1")}
     >
+      <div
+        onClick={cycleRate}
+        aria-label="Playback speed"
+        title="Playback speed"
+        className="p-3 select-none text-[11px] font-medium text-white/80 sm:text-xs hover:bg-white/10 hover:text-white rounded-full"
+      >
+        {rate} ×
+      </div>
       <div
         ref={progressTrackRef}
         role="progressbar"
@@ -278,7 +268,7 @@ export function ArticleReader({
           />
         </div>
       </div>
-      <div className="ml-2 hidden min-w-0 shrink-0 select-none whitespace-nowrap text-[11px] sm:block">
+      <div className="p-3 hidden min-w-0 shrink-0 select-none whitespace-nowrap text-[11px] sm:block">
         <span
           className={cn(
             "tabular-nums",
@@ -303,7 +293,7 @@ export function ArticleReader({
 
         <div className={cn(pillClass, "h-11 min-w-0 px-3.5 sm:h-12")}>
           <AudioLines className="size-4 shrink-0 text-white/40" />
-          <div className="ml-2 min-w-0">
+          <div className="ml-2 min-w-0 flex gap-3">
             <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-white/40">
               Listen
             </p>
@@ -321,68 +311,68 @@ export function ArticleReader({
         </div>
 
         {voicePill}
-        {speedPill}
         {aiBadgePill}
       </div>
 
       {/* ------------------------------ Floating dock ----------------------------- */}
-      <AnimatePresence>
-        {showDock ? (
-          <motion.div
-            key="article-reader-dock"
-            initial={{ opacity: 0, y: 24, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 16, scale: 0.96 }}
-            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-            className="fixed bottom-6 left-4 right-24 z-[240] flex items-center gap-2 lg:left-1/2 lg:right-auto lg:w-[min(94vw,46rem)] lg:-translate-x-1/2"
-          >
-            {playPill}
-
-            <div className={cn(pillClass, "h-11 shrink-0 px-1 sm:h-12")}>
-              <button
-                type="button"
-                onClick={prev}
-                disabled={busy}
-                aria-label="Previous section"
-                title="Previous section"
-                className="flex h-8 w-8 items-center justify-center rounded-full text-white/70 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-40 sm:h-9 sm:w-9"
+      {typeof document !== "undefined" &&
+        createPortal(
+          <AnimatePresence>
+            {showDock ? (
+              <motion.div
+                key="article-reader-dock"
+                initial={{ opacity: 0, y: 24, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 16, scale: 0.96 }}
+                transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                className="fixed bottom-6 left-4 right-20 z-[240] flex items-end gap-2 sm:right-22 lg:left-1/2 lg:right-auto lg:w-[min(94vw,46rem)] lg:-translate-x-1/2 xl:right-23"
               >
-                <SkipBack className="size-4" />
-              </button>
-              <button
-                type="button"
-                onClick={next}
-                disabled={busy}
-                aria-label="Next section"
-                title="Next section"
-                className="flex h-8 w-8 items-center justify-center rounded-full text-white/70 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-40 sm:h-9 sm:w-9"
-              >
-                <SkipForward className="size-4" />
-              </button>
-            </div>
+                {playPill}
 
-            {progressPill}
+                <div className={cn(pillClass, "h-11 shrink-0 px-1 sm:h-12")}>
+                  <button
+                    type="button"
+                    onClick={prev}
+                    disabled={busy}
+                    aria-label="Previous section"
+                    title="Previous section"
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-white/70 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-40 sm:h-9 sm:w-9"
+                  >
+                    <SkipBack className="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={next}
+                    disabled={busy}
+                    aria-label="Next section"
+                    title="Next section"
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-white/70 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-40 sm:h-9 sm:w-9"
+                  >
+                    <SkipForward className="size-4" />
+                  </button>
+                </div>
 
-            <div className="hidden sm:contents">
-              {aiBadgePill}
-              {speedPill}
-            </div>
+                {progressPill}
 
-            <button
-              type="button"
-              onClick={stop}
-              aria-label="Stop and close reader"
-              title="Stop"
-              className={cn(
-                pillClass,
-                "h-11 w-11 shrink-0 justify-center p-0 text-white/70 hover:text-white sm:h-12 sm:w-12",
-              )}
-            >
-              <X className="size-4.5" />
-            </button>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
+                <div className="hidden sm:contents">{aiBadgePill}</div>
+
+                <button
+                  type="button"
+                  onClick={stop}
+                  aria-label="Stop and close reader"
+                  title="Stop"
+                  className={cn(
+                    pillClass,
+                    "h-11 w-11 shrink-0 justify-center p-0 text-white/70 hover:text-white sm:h-12 sm:w-12",
+                  )}
+                >
+                  <X className="size-4.5" />
+                </button>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>,
+          document.body,
+        )}
 
       {/* ----------------------- AI voice processing notice ---------------------- */}
       {typeof document !== "undefined" &&

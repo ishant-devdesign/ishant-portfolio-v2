@@ -20,8 +20,20 @@ const TOGGLE_GAP = 18;
 const ACTIVE_SECTION_THRESHOLD = 132;
 const MOBILE_ACTIVE_SECTION_THRESHOLD = 112;
 const MANUAL_ACTIVE_HOLD_MS = 900;
+const SIDE_NAV_LOCK_STORAGE_KEY = "portfolio-side-nav-locked";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
+
+function readStoredSideNavLockPreference(): "locked" | "unlocked" | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const stored = window.localStorage.getItem(SIDE_NAV_LOCK_STORAGE_KEY);
+    return stored === "locked" || stored === "unlocked" ? stored : null;
+  } catch {
+    return null;
+  }
+}
 
 function TruncatedSideNavLabel({
   label,
@@ -121,12 +133,18 @@ export function SideNavRail({ sections }: SideNavRailProps) {
   const { introComplete, reducedMotion } = useExperience();
 
   const [activeId, setActiveId] = useState(sections[0]?.id ?? "");
-  const [pinned, setPinned] = useState(false);
+  const [desktopPinned, setDesktopPinned] = useState(
+    () => readStoredSideNavLockPreference() === "locked",
+  );
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [peekOpen, setPeekOpen] = useState(false);
   const [areaHovered, setAreaHovered] = useState(false);
   const [canHover, setCanHover] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [hasStoredPinPreference, setHasStoredPinPreference] = useState(
+    () => readStoredSideNavLockPreference() !== null,
+  );
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [viewportHeight, setViewportHeight] = useState(800);
 
@@ -158,6 +176,20 @@ export function SideNavRail({ sections }: SideNavRailProps) {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key !== SIDE_NAV_LOCK_STORAGE_KEY) return;
+      const stored = readStoredSideNavLockPreference();
+      setDesktopPinned(stored === "locked");
+      setHasStoredPinPreference(stored !== null);
+    };
+
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
     const update = () => setViewportHeight(window.innerHeight);
     update();
     window.addEventListener("resize", update);
@@ -165,7 +197,15 @@ export function SideNavRail({ sections }: SideNavRailProps) {
   }, []);
 
   useEffect(() => {
-    if (isMobile || peeked.current || !introComplete || reducedMotion) return;
+    if (
+      isMobile ||
+      peeked.current ||
+      !introComplete ||
+      reducedMotion ||
+      hasStoredPinPreference
+    ) {
+      return;
+    }
 
     peeked.current = true;
     setPeekOpen(true);
@@ -177,7 +217,7 @@ export function SideNavRail({ sections }: SideNavRailProps) {
         peekTimer.current = null;
       }
     };
-  }, [introComplete, reducedMotion, isMobile]);
+  }, [introComplete, reducedMotion, isMobile, hasStoredPinPreference]);
 
   const cancelPeek = () => {
     if (peekTimer.current) {
@@ -216,7 +256,9 @@ export function SideNavRail({ sections }: SideNavRailProps) {
     }, HOVER_CLOSE_DELAY_MS);
   };
 
-  const open = peekOpen || pinned || (canHover && hovered);
+  const open = isMobile
+    ? mobileOpen
+    : peekOpen || desktopPinned || (canHover && hovered);
   const showExpandedItems = isMobile ? open : areaHovered || peekOpen;
 
   useEffect(() => {
@@ -314,8 +356,8 @@ export function SideNavRail({ sections }: SideNavRailProps) {
   );
 
   const active = sections[activeIndex];
-  const isPreview = open && !pinned;
-  const isPinned = pinned;
+  const isPreview = !isMobile && open && !desktopPinned;
+  const isPinned = desktopPinned;
 
   const verticalPadding = 96;
   const itemHeight = useMemo(() => {
@@ -335,6 +377,19 @@ export function SideNavRail({ sections }: SideNavRailProps) {
     [sections, activeIndex, itemHeight],
   );
 
+  const savePinnedPreference = (nextPinned: boolean) => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(
+        SIDE_NAV_LOCK_STORAGE_KEY,
+        nextPinned ? "locked" : "unlocked",
+      );
+      setHasStoredPinPreference(true);
+    } catch {
+      // Ignore storage failures; the nav still works for the current session.
+    }
+  };
+
   const handleToggle = () => {
     cancelPeek();
     clearHoverTimer();
@@ -343,18 +398,20 @@ export function SideNavRail({ sections }: SideNavRailProps) {
       setHovered(false);
       setAreaHovered(false);
       setPeekOpen(false);
-      setPinned((current) => !current);
+      setMobileOpen((current) => !current);
       return;
     }
 
-    if (pinned) {
-      setPinned(false);
+    if (desktopPinned) {
+      setDesktopPinned(false);
+      savePinnedPreference(false);
       setHovered(false);
       setAreaHovered(false);
       return;
     }
 
-    setPinned(true);
+    setDesktopPinned(true);
+    savePinnedPreference(true);
   };
 
   const handleSelect = (id: string) => {
@@ -373,8 +430,14 @@ export function SideNavRail({ sections }: SideNavRailProps) {
       manualActiveTimerRef.current = null;
     }, MANUAL_ACTIVE_HOLD_MS);
 
-    if (isMobile || !pinned) {
-      setPinned(false);
+    if (isMobile) {
+      setMobileOpen(false);
+      setHovered(false);
+      setAreaHovered(false);
+      return;
+    }
+
+    if (!desktopPinned) {
       setHovered(false);
       setAreaHovered(false);
     }
@@ -416,7 +479,7 @@ export function SideNavRail({ sections }: SideNavRailProps) {
                 const active = section.id === activeId;
                 const pillVisible = open && (showExpandedItems || active);
                 const indexVisible =
-                  open && (showExpandedItems || pinned || active);
+                  open && (showExpandedItems || desktopPinned || active);
 
                 return (
                   <a
@@ -518,14 +581,14 @@ export function SideNavRail({ sections }: SideNavRailProps) {
                 {isPinned ? (
                   <motion.span
                     key="unlock-only"
-                    className="pointer-events-none flex size-4 items-center justify-center"
+                    className="pointer-events-none flex size-7 items-center justify-center"
                     initial={{ opacity: 0, scale: 0.8, rotate: -14 }}
                     animate={{ opacity: 1, scale: 1, rotate: 0 }}
                     exit={{ opacity: 0, scale: 0.8, rotate: 14 }}
                     transition={{ duration: 0.24, ease: EASE }}
                   >
                     <LockOpen
-                      className="size-3 text-white"
+                      className="size-4 text-white"
                       strokeWidth={1.75}
                     />
                   </motion.span>
@@ -551,7 +614,7 @@ export function SideNavRail({ sections }: SideNavRailProps) {
                     ) : null}
 
                     <motion.span
-                      className="pointer-events-none flex size-4 items-center justify-center"
+                      className="pointer-events-none flex size-7 items-center justify-center"
                       key={isPreview ? "lock-hover" : "closed-chevron"}
                       initial={{ opacity: 0, scale: 0.8, rotate: -14 }}
                       animate={{ opacity: 1, scale: 1, rotate: 0 }}
@@ -560,7 +623,7 @@ export function SideNavRail({ sections }: SideNavRailProps) {
                     >
                       {isPreview ? (
                         <Lock
-                          className="size-3 text-white/90"
+                          className="size-4 text-white/90"
                           strokeWidth={1.75}
                         />
                       ) : (
@@ -713,24 +776,19 @@ export function SideNavRail({ sections }: SideNavRailProps) {
               aria-label="Scroll to top"
               data-cursor="Scroll to top"
               data-cursor-position="top"
-              className="pointer-events-auto flex size-11 items-center justify-center rounded-full border border-white/12 shadow-[0_14px_40px_rgba(0,0,0,0.35)]"
-              style={{
-                backgroundColor: "rgba(255,255,255,0.05)",
-                backdropFilter: "blur(12px)",
-                WebkitBackdropFilter: "blur(12px)",
-                borderColor: "rgba(255,255,255,0.12)",
-              }}
+              className="pointer-events-auto relative flex size-11 items-center justify-center rounded-full border border-white/10 bg-black/55 text-white shadow-[0_8px_28px_rgba(0,0,0,0.4)] backdrop-blur-xl backdrop-saturate-150 sm:size-12"
               initial={{ opacity: 0, y: 12, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 12, scale: 0.9 }}
               transition={{ duration: 0.28, ease: EASE }}
-              whileHover={{ scale: 1.06 }}
             >
-              <span
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-t from-white/[0.04] to-white/[0.09]"
-              />
-              <ChevronUp className="relative z-10 size-4 text-white/76" />
+              <motion.span
+                className="relative z-10 flex size-7 items-center justify-center rounded-full"
+                whileHover={{ y: -1 }}
+                transition={{ duration: 0.18, ease: EASE }}
+              >
+                <ChevronUp className="size-4 text-white/76" />
+              </motion.span>
             </motion.button>
           )}
         </AnimatePresence>
