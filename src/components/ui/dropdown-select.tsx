@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { createPortal } from "react-dom";
-import { Check, ChevronsUpDown, Search } from "lucide-react";
+import { Check, ChevronsUpDown, Loader2, Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -10,6 +10,74 @@ type Option = {
   label: string;
   value: string;
 };
+
+type DropdownSelectProps = {
+  value: string;
+  options: Option[];
+  onChange: (value: string) => void;
+  className?: string;
+  placeholder?: string;
+  searchable?: boolean;
+  searchPlaceholder?: string;
+  menuClassName?: string;
+  onPreview?: (value: string) => void | Promise<void>;
+  previewingValue?: string | null;
+  previewLoadingValue?: string | null;
+  previewDisabled?: boolean;
+  onOpenChange?: (open: boolean) => void;
+};
+
+function PreviewWaveform({ active }: { active: boolean }) {
+  const bars = [
+    { idle: 5, frames: [5, 9, 6, 10, 5] },
+    { idle: 9, frames: [9, 13, 8, 11, 9] },
+    { idle: 12, frames: [12, 7, 14, 8, 12] },
+    { idle: 8, frames: [8, 12, 7, 13, 8] },
+    { idle: 5, frames: [5, 10, 6, 9, 5] },
+  ] as const;
+
+  return (
+    <span
+      className="relative flex h-4 w-5 items-center justify-center"
+      aria-hidden="true"
+    >
+      <span className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 rounded-full bg-white/12" />
+      <span className="relative flex h-[14px] w-full items-center justify-center gap-[2px]">
+        {bars.map((bar, index) => (
+          <motion.span
+            key={index}
+            className="block w-[2px] rounded-full bg-current"
+            style={{ height: `${bar.idle}px` }}
+            initial={false}
+            animate={
+              active
+                ? {
+                    height: bar.frames.map((frame) => `${frame}px`),
+                    opacity: [0.58, 1, 0.82, 1, 0.58],
+                    scaleY: [0.98, 1.02, 0.96, 1.02, 0.98],
+                  }
+                : {
+                    height: `${bar.idle}px`,
+                    opacity: 0.74,
+                    scaleY: 1,
+                  }
+            }
+            transition={
+              active
+                ? {
+                    duration: 1.05,
+                    repeat: Infinity,
+                    ease: [0.4, 0, 0.2, 1],
+                    delay: index * 0.06,
+                  }
+                : { duration: 0.18, ease: [0.22, 1, 0.36, 1] }
+            }
+          />
+        ))}
+      </span>
+    </span>
+  );
+}
 
 function splitOptionLabel(label: string) {
   if (label.includes(" — ")) {
@@ -46,16 +114,12 @@ export function DropdownSelect({
   searchable,
   searchPlaceholder = "Search voices…",
   menuClassName,
-}: {
-  value: string;
-  options: Option[];
-  onChange: (value: string) => void;
-  className?: string;
-  placeholder?: string;
-  searchable?: boolean;
-  searchPlaceholder?: string;
-  menuClassName?: string;
-}) {
+  onPreview,
+  previewingValue,
+  previewLoadingValue,
+  previewDisabled = false,
+  onOpenChange,
+}: DropdownSelectProps) {
   const [open, setOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
   const [query, setQuery] = useState("");
@@ -64,6 +128,7 @@ export function DropdownSelect({
   const menuRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const typeAheadTimeoutRef = useRef<number | null>(null);
+  const openStateInitializedRef = useRef(false);
   const [menuPlacement, setMenuPlacement] = useState<{
     left: number;
     top: number | null;
@@ -124,10 +189,21 @@ export function DropdownSelect({
   }, [enableSearch, open]);
 
   useEffect(() => {
+    if (!openStateInitializedRef.current) {
+      openStateInitializedRef.current = true;
+      return;
+    }
+    onOpenChange?.(open);
+  }, [onOpenChange, open]);
+
+  useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       const activeList = filteredOptions;
       const activeOption = activeList[highlightedIndex];
       const searchFocused = document.activeElement === searchInputRef.current;
+      const previewFocused =
+        event.target instanceof HTMLElement &&
+        event.target.closest("[data-dropdown-preview='true']") !== null;
 
       if (!open) {
         if (
@@ -169,6 +245,7 @@ export function DropdownSelect({
       }
 
       if (event.key === "Enter") {
+        if (previewFocused) return;
         event.preventDefault();
         if (activeOption) {
           onChange(activeOption.value);
@@ -179,7 +256,7 @@ export function DropdownSelect({
         return;
       }
 
-      if (searchFocused) return;
+      if (searchFocused || previewFocused) return;
 
       if (
         event.key.length === 1 &&
@@ -418,26 +495,30 @@ export function DropdownSelect({
                         const parsed = splitOptionLabel(option.label);
                         const selected = option.value === value;
                         const highlighted = highlightedIndex === index;
+                        const previewing = previewingValue === option.value;
+                        const previewLoading =
+                          previewLoadingValue === option.value;
 
                         return (
                           <button
                             key={option.value}
-                            type="button"
                             onMouseEnter={() => setHighlightedIndex(index)}
-                            onClick={() => {
-                              onChange(option.value);
-                              setOpen(false);
-                              setQuery("");
-                              buttonRef.current?.focus();
-                            }}
                             className={cn(
-                              "flex w-full items-center justify-between rounded-[1rem] border px-3 py-2.5 text-left transition-colors",
+                              "flex w-full items-center gap-2 rounded-[1rem] border px-2 py-2 text-left transition-colors",
                               highlighted
                                 ? "border-white/12 bg-white/[0.08] text-white"
                                 : "border-transparent text-white/72 hover:border-white/8 hover:bg-white/[0.04] hover:text-white",
                             )}
                           >
-                            <span className="min-w-0 pr-3">
+                            <div
+                              onClick={() => {
+                                onChange(option.value);
+                                setOpen(false);
+                                setQuery("");
+                                buttonRef.current?.focus();
+                              }}
+                              className="min-w-0 flex-1 rounded-[0.85rem] bg-transparent px-1 py-0.5 text-left outline-none"
+                            >
                               <span className="flex min-w-0 flex-col">
                                 <span className="flex min-w-0 items-center gap-2">
                                   {parsed.prefix ? (
@@ -450,15 +531,57 @@ export function DropdownSelect({
                                   </span>
                                 </span>
                                 {parsed.meta ? (
-                                  <span className="mt-1 truncate text-[11px] text-white/46">
+                                  <span className="mt-1 truncate pr-2 text-[11px] text-white/46">
                                     {parsed.meta}
                                   </span>
                                 ) : null}
                               </span>
-                            </span>
-                            {selected ? (
-                              <Check className="size-4 shrink-0 text-white/76" />
-                            ) : null}
+                            </div>
+
+                            <div className="ml-auto flex shrink-0 items-center gap-1">
+                              {selected ? (
+                                <span className="flex size-8 items-center justify-center rounded-full text-white/76">
+                                  <Check className="size-4" />
+                                </span>
+                              ) : null}
+
+                              {onPreview ? (
+                                <button
+                                  type="button"
+                                  data-dropdown-preview="true"
+                                  onClick={(event) => {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    void onPreview(option.value);
+                                  }}
+                                  disabled={previewDisabled}
+                                  aria-label={
+                                    previewing
+                                      ? `Stop preview for ${option.label}`
+                                      : `Preview ${option.label}`
+                                  }
+                                  title={
+                                    previewing
+                                      ? "Stop preview"
+                                      : "Preview voice"
+                                  }
+                                  className={cn(
+                                    "flex h-8 min-w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-2.5 text-white/68 transition-colors",
+                                    previewDisabled
+                                      ? "cursor-not-allowed opacity-40"
+                                      : "hover:border-white/14 hover:bg-white/[0.08] hover:text-white",
+                                    (previewing || previewLoading) &&
+                                      "border-white/16 bg-white/[0.10] text-white shadow-[0_0_18px_rgba(255,255,255,0.06)]",
+                                  )}
+                                >
+                                  {previewLoading ? (
+                                    <Loader2 className="size-3.5 animate-spin" />
+                                  ) : (
+                                    <PreviewWaveform active={previewing} />
+                                  )}
+                                </button>
+                              ) : null}
+                            </div>
                           </button>
                         );
                       })

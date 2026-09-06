@@ -10,6 +10,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 type PreviewKind = "blog" | "project" | null;
+type CursorMode = "zoom" | "pan" | "panning" | null;
 
 type CursorSnapshot = {
   visible: boolean;
@@ -21,6 +22,7 @@ type CursorSnapshot = {
   snapWidth: number;
   snapHeight: number;
   snapRadius: number;
+  cursorMode: CursorMode;
 };
 
 type PreviewPayload = {
@@ -52,6 +54,18 @@ function getFullscreenElement(): Element | null {
 
 const EASE_OUT = [0.16, 1, 0.3, 1] as const;
 const EASE_SOFT = [0.33, 1, 0.68, 1] as const;
+const CURSOR_FRAME_SPRING = {
+  type: "spring" as const,
+  stiffness: 280,
+  damping: 24,
+  mass: 0.56,
+};
+const CURSOR_GLYPH_SPRING = {
+  type: "spring" as const,
+  stiffness: 320,
+  damping: 24,
+  mass: 0.48,
+};
 
 const PREVIEW_ENTER_DELAY_MS = 40;
 const PREVIEW_EXIT_MS = 220;
@@ -68,6 +82,7 @@ export function CustomCursor() {
   const [snapHeight, setSnapHeight] = useState(0);
   const [snapRadius, setSnapRadius] = useState(999);
   const [portalHost, setPortalHost] = useState<Element | null>(null);
+  const [cursorMode, setCursorMode] = useState<CursorMode>(null);
 
   const [previewShown, setPreviewShown] = useState(false);
   const [previewData, setPreviewData] = useState<PreviewPayload | null>(null);
@@ -104,6 +119,7 @@ export function CustomCursor() {
     snapWidth: 0,
     snapHeight: 0,
     snapRadius: 999,
+    cursorMode: null,
   });
 
   const MIN_CURSOR_WIDTH = 768;
@@ -154,6 +170,8 @@ export function CustomCursor() {
         setSnapHeight(next.snapHeight);
       if (previous.snapRadius !== next.snapRadius)
         setSnapRadius(next.snapRadius);
+      if (previous.cursorMode !== next.cursorMode)
+        setCursorMode(next.cursorMode);
       cursorStateRef.current = next;
     };
 
@@ -171,6 +189,7 @@ export function CustomCursor() {
         snapWidth: 0,
         snapHeight: 0,
         snapRadius: 999,
+        cursorMode: null,
       });
     };
 
@@ -200,6 +219,9 @@ export function CustomCursor() {
         (previewHost?.dataset.cursorPreview as PreviewKind) ??
         (interactiveTarget?.dataset.cursorPreview as PreviewKind) ??
         null;
+
+      const nextCursorMode =
+        (interactiveTarget?.dataset.cursorMode as CursorMode) ?? null;
 
       const nextTextMode = Boolean(
         target.closest(
@@ -251,6 +273,7 @@ export function CustomCursor() {
         snapWidth: nextSnapWidth,
         snapHeight: nextSnapHeight,
         snapRadius: nextSnapRadius,
+        cursorMode: nextTextMode || nextPreviewKind ? null : nextCursorMode,
       });
     };
 
@@ -323,8 +346,10 @@ export function CustomCursor() {
       };
 
       if (previewShown) {
-        setPreviewData(next);
-        return;
+        const rafId = window.requestAnimationFrame(() => {
+          setPreviewData(next);
+        });
+        return () => window.cancelAnimationFrame(rafId);
       }
 
       enterTimer.current = setTimeout(() => {
@@ -368,6 +393,9 @@ export function CustomCursor() {
     if (previewLive || previewShown) {
       return { width: 12, height: 12, radius: 999, kind: "preview" as const };
     }
+    if (cursorMode) {
+      return { width: 30, height: 30, radius: 10, kind: "mode" as const };
+    }
     if (active && snapWidth > 0 && snapHeight > 0) {
       return {
         width: snapWidth,
@@ -382,6 +410,7 @@ export function CustomCursor() {
     return { width: 34, height: 34, radius: 999, kind: "idle" as const };
   }, [
     active,
+    cursorMode,
     previewLive,
     previewShown,
     snapHeight,
@@ -395,10 +424,12 @@ export function CustomCursor() {
   const isText = orbFrame.kind === "text";
   const isSnap = orbFrame.kind === "snap" || orbFrame.kind === "active";
   const isPreviewOrb = orbFrame.kind === "preview";
+  const isModeOrb = orbFrame.kind === "mode";
+  const showModeGlyph = Boolean(cursorMode) && !isText && !isPreviewOrb;
 
   const cursorTree = (
     <>
-      {/* ── Center dot (instant pointer) z=9999 ── */}
+      {/* ── Center dot / transformed glyph z=9999 ── */}
       <motion.div
         className="pointer-events-none fixed left-0 top-0 z-[999999] hidden md:block"
         style={{ x: dotX, y: dotY }}
@@ -406,22 +437,58 @@ export function CustomCursor() {
         transition={{ duration: 0.12, ease: EASE_OUT }}
       >
         <motion.div
-          className="box-border"
-          style={{ marginLeft: isText ? -1 : -3, marginTop: isText ? -11 : -3 }}
-          animate={{
-            width: isText ? 2 : 6,
-            height: isText ? 22 : 6,
-            borderRadius: 999,
-            backgroundColor: "rgba(255,255,255,0.96)",
-            borderWidth: isText ? 0 : 1.5,
-            borderStyle: "solid",
-            borderColor: "rgba(0,0,0,0.55)",
-            boxShadow: isText
-              ? "0 0 0 1px rgba(0,0,0,0.35)"
-              : "0 0 0 1px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.25)",
+          className="relative flex items-center justify-center"
+          style={{
+            x: "-50%",
+            y: "-50%",
+            transformOrigin: "center center",
           }}
-          transition={{ duration: 0.2, ease: EASE_OUT }}
-        />
+          animate={{
+            width: isText ? 2 : showModeGlyph ? 14 : 6,
+            height: isText ? 22 : showModeGlyph ? 14 : 6,
+            rotate: cursorMode === "panning" ? 45 : 0,
+            scale: cursorMode === "panning" ? 1.03 : 1,
+          }}
+          transition={CURSOR_FRAME_SPRING}
+        >
+          <motion.span
+            className="absolute left-1/2 top-1/2 rounded-full bg-white"
+            style={{ x: "-50%", y: "-50%" }}
+            animate={{
+              width: isText ? 2 : showModeGlyph ? 2 : 6,
+              height: isText ? 22 : showModeGlyph ? 2 : 6,
+              opacity: showModeGlyph ? 0.9 : 1,
+              boxShadow: isText
+                ? "0 0 0 1px rgba(0,0,0,0.35)"
+                : "0 0 0 1px rgba(0,0,0,0.2), 0 1px 3px rgba(0,0,0,0.24)",
+            }}
+            transition={CURSOR_GLYPH_SPRING}
+          />
+
+          <motion.span
+            className="absolute left-1/2 top-1/2 rounded-full bg-white"
+            style={{ x: "-50%", y: "-50%" }}
+            animate={{
+              width: showModeGlyph ? 10 : 0,
+              height: showModeGlyph ? 1.5 : 0,
+              opacity: showModeGlyph ? 1 : 0,
+              filter: showModeGlyph ? "blur(0px)" : "blur(2px)",
+            }}
+            transition={CURSOR_GLYPH_SPRING}
+          />
+
+          <motion.span
+            className="absolute left-1/2 top-1/2 rounded-full bg-white"
+            style={{ x: "-50%", y: "-50%" }}
+            animate={{
+              width: showModeGlyph ? 1.5 : 0,
+              height: showModeGlyph ? 10 : 0,
+              opacity: showModeGlyph ? 1 : 0,
+              filter: showModeGlyph ? "blur(0px)" : "blur(2px)",
+            }}
+            transition={CURSOR_GLYPH_SPRING}
+          />
+        </motion.div>
       </motion.div>
 
       {/* ── Outer orb / ring z=9998 ── */}
@@ -448,23 +515,27 @@ export function CustomCursor() {
               ? "rgba(0,0,0,0.45)"
               : isSnap
                 ? "rgba(0,0,0,0.35)"
-                : "rgba(0,0,0,0.28)",
-            backgroundColor: "rgba(255,255,255,0.01)",
+                : isModeOrb
+                  ? "rgba(0,0,0,0.22)"
+                  : "rgba(0,0,0,0.28)",
+            backgroundColor: isModeOrb
+              ? "rgba(255,255,255,0.035)"
+              : "rgba(255,255,255,0.01)",
             boxShadow: isText
               ? "0 0 0 1px rgba(255,255,255,0.55), 0 1px 4px rgba(0,0,0,0.2)"
-              : "0 0 0 1px rgba(255,255,255,0.45), 0 2px 10px rgba(0,0,0,0.12)",
-            backdropFilter: isText
-              ? "blur(0px)"
-              : isSnap
-                ? "blur(0px)"
-                : "blur(3px)",
+              : isModeOrb
+                ? "0 0 0 1px rgba(255,255,255,0.28), 0 4px 14px rgba(0,0,0,0.14)"
+                : "0 0 0 1px rgba(255,255,255,0.45), 0 2px 10px rgba(0,0,0,0.12)",
+            backdropFilter: isText || isSnap ? "blur(0px)" : "blur(3px)",
             opacity: isPreviewOrb ? 0.55 : 1,
+            rotate: cursorMode === "panning" ? 45 : 0,
+            scale: cursorMode === "zoom" ? 1.02 : 1,
           }}
           transition={{
             type: "spring",
-            stiffness: 160,
+            stiffness: 190,
             damping: 22,
-            mass: 0.72,
+            mass: 0.68,
           }}
         />
       </motion.div>

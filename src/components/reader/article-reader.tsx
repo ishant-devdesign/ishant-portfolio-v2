@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -14,7 +14,11 @@ import {
   X,
 } from "lucide-react";
 import { AUTO_VOICE_KEY, useArticleReader } from "@/hooks/use-article-reader";
-import { KOKORO_VOICES } from "@/lib/reader/kokoro";
+import {
+  KOKORO_VOICES,
+  synthesizeSpeech,
+  type KokoroVoiceId,
+} from "@/lib/reader/kokoro";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { buttonClasses } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -29,6 +33,9 @@ const pillClass = cn(
   "transition-colors",
 );
 
+const VOICE_PREVIEW_TEXT =
+  "Good design makes complex products feel clear, calm, and easy to use.";
+
 export function ArticleReader({
   containerRef,
 }: {
@@ -37,7 +44,17 @@ export function ArticleReader({
   const reader = useArticleReader({ containerRef });
   const progressTrackRef = useRef<HTMLDivElement>(null);
   const [aiNoticeOpen, setAiNoticeOpen] = useState(false);
+  const [previewingVoiceKey, setPreviewingVoiceKey] = useState<string | null>(
+    null,
+  );
+  const [previewLoadingVoiceKey, setPreviewLoadingVoiceKey] = useState<
+    string | null
+  >(null);
   const aiNoticeSeenRef = useRef(false);
+  const previewSessionRef = useRef(0);
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
+  const previewAudioUrlRef = useRef<string | null>(null);
+  const previewCacheRef = useRef<Map<string, ArrayBuffer>>(new Map());
 
   useEffect(() => {
     if (!aiNoticeOpen) return;
@@ -75,8 +92,150 @@ export function ArticleReader({
 
   const busy = status === "loading-voice" || status === "processing";
 
+  const clearPreviewAudioPlayback = useCallback(() => {
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+
+    if (previewAudioRef.current) {
+      previewAudioRef.current.pause();
+      previewAudioRef.current.onended = null;
+      previewAudioRef.current.onerror = null;
+      previewAudioRef.current.removeAttribute("src");
+      previewAudioRef.current.load();
+      previewAudioRef.current = null;
+    }
+
+    if (previewAudioUrlRef.current) {
+      URL.revokeObjectURL(previewAudioUrlRef.current);
+      previewAudioUrlRef.current = null;
+    }
+  }, []);
+
+  const stopVoicePreview = useCallback(() => {
+    previewSessionRef.current += 1;
+    clearPreviewAudioPlayback();
+    setPreviewingVoiceKey(null);
+    setPreviewLoadingVoiceKey(null);
+  }, [clearPreviewAudioPlayback]);
+
+  const handleVoicePreview = useCallback(
+    async (value: string) => {
+      if (sessionActive) return;
+
+      if (previewingVoiceKey === value || previewLoadingVoiceKey === value) {
+        stopVoicePreview();
+        return;
+      }
+
+      stopVoicePreview();
+      const session = previewSessionRef.current;
+
+      const finishPreview = () => {
+        if (previewSessionRef.current !== session) return;
+        clearPreviewAudioPlayback();
+        setPreviewingVoiceKey(null);
+        setPreviewLoadingVoiceKey(null);
+      };
+
+      const failPreview = () => {
+        if (previewSessionRef.current !== session) return;
+        clearPreviewAudioPlayback();
+        setPreviewingVoiceKey(null);
+        setPreviewLoadingVoiceKey(null);
+      };
+
+      const browserVoice =
+        value === AUTO_VOICE_KEY
+          ? browserVoices[0]
+          : browserVoices.find((voice) => voice.voiceURI === value);
+
+      if (KOKORO_VOICES.some((voice) => voice.id === value)) {
+        setPreviewLoadingVoiceKey(value);
+        try {
+          const voiceId = value as KokoroVoiceId;
+          const cached = previewCacheRef.current.get(voiceId);
+          const wav =
+            cached ?? (await synthesizeSpeech(VOICE_PREVIEW_TEXT, voiceId));
+
+          if (!cached) {
+            previewCacheRef.current.set(voiceId, wav);
+          }
+
+          if (previewSessionRef.current !== session) return;
+
+          const audio = new Audio(
+            URL.createObjectURL(new Blob([wav], { type: "audio/wav" })),
+          );
+          previewAudioRef.current = audio;
+          previewAudioUrlRef.current = audio.src;
+          audio.onended = finishPreview;
+          audio.onerror = failPreview;
+
+          setPreviewLoadingVoiceKey(null);
+          setPreviewingVoiceKey(value);
+          await audio.play();
+          return;
+        } catch {
+          failPreview();
+          return;
+        }
+      }
+
+      if (!browserVoice || !speechAvailable) {
+        failPreview();
+        return;
+      }
+
+      try {
+        const utterance = new SpeechSynthesisUtterance(VOICE_PREVIEW_TEXT);
+        utterance.voice = browserVoice;
+        utterance.rate = 1;
+        utterance.pitch = 1;
+        utterance.volume = 1;
+        utterance.onend = finishPreview;
+        utterance.onerror = () => failPreview();
+
+        setPreviewingVoiceKey(value);
+        window.speechSynthesis.speak(utterance);
+      } catch {
+        failPreview();
+      }
+    },
+    [
+      browserVoices,
+      clearPreviewAudioPlayback,
+      previewLoadingVoiceKey,
+      previewingVoiceKey,
+      sessionActive,
+      speechAvailable,
+      stopVoicePreview,
+    ],
+  );
+
+  useEffect(() => {
+    return () => {
+      stopVoicePreview();
+    };
+  }, [stopVoicePreview]);
+
+  const handleToggle = () => {
+    stopVoicePreview();
+    toggle();
+  };
+
+  const handleVoiceMenuOpenChange = useCallback(
+    (open: boolean) => {
+      if (!open) {
+        stopVoicePreview();
+      }
+    },
+    [stopVoicePreview],
+  );
+
   /** First AI-voice pick per visit → explain the processing lag up front */
   const handleVoiceChange = (value: string) => {
+    stopVoicePreview();
     if (
       KOKORO_VOICES.some((voice) => voice.id === value) &&
       !aiNoticeSeenRef.current
@@ -180,7 +339,7 @@ export function ArticleReader({
   const playPill = (
     <button
       type="button"
-      onClick={toggle}
+      onClick={handleToggle}
       aria-label={busy ? "Cancel" : playing ? "Pause reading" : "Play article"}
       data-cursor={busy ? "Cancel" : playing ? "Pause" : "Listen"}
       className={cn(
@@ -211,6 +370,11 @@ export function ArticleReader({
         value={voiceKey}
         options={voiceOptions}
         onChange={handleVoiceChange}
+        onPreview={handleVoicePreview}
+        previewingValue={previewingVoiceKey}
+        previewLoadingValue={previewLoadingVoiceKey}
+        previewDisabled={sessionActive || busy}
+        onOpenChange={handleVoiceMenuOpenChange}
         className="h-full w-full [&>button]:h-full [&>button]:rounded-full [&>button]:border-transparent [&>button]:bg-transparent [&>button]:px-3.5 [&>button]:py-0 [&>button]:text-[11px] [&>button]:text-white/80 sm:[&>button]:text-xs [&>button_span]:truncate"
       />
     </div>

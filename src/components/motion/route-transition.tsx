@@ -34,6 +34,24 @@ function normalizeHref(href: string) {
   }
 }
 
+function normalizeRouteLabel(value: string | null | undefined) {
+  return value?.replace(/\s+/g, " ").trim() || "";
+}
+
+function getRouteTransitionLabel(
+  anchor: HTMLAnchorElement,
+  targetUrl: URL,
+  currentLabel: string,
+) {
+  const explicitTitle = normalizeRouteLabel(anchor.dataset.routeTitle);
+  if (explicitTitle) return explicitTitle;
+
+  const cursorTitle = normalizeRouteLabel(anchor.dataset.cursorTitle);
+  if (cursorTitle) return cursorTitle;
+
+  return currentLabel || formatPathname(targetUrl.pathname);
+}
+
 function RouteLogoConstructionLine({
   x1,
   y1,
@@ -585,7 +603,13 @@ export function RouteTransition() {
       event.preventDefault();
 
       pendingHrefRef.current = href;
-      setLabel(formatPathname(targetUrl.pathname));
+      setLabel(
+        getRouteTransitionLabel(
+          anchor,
+          targetUrl,
+          formatPathname(targetUrl.pathname),
+        ),
+      );
       setVisible(true);
 
       if (pushTimeoutRef.current) {

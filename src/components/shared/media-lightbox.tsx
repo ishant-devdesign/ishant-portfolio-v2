@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { ArrowLeft, ArrowRight, X } from "lucide-react";
 import { CustomVideoPlayer } from "@/components/ui/custom-video-player";
+import { PanZoomImage } from "@/components/shared/pan-zoom-image";
 import type { CreativeArchiveItem } from "@/lib/site-config";
 
 function isVideoUrl(url: string): boolean {
@@ -67,10 +68,19 @@ export function MediaLightbox({
   const item = items[activeIndex];
   const isVideo = isVideoUrl(item.url);
   const canNavigate = items.length > 1;
+  const caption = item.description?.trim() || item.title?.trim() || "";
+  const altLabel =
+    item.title?.trim() || item.filename?.trim() || "Archive media";
 
   return createPortal(
-    <div className="fixed inset-0 z-[260] bg-black/95 text-white">
-      <div className="absolute inset-x-0 top-0 z-[2] flex items-center justify-between gap-4 border-b border-white/10 bg-black/45 px-5 py-4 backdrop-blur-xl">
+    <div
+      className="fixed inset-0 z-[260] bg-black/95 text-white"
+      onClick={onClose}
+    >
+      <div
+        className="absolute inset-x-0 top-0 z-[3] flex h-20 items-center justify-between gap-4 border-b border-white/10 bg-black/45 px-5 backdrop-blur-xl"
+        onClick={(event) => event.stopPropagation()}
+      >
         <div className="min-w-0">
           <p className="text-[0.68rem] uppercase tracking-[0.34em] text-white/40">
             Creative Archive
@@ -88,57 +98,50 @@ export function MediaLightbox({
         </button>
       </div>
 
-      <button
-        type="button"
-        onClick={onClose}
-        className="absolute inset-0 h-full w-full"
-        aria-label="Close viewer"
-      />
+      <div
+        className="absolute inset-x-0 bottom-0 top-20 z-[1]"
+        onClick={(event) => event.stopPropagation()}
+      >
+        {isVideo ? (
+          <div className="flex h-full w-full items-center justify-center px-4 py-4 sm:px-6 sm:py-6">
+            <CustomVideoPlayer
+              src={item.url}
+              autoPlay
+              onEnded={() => {
+                if (canNavigate) {
+                  onChangeIndex((activeIndex + 1) % items.length);
+                }
+              }}
+              className="max-h-full w-auto max-w-full object-contain"
+            />
+          </div>
+        ) : (
+          <PanZoomImage
+            key={item.url}
+            src={item.url}
+            alt={altLabel}
+            caption={caption}
+          />
+        )}
 
-      <div className="relative z-[1] flex h-full items-center justify-center px-4 pb-8 pt-24 sm:px-6">
         {canNavigate ? (
           <button
             type="button"
             onClick={() =>
               onChangeIndex((activeIndex - 1 + items.length) % items.length)
             }
-            className="absolute left-3 top-1/2 z-[2] -translate-y-1/2 rounded-full border border-white/10 bg-black/45 p-3 text-white/84 backdrop-blur hover:bg-white/[0.08] sm:left-6"
+            className="absolute left-3 top-1/2 z-[4] -translate-y-1/2 rounded-full border border-white/10 bg-black/45 p-3 text-white/84 backdrop-blur hover:bg-white/[0.08] sm:left-6"
             aria-label="Previous item"
           >
             <ArrowLeft className="size-5" />
           </button>
         ) : null}
 
-        <div
-          className="relative z-[2] max-h-full max-w-[min(1400px,100%)]"
-          onClick={(event) => event.stopPropagation()}
-        >
-          {isVideo ? (
-            <CustomVideoPlayer
-              src={item.url}
-              autoPlay
-              onEnded={() => {
-                // Auto-advance to next video when one ends
-                if (canNavigate) {
-                  onChangeIndex((activeIndex + 1) % items.length);
-                }
-              }}
-              className="max-h-[82vh] w-auto max-w-full object-contain"
-            />
-          ) : (
-            <img
-              src={item.url}
-              alt="Archive media"
-              className="max-h-[82vh] w-auto max-w-full object-contain"
-            />
-          )}
-        </div>
-
         {canNavigate ? (
           <button
             type="button"
             onClick={() => onChangeIndex((activeIndex + 1) % items.length)}
-            className="absolute right-3 top-1/2 z-[2] -translate-y-1/2 rounded-full border border-white/10 bg-black/45 p-3 text-white/84 backdrop-blur hover:bg-white/[0.08] sm:right-6"
+            className="absolute right-3 top-1/2 z-[4] -translate-y-1/2 rounded-full border border-white/10 bg-black/45 p-3 text-white/84 backdrop-blur hover:bg-white/[0.08] sm:right-6"
             aria-label="Next item"
           >
             <ArrowRight className="size-5" />
